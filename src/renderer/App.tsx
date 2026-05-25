@@ -4,8 +4,10 @@ import {
 	FolderPlus,
 	MessageSquare,
 	MessageSquarePlus,
+	Settings as SettingsIcon,
 	Sparkles,
 	Terminal,
+	Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MainArea } from "@/components/layout/MainArea";
@@ -18,6 +20,7 @@ import { Composer } from "@/components/chat/Composer";
 import { MessageTimeline } from "@/components/chat/MessageTimeline";
 import { BashPanel } from "@/components/panels/BashPanel";
 import { ModelPicker } from "@/components/settings/ModelPicker";
+import { SettingsDialog } from "@/components/settings/SettingsDialog";
 import { ThemeSwitcher } from "@/components/settings/ThemeSwitcher";
 import {
 	ToastHost,
@@ -26,6 +29,7 @@ import {
 } from "@/components/ui/toast";
 import { useKeyboardShortcuts } from "@/lib/keyboard";
 import { useSessions } from "@/stores/session-state";
+import { cn } from "@/lib/utils";
 import { pi } from "@/lib/rpc";
 
 type Workspace = Awaited<ReturnType<typeof pi.workspaces.list>>[number];
@@ -39,6 +43,7 @@ export function App() {
 	const [activePiSid, setActivePiSid] = useState<string | null>(null);
 	const [bashOpen, setBashOpen] = useState(false);
 	const [renamingId, setRenamingId] = useState<string | null>(null);
+	const [settingsOpen, setSettingsOpen] = useState(false);
 
 	const { hydrate, attach, setCurrent } = useSessions();
 	const slice = useSessions((s) => (activeSid ? s.bySession[activeSid] : null));
@@ -128,6 +133,26 @@ export function App() {
 		}
 	}
 
+	async function deleteSession(s: SessionInfo) {
+		if (!activeWs) return;
+		const ok = window.confirm(
+			`Delete session "${s.name ?? (s.firstMessage.slice(0, 40) || "Untitled")}"?\n\nThis removes the session file from disk and cannot be undone.`,
+		);
+		if (!ok) return;
+		try {
+			await pi.sessions.delete({ workspaceId: activeWs, sessionPath: s.path });
+			if (s.id === activePiSid) {
+				setActiveSid(null);
+				setActivePiSid(null);
+			}
+			await refreshSessions(activeWs);
+		} catch (e) {
+			emitToast(
+				`Delete failed: ${e instanceof Error ? e.message : String(e)}`,
+			);
+		}
+	}
+
 	async function renameSession(s: SessionInfo, newName: string) {
 		const name = newName.trim();
 		if (!name || name === s.name) return;
@@ -155,6 +180,7 @@ export function App() {
 	return (
 		<div className="flex h-full w-full">
 			<ToastHost />
+			<SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
 			<Sidebar>
 				<SidebarSection
 					title="Workspaces"
@@ -220,6 +246,7 @@ export function App() {
 										await renameSession(s, name);
 									}}
 									onCancelRename={() => setRenamingId(null)}
+									onDelete={() => deleteSession(s)}
 								/>
 							))
 						)}
@@ -242,9 +269,17 @@ export function App() {
 								thinkingLevel={slice?.state?.thinkingLevel as any}
 							/>
 						) : null}
-						{activeSid ? (
-							<div className="ml-auto flex items-center gap-1">
-								<ThemeSwitcher />
+						<div className="ml-auto flex items-center gap-1">
+							<ThemeSwitcher />
+							<Button
+								size="iconSm"
+								variant="ghost"
+								onClick={() => setSettingsOpen(true)}
+								title="Settings"
+							>
+								<SettingsIcon className="size-3.5" />
+							</Button>
+							{activeSid ? (
 								<Button
 									size="iconSm"
 									variant={bashOpen ? "secondary" : "ghost"}
@@ -253,12 +288,8 @@ export function App() {
 								>
 									<Terminal className="size-3.5" />
 								</Button>
-							</div>
-						) : (
-							<div className="ml-auto">
-								<ThemeSwitcher />
-							</div>
-						)}
+							) : null}
+						</div>
 					</>
 				}
 				footer={
@@ -346,6 +377,7 @@ function SessionRow({
 	onStartRename,
 	onSubmitRename,
 	onCancelRename,
+	onDelete,
 }: {
 	session: SessionInfo;
 	active: boolean;
@@ -354,6 +386,7 @@ function SessionRow({
 	onStartRename: () => void;
 	onSubmitRename: (name: string) => void;
 	onCancelRename: () => void;
+	onDelete: () => void;
 }) {
 	const [draft, setDraft] = useState(session.name ?? "");
 	useEffect(() => {
@@ -389,6 +422,7 @@ function SessionRow({
 
 	return (
 		<div
+			className="group/sessionrow relative"
 			onDoubleClick={(e) => {
 				e.preventDefault();
 				onStartRename();
@@ -403,6 +437,22 @@ function SessionRow({
 				}
 				subtitle={`${session.messageCount} msg · ${formatTime(session.modified)}`}
 				title2={session.firstMessage}
+				right={
+					<button
+						type="button"
+						onClick={(e) => {
+							e.stopPropagation();
+							onDelete();
+						}}
+						title="Delete session"
+						className={cn(
+							"flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/15 hover:text-destructive group-hover/sessionrow:opacity-100",
+							active && "text-accent-foreground/70",
+						)}
+					>
+						<Trash2 className="size-3" />
+					</button>
+				}
 			/>
 		</div>
 	);

@@ -8,7 +8,7 @@ export function MainArea({ header, footer, children }: Props) {
 	return (
 		<main className="flex flex-1 flex-col overflow-hidden bg-background">
 			<div
-				className="flex h-12 shrink-0 items-center gap-2 border-b border-[hsl(var(--titlebar-divider))] px-6"
+				className="flex h-11 shrink-0 items-center gap-2 border-b border-[hsl(var(--titlebar-divider))] px-5"
 				style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
 			>
 				<div

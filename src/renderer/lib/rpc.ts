@@ -24,6 +24,10 @@ export interface PiBridge {
 			sessionFile?: string;
 		}) => Promise<OpenSessionResult>;
 		close: (sessionId: string) => Promise<void>;
+		delete: (args: {
+			workspaceId: string;
+			sessionPath: string;
+		}) => Promise<void>;
 	};
 	rpc: {
 		send: <C extends RpcCommand>(
@@ -42,6 +46,18 @@ export interface PiBridge {
 			cb: (info: { source: string; shouldUseDark: boolean }) => void,
 		) => () => void;
 	};
+	auth: {
+		list: () => Promise<ProviderEntry[]>;
+		knownProviders: () => Promise<string[]>;
+		setKey: (provider: string, key: string) => Promise<void>;
+		remove: (provider: string) => Promise<void>;
+	};
+}
+
+export interface ProviderEntry {
+	provider: string;
+	type: "api_key" | "oauth";
+	maskedKey?: string;
 }
 
 declare global {

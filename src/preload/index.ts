@@ -25,6 +25,8 @@ const sessions = {
 		ipcRenderer.invoke("pi:session:open", opts),
 	close: (sessionId: string) =>
 		ipcRenderer.invoke("pi:session:close", sessionId),
+	delete: (args: { workspaceId: string; sessionPath: string }) =>
+		ipcRenderer.invoke("pi:session:delete", args),
 };
 
 const rpc = {
@@ -37,6 +39,14 @@ const rpc = {
 		ipcRenderer.on(RPC_EVENT_CHANNEL, handler);
 		return () => ipcRenderer.off(RPC_EVENT_CHANNEL, handler);
 	},
+};
+
+const auth = {
+	list: () => ipcRenderer.invoke("pi:auth:list"),
+	knownProviders: () => ipcRenderer.invoke("pi:auth:known-providers"),
+	setKey: (provider: string, key: string) =>
+		ipcRenderer.invoke("pi:auth:set-key", provider, key),
+	remove: (provider: string) => ipcRenderer.invoke("pi:auth:remove", provider),
 };
 
 const theme = {
@@ -59,6 +69,7 @@ const api = {
 	sessions,
 	rpc,
 	theme,
+	auth,
 } as const;
 
 contextBridge.exposeInMainWorld("pi", api);

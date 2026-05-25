@@ -1,3 +1,4 @@
+import { rm } from "node:fs/promises";
 import {
 	type SessionInfo,
 	SessionManager,
@@ -31,5 +32,11 @@ function toListItem(info: SessionInfo): SessionListItem {
 
 export async function listSessionsForCwd(cwd: string): Promise<SessionListItem[]> {
 	const sessions = await SessionManager.list(cwd);
-	return sessions.map(toListItem);
+	return sessions
+		.map(toListItem)
+		.sort((a, b) => b.modified - a.modified);
+}
+
+export async function deleteSessionFile(sessionPath: string): Promise<void> {
+	await rm(sessionPath, { force: true });
 }

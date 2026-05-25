@@ -36,9 +36,9 @@
 
 		--sidebar: 240 7% 97%;
 		--sidebar-foreground: 240 10% 4%;
-		--sidebar-shadow: 0 1px 0 0 hsl(240 6% 88%), 6px 0 24px -10px hsl(240 6% 70% / 0.18);
+		--sidebar-shadow: inset -1px 0 0 0 hsl(240 6% 89%), 4px 0 14px -8px hsl(240 8% 55% / 0.18);
 
-		--titlebar-divider: 240 6% 91%;
+		--titlebar-divider: 240 6% 94%;
 
 		--radius: 0.85rem;
 	}
@@ -75,9 +75,9 @@
 
 		--sidebar: 240 6% 7%;
 		--sidebar-foreground: 240 5% 96%;
-		--sidebar-shadow: 0 0 0 1px hsl(0 0% 100% / 0.04);
+		--sidebar-shadow: inset -1px 0 0 0 hsl(0 0% 100% / 0.06), 12px 0 32px -16px hsl(0 0% 0% / 0.6);
 
-		--titlebar-divider: 240 4% 18%;
+		--titlebar-divider: 240 4% 16%;
 	}
 
 	html,

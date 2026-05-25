@@ -1,7 +1,13 @@
 import type { RpcCommand } from "@earendil-works/pi-coding-agent";
 import { type BrowserWindow, dialog, ipcMain, nativeTheme } from "electron";
+import {
+	listConfiguredProviders,
+	listKnownProviders,
+	removeProvider,
+	setApiKey,
+} from "./auth.js";
 import { dispatchRpc } from "./dispatch-rpc.js";
-import { listSessionsForCwd } from "./session-fs.js";
+import { deleteSessionFile, listSessionsForCwd } from "./session-fs.js";
 import { sessionRegistry } from "./session-registry.js";
 import {
 	addWorkspace,
@@ -65,6 +71,23 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 	});
 
 	ipcMain.handle(
+		"pi:session:delete",
+		async (
+			_e,
+			args: { workspaceId: string; sessionPath: string },
+		): Promise<void> => {
+			// Close any open sessions backed by this file before deletion.
+			for (const open of sessionRegistry.listOpen()) {
+				const sess = sessionRegistry.tryGet(open.sessionId);
+				if (sess?.sessionFile === args.sessionPath) {
+					await sessionRegistry.close(open.sessionId);
+				}
+			}
+			await deleteSessionFile(args.sessionPath);
+		},
+	);
+
+	ipcMain.handle(
 		"pi:rpc",
 		async (_e, sessionId: string, command: RpcCommand) => {
 			const session = sessionRegistry.get(sessionId);
@@ -73,6 +96,15 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 	);
 
 	ipcMain.handle("pi:ping", () => "pong");
+
+	ipcMain.handle("pi:auth:list", () => listConfiguredProviders());
+	ipcMain.handle("pi:auth:known-providers", () => listKnownProviders());
+	ipcMain.handle("pi:auth:set-key", (_e, provider: string, key: string) => {
+		setApiKey(provider, key);
+	});
+	ipcMain.handle("pi:auth:remove", (_e, provider: string) => {
+		removeProvider(provider);
+	});
 
 	ipcMain.handle("pi:theme:set-source", (_e, source: ThemeSource) => {
 		if (source === "light" || source === "dark" || source === "system") {
