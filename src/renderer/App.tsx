@@ -1,25 +1,31 @@
 import { useEffect, useState } from "react";
+import {
+	Folder,
+	FolderPlus,
+	MessageSquare,
+	MessageSquarePlus,
+	Sparkles,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { MainArea } from "@/components/layout/MainArea";
+import {
+	Sidebar,
+	SidebarItem,
+	SidebarSection,
+} from "@/components/layout/Sidebar";
 import { pi } from "@/lib/rpc";
 
-interface LogLine {
-	t: number;
-	text: string;
-}
+type Workspace = Awaited<ReturnType<typeof pi.workspaces.list>>[number];
+type SessionInfo = Awaited<ReturnType<typeof pi.sessions.list>>[number];
 
 export function App() {
-	const [pong, setPong] = useState<string>("…");
-	const [workspaces, setWorkspaces] = useState<Awaited<ReturnType<typeof pi.workspaces.list>>>([]);
+	const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
 	const [activeWs, setActiveWs] = useState<string | null>(null);
-	const [sessions, setSessions] = useState<Awaited<ReturnType<typeof pi.sessions.list>>>([]);
+	const [sessions, setSessions] = useState<SessionInfo[]>([]);
 	const [activeSid, setActiveSid] = useState<string | null>(null);
-	const [logs, setLogs] = useState<LogLine[]>([]);
-
-	const log = (text: string) =>
-		setLogs((l) => [...l.slice(-19), { t: Date.now(), text }]);
 
 	useEffect(() => {
-		pi.ping().then(setPong).catch((e) => setPong(`error: ${e.message}`));
-		refreshWorkspaces();
+		void refreshWorkspaces();
 	}, []);
 
 	async function refreshWorkspaces() {
@@ -30,6 +36,7 @@ export function App() {
 		setWorkspaces(list);
 		setActiveWs(active);
 		if (active) await refreshSessions(active);
+		else setSessions([]);
 	}
 
 	async function refreshSessions(workspaceId: string) {
@@ -37,11 +44,17 @@ export function App() {
 		setSessions(list);
 	}
 
+	async function selectWorkspace(id: string) {
+		await pi.workspaces.setActive(id);
+		setActiveWs(id);
+		await refreshSessions(id);
+		setActiveSid(null);
+	}
+
 	async function addWorkspace() {
 		const path = await pi.workspaces.pickDirectory();
 		if (!path) return;
-		const ws = await pi.workspaces.add(path);
-		log(`+ workspace ${ws.name}`);
+		await pi.workspaces.add(path);
 		await refreshWorkspaces();
 	}
 
@@ -52,115 +65,172 @@ export function App() {
 			sessionFile,
 		});
 		setActiveSid(sessionId);
-		log(`session opened ${sessionId.slice(0, 8)}`);
-		pi.rpc.subscribe(sessionId, (ev) => {
-			const type = (ev as { type?: string }).type ?? "?";
-			log(`event ${type}`);
-		});
-		const state = await pi.rpc.send(sessionId, { type: "get_state" });
-		log(`state ${JSON.stringify(state).slice(0, 80)}…`);
+		await refreshSessions(activeWs);
 	}
+
+	const activeWorkspace = workspaces.find((w) => w.id === activeWs);
 
 	return (
 		<div className="flex h-full w-full">
-			<aside className="w-[280px] shrink-0 border-r border-border/40 px-4 pb-4 pt-12">
-				<div className="select-none text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">
-					Workspaces
-				</div>
-				<div className="mt-2 space-y-1">
-					{workspaces.map((w) => (
-						<button
-							type="button"
-							key={w.id}
-							className={`w-full truncate rounded-lg px-3 py-2 text-left text-sm hover:bg-white/5 ${
-								w.id === activeWs ? "bg-primary/15 text-foreground" : "text-foreground/80"
-							}`}
-							onClick={async () => {
-								await pi.workspaces.setActive(w.id);
-								setActiveWs(w.id);
-								await refreshSessions(w.id);
-							}}
+			<Sidebar>
+				<SidebarSection
+					title="Workspaces"
+					action={
+						<Button
+							size="iconSm"
+							variant="ghost"
+							onClick={addWorkspace}
+							title="Add workspace"
 						>
-							{w.name}
-							<div className="text-[10px] text-muted-foreground truncate">{w.path}</div>
-						</button>
-					))}
-					<button
-						type="button"
-						onClick={addWorkspace}
-						className="mt-2 w-full rounded-lg border border-dashed border-border/60 px-3 py-2 text-left text-xs text-muted-foreground hover:bg-white/5"
-					>
-						+ Add workspace
-					</button>
-				</div>
-
-				<div className="mt-6 select-none text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">
-					Sessions
-				</div>
-				<div className="mt-2 space-y-1">
-					{sessions.length === 0 && (
-						<div className="text-xs text-muted-foreground/60">(none)</div>
-					)}
-					{sessions.map((s) => (
-						<button
-							type="button"
-							key={s.path}
-							className="w-full truncate rounded-lg px-3 py-2 text-left text-xs hover:bg-white/5"
-							onClick={() => openSession(s.path)}
-							title={s.firstMessage}
-						>
-							<div className="truncate text-foreground/90">
-								{s.name ?? (s.firstMessage.slice(0, 40) || "(empty)")}
-							</div>
-							<div className="text-[10px] text-muted-foreground">
-								{new Date(s.modified).toLocaleString()} · {s.messageCount} msgs
-							</div>
-						</button>
-					))}
-					<button
-						type="button"
-						onClick={() => openSession()}
-						className="mt-2 w-full rounded-lg border border-dashed border-border/60 px-3 py-2 text-left text-xs text-muted-foreground hover:bg-white/5"
-					>
-						+ New session
-					</button>
-				</div>
-			</aside>
-
-			<main className="flex flex-1 flex-col">
-				<header
-					className="flex h-14 shrink-0 items-center px-6 text-sm font-medium"
-					style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
+							<FolderPlus className="size-3.5" />
+						</Button>
+					}
 				>
-					<span className="pl-16 text-foreground/70">
-						pi · {activeSid ? activeSid.slice(0, 8) : "no session"}
-					</span>
-				</header>
-				<section className="flex flex-1 flex-col gap-4 px-8 pb-8">
-					<div className="rounded-2xl border border-border/40 bg-card/40 px-6 py-4 shadow-2xl backdrop-blur">
-						<div className="text-xs uppercase tracking-wider text-muted-foreground">M2 status</div>
-						<div className="mt-1 text-sm">
-							ping: <span className="font-mono text-primary">{pong}</span>
+					{workspaces.length === 0 ? (
+						<div className="px-3 py-2 text-[11px] text-muted-foreground/60">
+							No workspaces yet
 						</div>
-					</div>
-					<div className="flex-1 overflow-auto rounded-2xl border border-border/40 bg-card/40 p-4 font-mono text-[12px] text-foreground/80 shadow-2xl backdrop-blur">
-						{logs.length === 0 ? (
-							<div className="text-muted-foreground">
-								Add a workspace and open a session to see RPC events.
+					) : (
+						workspaces.map((w) => (
+							<SidebarItem
+								key={w.id}
+								active={w.id === activeWs}
+								onClick={() => selectWorkspace(w.id)}
+								icon={<Folder className="size-3.5" />}
+								title={w.name}
+								subtitle={w.path.replace(/^\/Users\/[^/]+/, "~")}
+								title2={w.path}
+							/>
+						))
+					)}
+				</SidebarSection>
+
+				{activeWorkspace ? (
+					<SidebarSection
+						title="Sessions"
+						action={
+							<Button
+								size="iconSm"
+								variant="ghost"
+								onClick={() => openSession()}
+								title="New session"
+							>
+								<MessageSquarePlus className="size-3.5" />
+							</Button>
+						}
+					>
+						{sessions.length === 0 ? (
+							<div className="px-3 py-2 text-[11px] text-muted-foreground/60">
+								No sessions in this workspace yet
 							</div>
 						) : (
-							logs.map((l) => (
-								<div key={l.t} className="border-b border-border/20 py-1">
-									<span className="mr-3 text-muted-foreground/60">
-										{new Date(l.t).toLocaleTimeString()}
-									</span>
-									{l.text}
-								</div>
+							sessions.map((s) => (
+								<SidebarItem
+									key={s.path}
+									active={false}
+									onClick={() => openSession(s.path)}
+									icon={<MessageSquare className="size-3.5" />}
+									title={s.name ?? (truncate(s.firstMessage, 36) || "Untitled")}
+									subtitle={`${s.messageCount} msg · ${formatTime(s.modified)}`}
+									title2={s.firstMessage}
+								/>
 							))
 						)}
+					</SidebarSection>
+				) : null}
+			</Sidebar>
+
+			<MainArea
+				header={
+					<>
+						<span className="text-sm font-semibold text-foreground/90">
+							{activeSid ? "Session" : "pi · desktop"}
+						</span>
+						{activeSid ? (
+							<span className="font-mono text-[10px] text-muted-foreground/60">
+								{activeSid.slice(0, 8)}
+							</span>
+						) : null}
+					</>
+				}
+			>
+				{activeSid ? (
+					<div className="flex h-full items-center justify-center px-8">
+						<EmptyTimeline />
 					</div>
-				</section>
-			</main>
+				) : (
+					<NoSessionState
+						hasWorkspace={!!activeWorkspace}
+						onAddWorkspace={addWorkspace}
+						onNewSession={() => openSession()}
+					/>
+				)}
+			</MainArea>
 		</div>
 	);
+}
+
+function NoSessionState({
+	hasWorkspace,
+	onAddWorkspace,
+	onNewSession,
+}: {
+	hasWorkspace: boolean;
+	onAddWorkspace: () => void;
+	onNewSession: () => void;
+}) {
+	return (
+		<div className="flex h-full flex-col items-center justify-center px-8 text-center">
+			<div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary shadow-lg shadow-primary/10">
+				<Sparkles className="size-7" />
+			</div>
+			<h1 className="text-2xl font-semibold tracking-tight">
+				Start coding with pi
+			</h1>
+			<p className="mt-2 max-w-md text-sm text-muted-foreground">
+				{hasWorkspace
+					? "Open an existing session from the sidebar, or start a fresh one in this workspace."
+					: "Add a workspace folder to get started. Each workspace is a project directory where pi can read, edit, and run code."}
+			</p>
+			<div className="mt-6 flex gap-3">
+				{hasWorkspace ? (
+					<Button onClick={onNewSession} size="lg">
+						<MessageSquarePlus className="size-4" />
+						New session
+					</Button>
+				) : (
+					<Button onClick={onAddWorkspace} size="lg">
+						<FolderPlus className="size-4" />
+						Add workspace
+					</Button>
+				)}
+			</div>
+		</div>
+	);
+}
+
+function EmptyTimeline() {
+	return (
+		<div className="rounded-2xl border border-border/40 bg-card/50 px-8 py-6 text-sm text-muted-foreground shadow-2xl backdrop-blur">
+			Chat timeline will land in M6.
+		</div>
+	);
+}
+
+function truncate(text: string, n: number): string {
+	const trimmed = text.replace(/\s+/g, " ").trim();
+	return trimmed.length > n ? `${trimmed.slice(0, n - 1)}…` : trimmed;
+}
+
+function formatTime(ms: number): string {
+	const d = new Date(ms);
+	const now = new Date();
+	const sameDay =
+		d.getFullYear() === now.getFullYear() &&
+		d.getMonth() === now.getMonth() &&
+		d.getDate() === now.getDate();
+	if (sameDay) {
+		return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+	}
+	return d.toLocaleDateString([], { month: "short", day: "numeric" });
 }
