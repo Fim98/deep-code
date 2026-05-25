@@ -2,7 +2,7 @@
 
 An Apple Music–style Electron desktop client for the [pi](https://www.npmjs.com/package/@earendil-works/pi-coding-agent) coding agent.
 
-> **Status:** early scaffold. M1 (Electron + React + Tailwind + shadcn 脚手架) and M2 (in-process pi SDK bridge over IPC) are done. M3–M10 in progress.
+> **Status:** M1–M10 complete. All core features implemented, iterating on polish and bug fixes.
 
 ## Architecture
 
@@ -44,14 +44,14 @@ Outputs `out/main/index.js`, `out/preload/index.cjs`, `out/renderer/`.
 |---|---|---|
 | M1 | Scaffold | ✅ |
 | M2 | pi SDK bridge + IPC | ✅ |
-| M3 | Apple Music three-pane layout | ⏳ |
-| M4 | Workspace management | ⏳ |
-| M5 | Session list | ⏳ |
-| M6 | Chat timeline | ⏳ |
-| M7 | Tool call cards | ⏳ |
-| M8 | Model + provider settings | ⏳ |
-| M9 | Bash panel + diff viewer | ⏳ |
-| M10 | Polish | ⏳ |
+| M3 | Apple Music three-pane layout | ✅ |
+| M4 | Workspace management | ✅ |
+| M5 | Session list | ✅ |
+| M6 | Chat timeline | ✅ |
+| M7 | Tool call cards | ✅ |
+| M8 | Model + provider settings | ✅ |
+| M9 | Bash panel + diff viewer | ✅ |
+| M10 | Polish | ✅ |
 
 ## License
 
