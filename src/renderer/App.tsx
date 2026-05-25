@@ -15,6 +15,7 @@ import {
 } from "@/components/layout/Sidebar";
 import { Composer } from "@/components/chat/Composer";
 import { MessageTimeline } from "@/components/chat/MessageTimeline";
+import { ModelPicker } from "@/components/settings/ModelPicker";
 import { useSessions } from "@/stores/session-state";
 import { pi } from "@/lib/rpc";
 
@@ -168,10 +169,12 @@ export function App() {
 								? slice?.state?.sessionName ?? "Session"
 								: "pi · desktop"}
 						</span>
-						{activeSid && slice?.state?.model ? (
-							<span className="rounded-md bg-white/[0.04] px-2 py-0.5 text-[10.5px] text-muted-foreground/80">
-								{slice.state.model.provider}/{slice.state.model.id}
-							</span>
+						{activeSid ? (
+							<ModelPicker
+								sessionId={activeSid}
+								model={slice?.state?.model as any}
+								thinkingLevel={slice?.state?.thinkingLevel as any}
+							/>
 						) : null}
 					</>
 				}
