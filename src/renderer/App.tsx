@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
 	Folder,
 	FolderPlus,
@@ -13,6 +13,9 @@ import {
 	SidebarItem,
 	SidebarSection,
 } from "@/components/layout/Sidebar";
+import { Composer } from "@/components/chat/Composer";
+import { MessageTimeline } from "@/components/chat/MessageTimeline";
+import { useSessions } from "@/stores/session-state";
 import { pi } from "@/lib/rpc";
 
 type Workspace = Awaited<ReturnType<typeof pi.workspaces.list>>[number];
@@ -23,10 +26,19 @@ export function App() {
 	const [activeWs, setActiveWs] = useState<string | null>(null);
 	const [sessions, setSessions] = useState<SessionInfo[]>([]);
 	const [activeSid, setActiveSid] = useState<string | null>(null);
+	const [activePiSid, setActivePiSid] = useState<string | null>(null);
+
+	const { hydrate, attach, setCurrent } = useSessions();
+	const slice = useSessions((s) => (activeSid ? s.bySession[activeSid] : null));
+	const attachedSids = useRef(new Set<string>());
 
 	useEffect(() => {
 		void refreshWorkspaces();
 	}, []);
+
+	useEffect(() => {
+		setCurrent(activeSid);
+	}, [activeSid, setCurrent]);
 
 	async function refreshWorkspaces() {
 		const [list, active] = await Promise.all([
@@ -49,6 +61,7 @@ export function App() {
 		setActiveWs(id);
 		await refreshSessions(id);
 		setActiveSid(null);
+		setActivePiSid(null);
 	}
 
 	async function addWorkspace() {
@@ -60,11 +73,18 @@ export function App() {
 
 	async function openSession(sessionFile?: string) {
 		if (!activeWs) return;
-		const { sessionId } = await pi.sessions.open({
+		const result = await pi.sessions.open({
 			workspaceId: activeWs,
 			sessionFile,
 		});
+		const { sessionId, piSessionId } = result;
 		setActiveSid(sessionId);
+		setActivePiSid(piSessionId);
+		await hydrate(sessionId);
+		if (!attachedSids.current.has(sessionId)) {
+			attach(sessionId);
+			attachedSids.current.add(sessionId);
+		}
 		await refreshSessions(activeWs);
 	}
 
@@ -127,7 +147,7 @@ export function App() {
 							sessions.map((s) => (
 								<SidebarItem
 									key={s.path}
-									active={false}
+									active={s.id === activePiSid}
 									onClick={() => openSession(s.path)}
 									icon={<MessageSquare className="size-3.5" />}
 									title={s.name ?? (truncate(s.firstMessage, 36) || "Untitled")}
@@ -144,20 +164,28 @@ export function App() {
 				header={
 					<>
 						<span className="text-sm font-semibold text-foreground/90">
-							{activeSid ? "Session" : "pi · desktop"}
+							{activeSid
+								? slice?.state?.sessionName ?? "Session"
+								: "pi · desktop"}
 						</span>
-						{activeSid ? (
-							<span className="font-mono text-[10px] text-muted-foreground/60">
-								{activeSid.slice(0, 8)}
+						{activeSid && slice?.state?.model ? (
+							<span className="rounded-md bg-white/[0.04] px-2 py-0.5 text-[10.5px] text-muted-foreground/80">
+								{slice.state.model.provider}/{slice.state.model.id}
 							</span>
 						) : null}
 					</>
 				}
+				footer={
+					activeSid ? (
+						<Composer
+							sessionId={activeSid}
+							isStreaming={slice?.isStreaming ?? false}
+						/>
+					) : null
+				}
 			>
 				{activeSid ? (
-					<div className="flex h-full items-center justify-center px-8">
-						<EmptyTimeline />
-					</div>
+					<MessageTimeline sessionId={activeSid} />
 				) : (
 					<NoSessionState
 						hasWorkspace={!!activeWorkspace}
@@ -205,14 +233,6 @@ function NoSessionState({
 					</Button>
 				)}
 			</div>
-		</div>
-	);
-}
-
-function EmptyTimeline() {
-	return (
-		<div className="rounded-2xl border border-border/40 bg-card/50 px-8 py-6 text-sm text-muted-foreground shadow-2xl backdrop-blur">
-			Chat timeline will land in M6.
 		</div>
 	);
 }
