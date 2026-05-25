@@ -39,11 +39,26 @@ const rpc = {
 	},
 };
 
+const theme = {
+	setSource: (source: "system" | "light" | "dark") =>
+		ipcRenderer.invoke("pi:theme:set-source", source),
+	get: () => ipcRenderer.invoke("pi:theme:get"),
+	onUpdate: (cb: (info: { source: string; shouldUseDark: boolean }) => void) => {
+		const handler = (
+			_e: Electron.IpcRendererEvent,
+			info: { source: string; shouldUseDark: boolean },
+		) => cb(info);
+		ipcRenderer.on("pi:theme:updated", handler);
+		return () => ipcRenderer.off("pi:theme:updated", handler);
+	},
+};
+
 const api = {
 	ping: (): Promise<string> => ipcRenderer.invoke("pi:ping"),
 	workspaces,
 	sessions,
 	rpc,
+	theme,
 } as const;
 
 contextBridge.exposeInMainWorld("pi", api);

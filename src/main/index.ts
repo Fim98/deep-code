@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { BrowserWindow, app } from "electron";
+import { BrowserWindow, app, nativeTheme } from "electron";
 import { registerIpcHandlers } from "./ipc.js";
 
 const isDev = !app.isPackaged;
@@ -15,7 +15,7 @@ async function createWindow(): Promise<BrowserWindow> {
 		trafficLightPosition: { x: 16, y: 16 },
 		vibrancy: "sidebar",
 		visualEffectState: "active",
-		backgroundColor: "#1c1c1e",
+		backgroundColor: nativeTheme.shouldUseDarkColors ? "#1c1c1e" : "#f5f5f7",
 		show: false,
 		webPreferences: {
 			preload: join(__dirname, "../preload/index.cjs"),
@@ -34,8 +34,15 @@ async function createWindow(): Promise<BrowserWindow> {
 		await win.loadFile(join(__dirname, "../renderer/index.html"));
 	}
 
+	const refreshBg = () => {
+		if (win.isDestroyed()) return;
+		win.setBackgroundColor(nativeTheme.shouldUseDarkColors ? "#1c1c1e" : "#f5f5f7");
+	};
+	nativeTheme.on("updated", refreshBg);
+
 	mainWindow = win;
 	win.on("closed", () => {
+		nativeTheme.off("updated", refreshBg);
 		if (mainWindow === win) mainWindow = undefined;
 	});
 	return win;

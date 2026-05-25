@@ -1,5 +1,5 @@
 import type { RpcCommand } from "@earendil-works/pi-coding-agent";
-import { type BrowserWindow, dialog, ipcMain } from "electron";
+import { type BrowserWindow, dialog, ipcMain, nativeTheme } from "electron";
 import { dispatchRpc } from "./dispatch-rpc.js";
 import { listSessionsForCwd } from "./session-fs.js";
 import { sessionRegistry } from "./session-registry.js";
@@ -13,6 +13,8 @@ import {
 } from "./workspace-store.js";
 
 export const RPC_EVENT_CHANNEL = "pi:event";
+
+type ThemeSource = "system" | "light" | "dark";
 
 export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined): void {
 	ipcMain.handle("pi:workspace:list", () => listWorkspaces());
@@ -71,4 +73,25 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 	);
 
 	ipcMain.handle("pi:ping", () => "pong");
+
+	ipcMain.handle("pi:theme:set-source", (_e, source: ThemeSource) => {
+		if (source === "light" || source === "dark" || source === "system") {
+			nativeTheme.themeSource = source;
+		}
+		return nativeTheme.shouldUseDarkColors ? "dark" : "light";
+	});
+
+	ipcMain.handle("pi:theme:get", () => ({
+		source: nativeTheme.themeSource,
+		shouldUseDark: nativeTheme.shouldUseDarkColors,
+	}));
+
+	nativeTheme.on("updated", () => {
+		const win = getWindow();
+		if (!win || win.isDestroyed()) return;
+		win.webContents.send("pi:theme:updated", {
+			source: nativeTheme.themeSource,
+			shouldUseDark: nativeTheme.shouldUseDarkColors,
+		});
+	});
 }
