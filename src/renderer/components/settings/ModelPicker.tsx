@@ -8,6 +8,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { pi } from "@/lib/rpc";
+import { useSessions } from "@/stores/session-state";
 
 type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
 
@@ -75,16 +76,27 @@ export function ModelPicker({ sessionId, model, thinkingLevel }: Props) {
 	}, [filtered]);
 
 	async function pick(m: ModelRef) {
-		await pi.rpc.send(sessionId, {
+		const resp = await pi.rpc.send(sessionId, {
 			type: "set_model",
 			provider: m.provider,
 			modelId: m.id,
 		});
+		if (resp.success) {
+			// pi doesn't emit a model_change AgentEvent; pull the new state
+			// so the badge + RpcSessionState in our store stay in sync.
+			await useSessions.getState().hydrate(sessionId);
+		}
 		setOpen(false);
 	}
 
 	async function setThinking(level: ThinkingLevel) {
-		await pi.rpc.send(sessionId, { type: "set_thinking_level", level });
+		const resp = await pi.rpc.send(sessionId, {
+			type: "set_thinking_level",
+			level,
+		});
+		if (resp.success) {
+			await useSessions.getState().hydrate(sessionId);
+		}
 	}
 
 	return (

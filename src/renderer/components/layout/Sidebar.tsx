@@ -65,13 +65,25 @@ export function SidebarItem({
 	title2,
 	className,
 }: ItemProps) {
+	const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+		if (!onClick) return;
+		if (e.key === "Enter" || e.key === " ") {
+			e.preventDefault();
+			onClick();
+		}
+	};
 	return (
-		<button
-			type="button"
+		// We render the row as <div role="button"> rather than a real <button>
+		// so consumers can nest interactive elements (e.g. a delete icon) inside
+		// the trailing slot without violating HTML's no-nested-button rule.
+		<div
+			role="button"
+			tabIndex={0}
 			onClick={onClick}
+			onKeyDown={handleKeyDown}
 			title={title2}
 			className={cn(
-				"group flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-[13px] transition-colors",
+				"group flex w-full cursor-pointer select-none items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-[13px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
 				active
 					? "bg-accent text-accent-foreground"
 					: "text-foreground/75 hover:bg-foreground/[0.05] hover:text-foreground",
@@ -104,6 +116,6 @@ export function SidebarItem({
 				) : null}
 			</div>
 			{right}
-		</button>
+		</div>
 	);
 }
