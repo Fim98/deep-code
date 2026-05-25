@@ -11,6 +11,7 @@ import {
 	Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DiffViewer } from "@/components/chat/DiffViewer";
 
 interface ToolCallPart {
 	type: "toolCall";
@@ -38,6 +39,7 @@ export function ToolCallCard({ call, result }: Props) {
 	const resultText = result ? extractText(result.content) : null;
 	const errored = !!result?.isError;
 	const running = !result;
+	const diffPatch = pickDiffPatch(call, result);
 
 	return (
 		<div
@@ -102,6 +104,14 @@ export function ToolCallCard({ call, result }: Props) {
 							{prettyArgs(call.arguments)}
 						</pre>
 					</div>
+					{diffPatch ? (
+						<div>
+							<div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+								Diff
+							</div>
+							<DiffViewer patch={diffPatch} className="max-h-72" />
+						</div>
+					) : null}
 					{result ? (
 						<div>
 							<div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
@@ -172,4 +182,22 @@ function extractText(content: unknown[]): string {
 		.filter((p) => p?.type === "text")
 		.map((p) => p.text ?? "")
 		.join("\n");
+}
+
+function pickDiffPatch(call: ToolCallPart, result?: ToolResult): string | null {
+	const details = result?.details as { patch?: string; diff?: string } | undefined;
+	if (details?.patch) return details.patch;
+	if (details?.diff) return details.diff;
+	const n = call.name.toLowerCase();
+	if (n.includes("write") && typeof call.arguments.content === "string") {
+		const path = String(call.arguments.path ?? "(new file)");
+		const lines = String(call.arguments.content).split("\n");
+		return [
+			`--- /dev/null`,
+			`+++ ${path}`,
+			`@@ +1,${lines.length} @@`,
+			...lines.map((l) => `+${l}`),
+		].join("\n");
+	}
+	return null;
 }

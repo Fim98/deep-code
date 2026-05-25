@@ -5,6 +5,7 @@ import {
 	MessageSquare,
 	MessageSquarePlus,
 	Sparkles,
+	Terminal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MainArea } from "@/components/layout/MainArea";
@@ -15,6 +16,7 @@ import {
 } from "@/components/layout/Sidebar";
 import { Composer } from "@/components/chat/Composer";
 import { MessageTimeline } from "@/components/chat/MessageTimeline";
+import { BashPanel } from "@/components/panels/BashPanel";
 import { ModelPicker } from "@/components/settings/ModelPicker";
 import { useSessions } from "@/stores/session-state";
 import { pi } from "@/lib/rpc";
@@ -28,6 +30,7 @@ export function App() {
 	const [sessions, setSessions] = useState<SessionInfo[]>([]);
 	const [activeSid, setActiveSid] = useState<string | null>(null);
 	const [activePiSid, setActivePiSid] = useState<string | null>(null);
+	const [bashOpen, setBashOpen] = useState(false);
 
 	const { hydrate, attach, setCurrent } = useSessions();
 	const slice = useSessions((s) => (activeSid ? s.bySession[activeSid] : null));
@@ -176,6 +179,18 @@ export function App() {
 								thinkingLevel={slice?.state?.thinkingLevel as any}
 							/>
 						) : null}
+						{activeSid ? (
+							<div className="ml-auto">
+								<Button
+									size="iconSm"
+									variant={bashOpen ? "secondary" : "ghost"}
+									onClick={() => setBashOpen((o) => !o)}
+									title="Toggle bash panel"
+								>
+									<Terminal className="size-3.5" />
+								</Button>
+							</div>
+						) : null}
 					</>
 				}
 				footer={
@@ -188,7 +203,19 @@ export function App() {
 				}
 			>
 				{activeSid ? (
-					<MessageTimeline sessionId={activeSid} />
+					<div className="flex h-full flex-col">
+						<div className="min-h-0 flex-1">
+							<MessageTimeline sessionId={activeSid} />
+						</div>
+						{bashOpen ? (
+							<div className="shrink-0 px-4 pb-3 pt-1">
+								<BashPanel
+									sessionId={activeSid}
+									onClose={() => setBashOpen(false)}
+								/>
+							</div>
+						) : null}
+					</div>
 				) : (
 					<NoSessionState
 						hasWorkspace={!!activeWorkspace}
