@@ -70,32 +70,34 @@ export function MessageTimeline({ sessionId }: Props) {
 	}, [messages]);
 
 	return (
-		<Conversation>
-			<ConversationContent className="mx-auto w-full max-w-3xl px-4 py-6">
-				{messages.length === 0 ? (
-					<ConversationEmptyState
-						icon={
-							<div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/25 to-primary/10 text-primary shadow-lg shadow-primary/10">
-								<Sparkles className="size-7" />
-							</div>
-						}
-						title="Send a message to begin"
-						description="Ask pi to read, edit, search, or run anything in this workspace."
-					/>
-				) : (
-					messages.map((m, i) => (
-						<Row
-							key={i}
-							m={m}
-							toolResults={toolResults}
-							claimed={claimed}
-							isStreamingLast={isStreaming && i === lastAssistantIdx}
+		<div className="flex h-full min-h-0 flex-col">
+			<Conversation>
+				<ConversationContent className="mx-auto w-full max-w-3xl px-4 py-6">
+					{messages.length === 0 ? (
+						<ConversationEmptyState
+							icon={
+								<div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/25 to-primary/10 text-primary shadow-lg shadow-primary/10">
+									<Sparkles className="size-7" />
+								</div>
+							}
+							title="Send a message to begin"
+							description="Ask pi to read, edit, search, or run anything in this workspace."
 						/>
-					))
-				)}
-			</ConversationContent>
-			<ConversationScrollButton />
-		</Conversation>
+					) : (
+						messages.map((m, i) => (
+							<Row
+								key={i}
+								m={m}
+								toolResults={toolResults}
+								claimed={claimed}
+								isStreamingLast={isStreaming && i === lastAssistantIdx}
+							/>
+						))
+					)}
+				</ConversationContent>
+				<ConversationScrollButton />
+			</Conversation>
+		</div>
 	);
 }
 
