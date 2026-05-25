@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	Folder,
 	FolderPlus,
@@ -18,6 +18,12 @@ import { Composer } from "@/components/chat/Composer";
 import { MessageTimeline } from "@/components/chat/MessageTimeline";
 import { BashPanel } from "@/components/panels/BashPanel";
 import { ModelPicker } from "@/components/settings/ModelPicker";
+import {
+	ToastHost,
+	emitToast,
+	installGlobalErrorToasts,
+} from "@/components/ui/toast";
+import { useKeyboardShortcuts } from "@/lib/keyboard";
 import { useSessions } from "@/stores/session-state";
 import { pi } from "@/lib/rpc";
 
@@ -31,18 +37,41 @@ export function App() {
 	const [activeSid, setActiveSid] = useState<string | null>(null);
 	const [activePiSid, setActivePiSid] = useState<string | null>(null);
 	const [bashOpen, setBashOpen] = useState(false);
+	const [renamingId, setRenamingId] = useState<string | null>(null);
 
 	const { hydrate, attach, setCurrent } = useSessions();
 	const slice = useSessions((s) => (activeSid ? s.bySession[activeSid] : null));
 	const attachedSids = useRef(new Set<string>());
 
 	useEffect(() => {
+		installGlobalErrorToasts();
 		void refreshWorkspaces();
 	}, []);
 
 	useEffect(() => {
 		setCurrent(activeSid);
 	}, [activeSid, setCurrent]);
+
+	const shortcuts = useMemo(
+		() => [
+			{
+				key: "n",
+				meta: true,
+				handler: () => {
+					if (activeWs) void openSession();
+				},
+			},
+			{
+				key: "b",
+				meta: true,
+				handler: () => {
+					if (activeSid) setBashOpen((o) => !o);
+				},
+			},
+		],
+		[activeSid, activeWs],
+	);
+	useKeyboardShortcuts(shortcuts);
 
 	async function refreshWorkspaces() {
 		const [list, active] = await Promise.all([
@@ -77,25 +106,54 @@ export function App() {
 
 	async function openSession(sessionFile?: string) {
 		if (!activeWs) return;
-		const result = await pi.sessions.open({
-			workspaceId: activeWs,
-			sessionFile,
-		});
-		const { sessionId, piSessionId } = result;
-		setActiveSid(sessionId);
-		setActivePiSid(piSessionId);
-		await hydrate(sessionId);
-		if (!attachedSids.current.has(sessionId)) {
-			attach(sessionId);
-			attachedSids.current.add(sessionId);
+		try {
+			const result = await pi.sessions.open({
+				workspaceId: activeWs,
+				sessionFile,
+			});
+			const { sessionId, piSessionId } = result;
+			setActiveSid(sessionId);
+			setActivePiSid(piSessionId);
+			await hydrate(sessionId);
+			if (!attachedSids.current.has(sessionId)) {
+				attach(sessionId);
+				attachedSids.current.add(sessionId);
+			}
+			await refreshSessions(activeWs);
+		} catch (e) {
+			emitToast(
+				`Failed to open session: ${e instanceof Error ? e.message : String(e)}`,
+			);
 		}
-		await refreshSessions(activeWs);
+	}
+
+	async function renameSession(s: SessionInfo, newName: string) {
+		const name = newName.trim();
+		if (!name || name === s.name) return;
+		// Open the session if not already, then rename
+		try {
+			const result = await pi.sessions.open({
+				workspaceId: activeWs!,
+				sessionFile: s.path,
+			});
+			const resp = await pi.rpc.send(result.sessionId, {
+				type: "set_session_name",
+				name,
+			});
+			if (!resp.success) emitToast(resp.error);
+			await refreshSessions(activeWs!);
+		} catch (e) {
+			emitToast(
+				`Rename failed: ${e instanceof Error ? e.message : String(e)}`,
+			);
+		}
 	}
 
 	const activeWorkspace = workspaces.find((w) => w.id === activeWs);
 
 	return (
 		<div className="flex h-full w-full">
+			<ToastHost />
 			<Sidebar>
 				<SidebarSection
 					title="Workspaces"
@@ -149,14 +207,18 @@ export function App() {
 							</div>
 						) : (
 							sessions.map((s) => (
-								<SidebarItem
+								<SessionRow
 									key={s.path}
+									session={s}
 									active={s.id === activePiSid}
+									renaming={renamingId === s.path}
 									onClick={() => openSession(s.path)}
-									icon={<MessageSquare className="size-3.5" />}
-									title={s.name ?? (truncate(s.firstMessage, 36) || "Untitled")}
-									subtitle={`${s.messageCount} msg · ${formatTime(s.modified)}`}
-									title2={s.firstMessage}
+									onStartRename={() => setRenamingId(s.path)}
+									onSubmitRename={async (name) => {
+										setRenamingId(null);
+										await renameSession(s, name);
+									}}
+									onCancelRename={() => setRenamingId(null)}
 								/>
 							))
 						)}
@@ -255,6 +317,9 @@ function NoSessionState({
 					<Button onClick={onNewSession} size="lg">
 						<MessageSquarePlus className="size-4" />
 						New session
+						<kbd className="ml-1 rounded bg-white/[0.15] px-1.5 py-0.5 text-[10px] font-mono">
+							⌘N
+						</kbd>
 					</Button>
 				) : (
 					<Button onClick={onAddWorkspace} size="lg">
@@ -263,6 +328,76 @@ function NoSessionState({
 					</Button>
 				)}
 			</div>
+		</div>
+	);
+}
+
+function SessionRow({
+	session,
+	active,
+	renaming,
+	onClick,
+	onStartRename,
+	onSubmitRename,
+	onCancelRename,
+}: {
+	session: SessionInfo;
+	active: boolean;
+	renaming: boolean;
+	onClick: () => void;
+	onStartRename: () => void;
+	onSubmitRename: (name: string) => void;
+	onCancelRename: () => void;
+}) {
+	const [draft, setDraft] = useState(session.name ?? "");
+	useEffect(() => {
+		if (renaming) setDraft(session.name ?? "");
+	}, [renaming, session.name]);
+
+	if (renaming) {
+		return (
+			<form
+				onSubmit={(e) => {
+					e.preventDefault();
+					onSubmitRename(draft);
+				}}
+				className="px-3 py-1.5"
+			>
+				<input
+					autoFocus
+					value={draft}
+					onChange={(e) => setDraft(e.target.value)}
+					onBlur={() => onSubmitRename(draft)}
+					onKeyDown={(e) => {
+						if (e.key === "Escape") {
+							e.preventDefault();
+							onCancelRename();
+						}
+					}}
+					placeholder={truncate(session.firstMessage, 36) || "Session name"}
+					className="w-full rounded-md border border-primary/40 bg-background/80 px-2 py-1 text-[13px] text-foreground focus:outline-none"
+				/>
+			</form>
+		);
+	}
+
+	return (
+		<div
+			onDoubleClick={(e) => {
+				e.preventDefault();
+				onStartRename();
+			}}
+		>
+			<SidebarItem
+				active={active}
+				onClick={onClick}
+				icon={<MessageSquare className="size-3.5" />}
+				title={
+					session.name ?? (truncate(session.firstMessage, 36) || "Untitled")
+				}
+				subtitle={`${session.messageCount} msg · ${formatTime(session.modified)}`}
+				title2={session.firstMessage}
+			/>
 		</div>
 	);
 }
