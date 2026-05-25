@@ -44,20 +44,24 @@ export function DiffViewer({ patch, className }: Props) {
 
 function classify(raw: string) {
 	if (raw.startsWith("+++") || raw.startsWith("---")) {
-		return { gutter: "", bg: "", text: "text-muted-foreground/70 font-semibold" };
+		return { gutter: "", bg: "", text: "text-muted-foreground/80 font-semibold" };
 	}
 	if (raw.startsWith("@@")) {
-		return { gutter: "", bg: "bg-white/[0.03]", text: "text-muted-foreground/80" };
+		return { gutter: "", bg: "bg-foreground/[0.04]", text: "text-muted-foreground/85" };
 	}
 	if (raw.startsWith("+")) {
 		return {
 			gutter: "+",
-			bg: "bg-emerald-500/[0.08]",
-			text: "text-emerald-300",
+			bg: "bg-emerald-500/10 dark:bg-emerald-500/[0.12]",
+			text: "text-emerald-700 dark:text-emerald-300",
 		};
 	}
 	if (raw.startsWith("-")) {
-		return { gutter: "-", bg: "bg-rose-500/[0.08]", text: "text-rose-300" };
+		return {
+			gutter: "-",
+			bg: "bg-rose-500/10 dark:bg-rose-500/[0.12]",
+			text: "text-rose-700 dark:text-rose-300",
+		};
 	}
 	return { gutter: " ", bg: "", text: "text-foreground/75" };
 }

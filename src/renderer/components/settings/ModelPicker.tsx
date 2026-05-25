@@ -92,7 +92,7 @@ export function ModelPicker({ sessionId, model, thinkingLevel }: Props) {
 			<PopoverTrigger asChild>
 				<button
 					type="button"
-					className="flex items-center gap-1.5 rounded-md border border-border/40 bg-white/[0.04] px-2 py-1 text-[11px] text-foreground/80 transition-colors hover:bg-white/[0.07] hover:text-foreground"
+					className="flex items-center gap-1.5 rounded-md border border-border/40 bg-foreground/[0.05] px-2 py-1 text-[11px] text-foreground/80 transition-colors hover:bg-foreground/[0.08] hover:text-foreground"
 				>
 					<span className="font-medium">
 						{model ? `${model.provider}/${model.id}` : "Select model"}
@@ -111,7 +111,7 @@ export function ModelPicker({ sessionId, model, thinkingLevel }: Props) {
 				onOpenAutoFocus={(e) => e.preventDefault()}
 			>
 				<div className="border-b border-border/30 p-2">
-					<div className="flex items-center gap-2 rounded-md bg-white/[0.04] px-2 py-1.5">
+					<div className="flex items-center gap-2 rounded-md bg-foreground/[0.05] px-2 py-1.5">
 						<Search className="size-3.5 text-muted-foreground" />
 						<input
 							autoFocus
@@ -150,7 +150,7 @@ export function ModelPicker({ sessionId, model, thinkingLevel }: Props) {
 													"flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] transition-colors",
 													active
 														? "bg-primary/15 text-foreground"
-														: "text-foreground/85 hover:bg-white/[0.05]",
+														: "text-foreground/85 hover:bg-foreground/[0.06]",
 												)}
 											>
 												<Check
@@ -161,7 +161,7 @@ export function ModelPicker({ sessionId, model, thinkingLevel }: Props) {
 												/>
 												<span className="min-w-0 flex-1 truncate">{m.name}</span>
 												{m.reasoning ? (
-													<span className="shrink-0 rounded bg-white/[0.06] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+													<span className="shrink-0 rounded bg-foreground/[0.07] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
 														R
 													</span>
 												) : null}
@@ -192,7 +192,7 @@ export function ModelPicker({ sessionId, model, thinkingLevel }: Props) {
 									"rounded-md px-2 py-1 text-[11px] uppercase tracking-wider transition-colors",
 									lv === thinkingLevel
 										? "bg-primary text-primary-foreground"
-										: "bg-white/[0.04] text-foreground/70 hover:bg-white/[0.08]",
+										: "bg-foreground/[0.05] text-foreground/70 hover:bg-foreground/[0.10]",
 								)}
 							>
 								{lv}

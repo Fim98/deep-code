@@ -35,6 +35,13 @@ export interface PiBridge {
 			cb: (event: AgentSessionEvent) => void,
 		) => () => void;
 	};
+	theme: {
+		setSource: (source: "system" | "light" | "dark") => Promise<"light" | "dark">;
+		get: () => Promise<{ source: string; shouldUseDark: boolean }>;
+		onUpdate: (
+			cb: (info: { source: string; shouldUseDark: boolean }) => void,
+		) => () => void;
+	};
 }
 
 declare global {

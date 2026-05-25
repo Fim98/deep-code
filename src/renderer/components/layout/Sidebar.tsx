@@ -8,7 +8,7 @@ interface Props {
 export function Sidebar({ children }: Props) {
 	return (
 		<aside
-			className="flex w-[280px] shrink-0 flex-col border-r border-border/30 bg-sidebar/60 backdrop-blur-xl"
+			className="sidebar-floating relative z-10 flex w-[260px] shrink-0 flex-col bg-sidebar/85 backdrop-blur-2xl"
 			style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
 		>
 			<div className="h-12 shrink-0" />
@@ -73,8 +73,8 @@ export function SidebarItem({
 			className={cn(
 				"group flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-[13px] transition-colors",
 				active
-					? "bg-white/[0.07] text-foreground"
-					: "text-foreground/75 hover:bg-white/[0.04] hover:text-foreground",
+					? "bg-accent text-accent-foreground"
+					: "text-foreground/75 hover:bg-foreground/[0.05] hover:text-foreground",
 				className,
 			)}
 		>
@@ -82,16 +82,23 @@ export function SidebarItem({
 				<span
 					className={cn(
 						"flex h-5 w-5 shrink-0 items-center justify-center rounded-md",
-						active ? "text-primary" : "text-muted-foreground/80",
+						active ? "text-accent-foreground" : "text-muted-foreground/85",
 					)}
 				>
 					{icon}
 				</span>
 			) : null}
 			<div className="min-w-0 flex-1">
-				<div className="truncate">{title}</div>
+				<div className={cn("truncate", active && "font-semibold")}>{title}</div>
 				{subtitle ? (
-					<div className="truncate text-[10.5px] text-muted-foreground/70">
+					<div
+						className={cn(
+							"truncate text-[10.5px]",
+							active
+								? "text-accent-foreground/80"
+								: "text-muted-foreground/70",
+						)}
+					>
 						{subtitle}
 					</div>
 				) : null}

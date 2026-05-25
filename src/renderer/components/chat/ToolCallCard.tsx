@@ -55,7 +55,7 @@ export function ToolCallCard({ call, result }: Props) {
 			<button
 				type="button"
 				onClick={() => setOpen((o) => !o)}
-				className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-white/[0.03]"
+				className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-foreground/[0.04]"
 			>
 				<ChevronRight
 					className={cn(

@@ -53,10 +53,8 @@ export function ToastHost() {
 				<div
 					key={t.id}
 					className={cn(
-						"pointer-events-auto flex max-w-md items-start gap-2 rounded-xl border px-3.5 py-2.5 text-[12px] shadow-2xl backdrop-blur-xl animate-in slide-in-from-bottom-2 fade-in-0",
-						t.kind === "error"
-							? "border-destructive/40 bg-destructive/15 text-destructive-foreground"
-							: "border-border/40 bg-card/80 text-foreground",
+						"pointer-events-auto flex max-w-md items-start gap-2 rounded-xl border bg-popover/95 px-3.5 py-2.5 text-[12px] text-foreground shadow-2xl backdrop-blur-xl animate-in slide-in-from-bottom-2 fade-in-0",
+						t.kind === "error" ? "border-destructive/40" : "border-border",
 					)}
 				>
 					<AlertTriangle

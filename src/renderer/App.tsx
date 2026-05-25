@@ -18,6 +18,7 @@ import { Composer } from "@/components/chat/Composer";
 import { MessageTimeline } from "@/components/chat/MessageTimeline";
 import { BashPanel } from "@/components/panels/BashPanel";
 import { ModelPicker } from "@/components/settings/ModelPicker";
+import { ThemeSwitcher } from "@/components/settings/ThemeSwitcher";
 import {
 	ToastHost,
 	emitToast,
@@ -242,17 +243,22 @@ export function App() {
 							/>
 						) : null}
 						{activeSid ? (
-							<div className="ml-auto">
+							<div className="ml-auto flex items-center gap-1">
+								<ThemeSwitcher />
 								<Button
 									size="iconSm"
 									variant={bashOpen ? "secondary" : "ghost"}
 									onClick={() => setBashOpen((o) => !o)}
-									title="Toggle bash panel"
+									title="Toggle bash panel  ⌘B"
 								>
 									<Terminal className="size-3.5" />
 								</Button>
 							</div>
-						) : null}
+						) : (
+							<div className="ml-auto">
+								<ThemeSwitcher />
+							</div>
+						)}
 					</>
 				}
 				footer={
@@ -317,7 +323,7 @@ function NoSessionState({
 					<Button onClick={onNewSession} size="lg">
 						<MessageSquarePlus className="size-4" />
 						New session
-						<kbd className="ml-1 rounded bg-white/[0.15] px-1.5 py-0.5 text-[10px] font-mono">
+						<kbd className="ml-1 rounded bg-foreground/[0.18] px-1.5 py-0.5 text-[10px] font-mono">
 							⌘N
 						</kbd>
 					</Button>

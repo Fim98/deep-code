@@ -42,7 +42,7 @@ export function Composer({ sessionId, isStreaming }: Props) {
 
 	return (
 		<div className="mx-auto flex max-w-3xl items-end gap-2">
-			<div className="flex flex-1 items-end rounded-2xl border border-border/40 bg-card/60 px-4 py-2 shadow-2xl ring-1 ring-white/[0.03] backdrop-blur-xl focus-within:border-primary/40 focus-within:ring-primary/30">
+			<div className="flex flex-1 items-end rounded-2xl border border-border/40 bg-card/60 px-4 py-2 shadow-2xl ring-1 ring-foreground/[0.05] backdrop-blur-xl focus-within:border-primary/40 focus-within:ring-primary/30">
 				<textarea
 					ref={textareaRef}
 					value={value}
