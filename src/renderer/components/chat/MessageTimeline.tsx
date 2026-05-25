@@ -1,10 +1,11 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useSessions, type ChatMessage } from "@/stores/session-state";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
 	AssistantBubble,
-	ToolResultBubble,
+	OrphanToolResult,
 	UserBubble,
+	type ToolResultInfo,
 } from "@/components/chat/MessageBubbles";
 
 interface Props {
@@ -14,6 +15,24 @@ interface Props {
 export function MessageTimeline({ sessionId }: Props) {
 	const slice = useSessions((s) => s.bySession[sessionId]);
 	const scrollRef = useRef<HTMLDivElement>(null);
+
+	const toolResultsMap = useMemo(() => {
+		const map = new Map<string, ToolResultInfo>();
+		const claimed = new Set<string>();
+		if (!slice) return { map, claimed };
+		for (const m of slice.messages) {
+			if (m.role === "toolResult") {
+				map.set(m.toolCallId, {
+					toolName: m.toolName,
+					content: m.content,
+					isError: m.isError,
+					details: m.details,
+				});
+				claimed.add(m.toolCallId);
+			}
+		}
+		return { map, claimed };
+	}, [slice?.messages]);
 
 	useEffect(() => {
 		const el = scrollRef.current;
@@ -29,6 +48,14 @@ export function MessageTimeline({ sessionId }: Props) {
 		);
 	}
 	const { messages, isStreaming } = slice;
+	const knownToolCallIds = new Set<string>();
+	for (const m of messages) {
+		if (m.role === "assistant") {
+			for (const part of m.content as Array<{ type: string; id?: string }>) {
+				if (part.type === "toolCall" && part.id) knownToolCallIds.add(part.id);
+			}
+		}
+	}
 
 	return (
 		<ScrollArea className="h-full">
@@ -38,7 +65,14 @@ export function MessageTimeline({ sessionId }: Props) {
 						Send a message to begin.
 					</div>
 				) : (
-					messages.map((m, i) => <MessageRow key={i} m={m} />)
+					messages.map((m, i) => (
+						<MessageRow
+							key={i}
+							m={m}
+							toolResults={toolResultsMap.map}
+							skipIfClaimed={knownToolCallIds}
+						/>
+					))
 				)}
 				{isStreaming && messages.at(-1)?.role !== "assistant" ? (
 					<StreamingIndicator />
@@ -48,24 +82,37 @@ export function MessageTimeline({ sessionId }: Props) {
 	);
 }
 
-function MessageRow({ m }: { m: ChatMessage }) {
-	if (m.role === "user") return <UserBubble content={m.content} timestamp={m.timestamp} />;
+function MessageRow({
+	m,
+	toolResults,
+	skipIfClaimed,
+}: {
+	m: ChatMessage;
+	toolResults: Map<string, ToolResultInfo>;
+	skipIfClaimed: Set<string>;
+}) {
+	if (m.role === "user")
+		return <UserBubble content={m.content} timestamp={m.timestamp} />;
 	if (m.role === "assistant")
 		return (
 			<AssistantBubble
 				content={m.content}
 				model={m.model}
 				stopReason={m.stopReason}
+				toolResults={toolResults}
 			/>
 		);
-	if (m.role === "toolResult")
+	if (m.role === "toolResult") {
+		// Hide if its tool call is rendered inline by an AssistantBubble
+		if (skipIfClaimed.has(m.toolCallId)) return null;
 		return (
-			<ToolResultBubble
+			<OrphanToolResult
 				toolName={m.toolName}
 				content={m.content}
 				isError={m.isError}
 			/>
 		);
+	}
 	if (m.role === "custom") return <CustomRow data={m} />;
 	return null;
 }

@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { ToolCallCard } from "@/components/chat/ToolCallCard";
 
 interface TextPart {
 	type: "text";
@@ -22,6 +23,13 @@ interface ImagePart {
 }
 
 type Part = TextPart | ThinkingPart | ToolCallPart | ImagePart;
+
+export interface ToolResultInfo {
+	toolName: string;
+	content: unknown[];
+	isError: boolean;
+	details?: unknown;
+}
 
 interface UserProps {
 	content: string | unknown[];
@@ -68,15 +76,26 @@ interface AssistantProps {
 	content: unknown[];
 	model?: string;
 	stopReason?: string;
+	toolResults?: Map<string, ToolResultInfo>;
 }
 
-export function AssistantBubble({ content, model, stopReason }: AssistantProps) {
+export function AssistantBubble({
+	content,
+	model,
+	stopReason,
+	toolResults,
+}: AssistantProps) {
 	const parts = (content ?? []) as Part[];
+	const hasContent = parts.some(
+		(p) => (p.type === "text" && p.text) || p.type === "thinking" || p.type === "toolCall" || p.type === "image",
+	);
+	if (!hasContent) return null;
 	return (
 		<div className="flex justify-start">
 			<div className="flex max-w-[78%] flex-col gap-2.5">
 				{parts.map((p, i) => {
 					if (p.type === "text") {
+						if (!p.text) return null;
 						return (
 							<div
 								key={i}
@@ -90,7 +109,13 @@ export function AssistantBubble({ content, model, stopReason }: AssistantProps) 
 						return <Reasoning key={i} text={p.thinking} redacted={p.redacted} />;
 					}
 					if (p.type === "toolCall") {
-						return <ToolCallCard key={i} call={p} />;
+						return (
+							<ToolCallCard
+								key={p.id}
+								call={p}
+								result={toolResults?.get(p.id)}
+							/>
+						);
 					}
 					return null;
 				})}
@@ -127,39 +152,13 @@ function Reasoning({ text, redacted }: { text: string; redacted?: boolean }) {
 	);
 }
 
-function ToolCallCard({ call }: { call: ToolCallPart }) {
-	return (
-		<div className="rounded-xl border border-border/40 bg-card/40 px-3.5 py-2.5 text-[12px] backdrop-blur">
-			<div className="flex items-center gap-2">
-				<span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/70" />
-				<span className="font-medium text-foreground/90">{call.name}</span>
-				<span className="font-mono text-[10px] text-muted-foreground/60">
-					{call.id.slice(-6)}
-				</span>
-			</div>
-			<pre className="mt-1.5 max-h-32 overflow-auto whitespace-pre-wrap font-mono text-[11px] text-muted-foreground/90">
-				{summarizeArgs(call.arguments)}
-			</pre>
-		</div>
-	);
-}
-
-function summarizeArgs(args: Record<string, unknown>): string {
-	try {
-		const s = JSON.stringify(args, null, 2);
-		return s.length > 600 ? `${s.slice(0, 600)}…` : s;
-	} catch {
-		return String(args);
-	}
-}
-
-interface ToolResultProps {
+interface OrphanResultProps {
 	toolName: string;
 	content: unknown[];
 	isError: boolean;
 }
 
-export function ToolResultBubble({ toolName, content, isError }: ToolResultProps) {
+export function OrphanToolResult({ toolName, content, isError }: OrphanResultProps) {
 	const text = (content as Part[])
 		.filter((p): p is TextPart => (p as Part).type === "text")
 		.map((p) => p.text)
