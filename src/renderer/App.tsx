@@ -22,6 +22,7 @@ import { BashPanel } from "@/components/panels/BashPanel";
 import { ModelPicker } from "@/components/settings/ModelPicker";
 import { SettingsDialog } from "@/components/settings/SettingsDialog";
 import { ThemeSwitcher } from "@/components/settings/ThemeSwitcher";
+import { ContextBar } from "@/components/settings/ContextBar";
 import {
 	ToastHost,
 	emitToast,
@@ -267,6 +268,17 @@ export function App() {
 								sessionId={activeSid}
 								model={slice?.state?.model as any}
 								thinkingLevel={slice?.state?.thinkingLevel as any}
+							/>
+						) : null}
+						{activeSid ? (
+							<ContextBar
+								sessionId={activeSid}
+								modelId={
+									slice?.state?.model
+										? `${(slice.state.model as any).provider}/${(slice.state.model as any).id}`
+										: undefined
+								}
+								modelContextWindow={(slice?.state?.model as any)?.contextWindow}
 							/>
 						) : null}
 						<div className="ml-auto flex items-center gap-1">
