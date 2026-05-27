@@ -1,14 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, Eye, EyeOff, Key, Plus, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
-	Button,
-	Input,
-	ListBox,
-	Modal,
-	ScrollShadow,
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+	DialogDescription,
+} from "@/components/ui/dialog";
+import {
 	Select,
-} from "@heroui/react";
-import type { Key as HeroKey } from "@heroui/react";
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { emitToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { pi, type ProviderEntry } from "@/lib/rpc";
@@ -73,21 +81,19 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
 	);
 
 	return (
-		<Modal.Backdrop isOpen={open} onOpenChange={onOpenChange}>
-			<Modal.Container>
-				<Modal.Dialog className="max-w-xl gap-0 overflow-hidden p-0">
-					<Modal.CloseTrigger />
-					<Modal.Header className="border-b border-border/40 px-6 py-4">
-						<Modal.Heading className="text-base font-semibold">Settings</Modal.Heading>
-						<p className="text-xs text-muted-foreground">
+		<Dialog open={open} onOpenChange={onOpenChange}>
+			<DialogContent className="max-w-xl gap-0 overflow-hidden p-0">
+				<DialogHeader className="border-b border-border/40 px-6 py-4">
+					<DialogTitle>Settings</DialogTitle>
+					<DialogDescription>
 						Configure provider API keys. Credentials live in{" "}
 						<span className="font-mono">~/.pi/agent/auth.json</span>.
-						</p>
-					</Modal.Header>
+					</DialogDescription>
+				</DialogHeader>
 				<div className="px-6 pb-2 pt-4">
 					<SectionHeader title="Providers" />
 				</div>
-				<ScrollShadow className="max-h-[360px]">
+				<ScrollArea className="max-h-[360px]">
 					<div className="space-y-1 px-6 pb-4">
 						{loading && configured.length === 0 ? (
 							<EmptyHint text="Loading…" />
@@ -104,8 +110,8 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
 							))
 						)}
 					</div>
-				</ScrollShadow>
-				<div className="border-t border-border/40 bg-muted/30 px-6 py-4">
+				</ScrollArea>
+				<div className="border-t border-border/40 bg-foreground/[0.02] px-6 py-4">
 					<SectionHeader title="Add provider" />
 					<AddProviderForm
 						addable={addableProviders}
@@ -114,15 +120,14 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
 						}}
 					/>
 				</div>
-				</Modal.Dialog>
-			</Modal.Container>
-		</Modal.Backdrop>
+			</DialogContent>
+		</Dialog>
 	);
 }
 
 function SectionHeader({ title }: { title: string }) {
 	return (
-		<div className="mb-2 select-none text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/70">
+		<div className="mb-2 select-none text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
 			{title}
 		</div>
 	);
@@ -130,7 +135,7 @@ function SectionHeader({ title }: { title: string }) {
 
 function EmptyHint({ text }: { text: string }) {
 	return (
-		<div className="rounded-lg border border-dashed border-border/50 px-3 py-4 text-center text-[12px] text-muted-foreground/70">
+		<div className="rounded-[14px] border border-dashed border-border/50 px-3 py-4 text-center text-[12px] text-muted-foreground">
 			{text}
 		</div>
 	);
@@ -163,7 +168,7 @@ function ConfiguredRow({
 	}
 
 	return (
-		<div className="rounded-lg border border-border/40 bg-background/40 px-3 py-2">
+		<div className="rounded-[14px] border border-border/40 bg-foreground/[0.02] px-3 py-2.5">
 			<div className="flex items-center gap-2">
 				<Key className="size-3.5 shrink-0 text-muted-foreground" />
 				<div className="min-w-0 flex-1">
@@ -178,10 +183,9 @@ function ConfiguredRow({
 					{entry.type === "api_key" ? (
 						<Button
 							type="button"
-							isIconOnly
-							size="sm"
-							variant="tertiary"
-							onPress={() => setEditing((v) => !v)}
+							size="icon-sm"
+							variant="ghost"
+							onClick={() => setEditing((v) => !v)}
 							aria-label={editing ? "Cancel" : "Replace key"}
 						>
 							{editing ? (
@@ -193,10 +197,9 @@ function ConfiguredRow({
 					) : null}
 					<Button
 						type="button"
-						isIconOnly
-						size="sm"
-						variant="tertiary"
-						onPress={onRemove}
+						size="icon-sm"
+						variant="ghost"
+						onClick={onRemove}
 						aria-label="Remove"
 						className="hover:text-destructive"
 					>
@@ -219,15 +222,13 @@ function ConfiguredRow({
 							onChange={(e) => setDraft(e.target.value)}
 							type={reveal ? "text" : "password"}
 							placeholder="New API key"
-							variant="secondary"
-							className="flex-1 text-[12px]"
+							className="flex-1 text-[12px] h-8"
 						/>
 						<Button
 							type="button"
-							isIconOnly
-							size="sm"
-							variant="tertiary"
-							onPress={() => setReveal((v) => !v)}
+							size="icon-sm"
+							variant="ghost"
+							onClick={() => setReveal((v) => !v)}
 							aria-label={reveal ? "Hide API key" : "Show API key"}
 						>
 							{reveal ? (
@@ -237,7 +238,7 @@ function ConfiguredRow({
 							)}
 						</Button>
 					</div>
-					<Button type="submit" size="sm" isDisabled={!draft.trim() || saving}>
+					<Button type="submit" size="sm" disabled={!draft.trim() || saving}>
 						Save
 					</Button>
 				</form>
@@ -294,37 +295,27 @@ function AddProviderForm({
 						value={custom}
 						onChange={(e) => setCustom(e.target.value)}
 						placeholder="provider-id"
-						variant="secondary"
-						className="flex-1 font-mono text-[12px]"
+						className="flex-1 font-mono text-[12px] h-8"
 					/>
 				) : (
-					<Select
-						className="flex-1"
-						placeholder="Select a provider"
-						value={provider}
-						onChange={(value: HeroKey | null) => setProvider(value == null ? "" : String(value))}
-					>
-						<Select.Trigger>
-							<Select.Value />
-							<Select.Indicator />
-						</Select.Trigger>
-						<Select.Popover>
-							<ListBox>
+					<Select value={provider} onValueChange={setProvider}>
+						<SelectTrigger className="flex-1 h-8 text-[12px]">
+							<SelectValue placeholder="Select a provider" />
+						</SelectTrigger>
+						<SelectContent>
 							{addable.map((p) => (
-								<ListBox.Item key={p} id={p} textValue={p}>
+								<SelectItem key={p} value={p}>
 									{p}
-									<ListBox.ItemIndicator />
-								</ListBox.Item>
+								</SelectItem>
 							))}
-							</ListBox>
-						</Select.Popover>
+						</SelectContent>
 					</Select>
 				)}
 				<Button
 					type="button"
 					size="sm"
-					variant="tertiary"
-					onPress={() => setUseCustom((v) => !v)}
+					variant="ghost"
+					onClick={() => setUseCustom((v) => !v)}
 					className="h-8 px-2 text-[11px]"
 				>
 					{useCustom ? "From list" : "Custom"}
@@ -337,15 +328,13 @@ function AddProviderForm({
 						onChange={(e) => setKey(e.target.value)}
 						type={reveal ? "text" : "password"}
 						placeholder="API key"
-						variant="secondary"
-						className="flex-1 text-[12px]"
+						className="flex-1 text-[12px] h-8"
 					/>
 					<Button
 						type="button"
-						isIconOnly
-						size="sm"
-						variant="tertiary"
-						onPress={() => setReveal((v) => !v)}
+						size="icon-sm"
+						variant="ghost"
+						onClick={() => setReveal((v) => !v)}
 						aria-label={reveal ? "Hide API key" : "Show API key"}
 					>
 						{reveal ? (
@@ -358,7 +347,7 @@ function AddProviderForm({
 				<Button
 					type="submit"
 					size="sm"
-					isDisabled={!effectiveProvider || !key.trim() || saving}
+					disabled={!effectiveProvider || !key.trim() || saving}
 					className={cn(saving && "opacity-60")}
 				>
 					<Plus className="size-3.5" />

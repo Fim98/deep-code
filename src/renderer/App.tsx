@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	Folder,
-	MessagesSquare,
 	FolderOpen,
 	FolderPlus,
-	MessageSquare,
 	MessageSquarePlus,
 	Search,
 	Settings as SettingsIcon,
@@ -12,7 +10,8 @@ import {
 	Terminal,
 	Trash2,
 } from "lucide-react";
-import { Button, Input } from "@heroui/react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { MainArea } from "@/components/layout/MainArea";
 import {
 	Sidebar,
@@ -42,7 +41,6 @@ type SessionInfo = Awaited<ReturnType<typeof pi.sessions.list>>[number];
 export function App() {
 	const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
 	const [activeWs, setActiveWs] = useState<string | null>(null);
-	// Sessions keyed by workspace ID, so every workspace can show its sessions
 	const [sessionsByWs, setSessionsByWs] = useState<Record<string, SessionInfo[]>>({});
 	const [activeSid, setActiveSid] = useState<string | null>(null);
 	const [activePiSid, setActivePiSid] = useState<string | null>(null);
@@ -91,7 +89,6 @@ export function App() {
 		]);
 		setWorkspaces(list);
 		setActiveWs(active);
-		// Load sessions for all workspaces so the tree can display them
 		await Promise.all(list.map((w) => refreshSessions(w.id)));
 	}
 
@@ -125,7 +122,6 @@ export function App() {
 			const { sessionId, piSessionId } = result;
 			setActiveSid(sessionId);
 			setActivePiSid(piSessionId);
-			// Optimistically add the new session to the sidebar immediately
 			if (!sessionFile) {
 				setSessionsByWs((prev) => {
 					const existing = prev[activeWs] ?? [];
@@ -148,7 +144,6 @@ export function App() {
 				attach(sessionId);
 				attachedSids.current.add(sessionId);
 			}
-			// Then refresh from disk to get accurate data
 			await refreshSessions(activeWs);
 		} catch (e) {
 			emitToast(
@@ -180,7 +175,6 @@ export function App() {
 	async function renameSession(s: SessionInfo, newName: string) {
 		const name = newName.trim();
 		if (!name || name === s.name) return;
-		// Open the session if not already, then rename
 		try {
 			const result = await pi.sessions.open({
 				workspaceId: activeWs!,
@@ -202,33 +196,18 @@ export function App() {
 	const activeWorkspace = workspaces.find((w) => w.id === activeWs);
 
 	return (
-		<div className="flex h-full w-full">
+		<div className="flex h-full w-full bg-background">
 			<ToastHost />
 			<SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
 			<Sidebar>
-				<div className="px-1">
-					<div className="flex items-center gap-3 px-2 py-2">
-						<div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-sky-100 via-blue-200 to-violet-200 text-primary">
-							<MessagesSquare className="size-4.5" />
-						</div>
-						<div className="min-w-0 flex-1">
-							<div className="truncate text-[15px] font-semibold leading-tight text-foreground">
-								Deep Code
-							</div>
-							<div className="truncate text-[13px] leading-tight text-muted-foreground">
-								{workspaces.length} workspaces
-							</div>
-						</div>
-					</div>
-				</div>
+
 				<SidebarSection
 					title="Workspaces"
 					action={
 						<Button
-							isIconOnly
-							size="sm"
-							variant="tertiary"
-							onPress={addWorkspace}
+							size="icon-sm"
+							variant="ghost"
+							onClick={addWorkspace}
 							aria-label="Add workspace"
 						>
 							<FolderPlus className="size-3.5" />
@@ -236,7 +215,7 @@ export function App() {
 					}
 				>
 					{workspaces.length === 0 ? (
-						<div className="rounded-xl px-4 py-3 text-[11px] font-medium text-muted-foreground/55">
+						<div className="rounded-[14px] px-4 py-3 text-[11px] font-medium text-muted-foreground/50">
 							No workspaces yet
 						</div>
 					) : (
@@ -261,19 +240,19 @@ export function App() {
 			</Sidebar>
 
 			<MainArea
-				header={
+					header={
 					<>
 						<div className="min-w-0">
-							<div className="truncate text-[21px] font-semibold leading-tight tracking-normal text-foreground">
-								{activeSid
-									? slice?.state?.sessionName ?? "Session"
-									: "pi · desktop"}
-							</div>
-							<div className="mt-1 flex items-center gap-2 text-[13px] text-muted-foreground">
+							{activeSid && slice?.state?.sessionName ? (
+								<div className="truncate text-[20px] font-semibold leading-tight tracking-tight text-foreground">
+									{slice.state.sessionName}
+								</div>
+							) : null}
+							<div className="mt-1 flex items-center gap-2 text-[12px] text-muted-foreground">
 								<span>{activeSid ? "Updated just now" : "Choose a workspace to begin"}</span>
 								{activeSid ? (
 									<>
-										<span className="text-muted-foreground/50">·</span>
+										<span className="text-muted-foreground/40">·</span>
 										<ModelPicker
 											sessionId={activeSid}
 											model={slice?.state?.model as any}
@@ -297,28 +276,27 @@ export function App() {
 								size="sm"
 								variant="secondary"
 								aria-label="Search chats"
-								className="h-10 rounded-full px-4 text-[15px] font-semibold"
+								className="h-9 rounded-full px-4 text-[13px] font-medium"
 							>
-								<Search className="size-4.5" />
+								<Search className="size-4" />
 								Search
 							</Button>
 							<ThemeSwitcher />
 							<Button
 								size="sm"
 								variant="primary"
-								onPress={() => setSettingsOpen(true)}
+								onClick={() => setSettingsOpen(true)}
 								aria-label="Settings"
-								className="h-10 rounded-full px-4 text-[15px] font-semibold"
+								className="h-9 rounded-full px-4 text-[13px] font-medium"
 							>
 								<SettingsIcon className="size-3.5" />
 								Settings
 							</Button>
 							{activeSid ? (
 								<Button
-									isIconOnly
-									size="sm"
+									size="icon"
 									variant={bashOpen ? "secondary" : "ghost"}
-									onPress={() => setBashOpen((o) => !o)}
+									onClick={() => setBashOpen((o) => !o)}
 									aria-label="Toggle bash panel"
 								>
 									<Terminal className="size-3.5" />
@@ -389,7 +367,6 @@ function WorkspaceWithSessions({
 }) {
 	const [expanded, setExpanded] = useState(active);
 
-	// Auto-expand when this workspace becomes active
 	useEffect(() => {
 		if (active) setExpanded(true);
 	}, [active]);
@@ -397,7 +374,7 @@ function WorkspaceWithSessions({
 	const pathDisplay = workspace.path.replace(/^\/Users\/[^/]+/, "~");
 
 	return (
-		<div className="group/workspace">
+		<div className="group/workspace w-full min-w-0">
 			<SidebarItem
 				active={active}
 				onClick={() => {
@@ -427,12 +404,11 @@ function WorkspaceWithSessions({
 				right={
 					active && (
 						<Button
-							isIconOnly
-							size="sm"
-							variant="tertiary"
-							onPress={() => onOpenSession()}
+							size="icon-sm"
+							variant="ghost"
+							onClick={() => onOpenSession()}
 							aria-label="New session"
-							className="h-6 w-6 min-w-0 text-primary opacity-0 group-hover/sidebar-item:opacity-100"
+							className="size-6 text-primary opacity-0 group-hover/sidebar-item:opacity-100"
 						>
 							<MessageSquarePlus className="size-3.5" />
 						</Button>
@@ -440,7 +416,7 @@ function WorkspaceWithSessions({
 				}
 			/>
 			{expanded && (
-				<div className="ml-5 mt-1 space-y-1 border-l border-border pl-2">
+				<div className="mt-0.5 w-full min-w-0 space-y-px">
 					{sessions.length > 0 ? (
 						sessions.map((s) => (
 							<SessionRow
@@ -459,7 +435,7 @@ function WorkspaceWithSessions({
 							/>
 						))
 					) : active ? (
-						<div className="rounded-xl px-3 py-2 text-[10.5px] font-medium text-muted-foreground/45">
+						<div className="rounded-[14px] px-3 py-2 text-[10.5px] font-medium text-muted-foreground/40">
 							No sessions yet
 						</div>
 					) : null}
@@ -480,7 +456,7 @@ function NoSessionState({
 }) {
 	return (
 		<div className="flex h-full flex-col items-center justify-center px-8 text-center">
-			<div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary shadow-lg shadow-primary/10">
+			<div className="mb-5 flex size-14 items-center justify-center rounded-[18px] bg-gradient-to-br from-primary/20 to-primary/10 text-primary shadow-md shadow-primary/10">
 				<Sparkles className="size-7" />
 			</div>
 			<h1 className="text-2xl font-semibold tracking-tight">
@@ -493,15 +469,15 @@ function NoSessionState({
 			</p>
 			<div className="mt-6 flex gap-3">
 				{hasWorkspace ? (
-					<Button onPress={onNewSession} size="lg">
+					<Button onClick={onNewSession} size="lg">
 						<MessageSquarePlus className="size-4" />
 						New session
-						<kbd className="ml-1 rounded bg-foreground/[0.18] px-1.5 py-0.5 text-[10px] font-mono">
+						<kbd className="ml-1 rounded-md bg-primary-foreground/20 px-1.5 py-0.5 text-[10px] font-mono">
 							⌘N
 						</kbd>
 					</Button>
 				) : (
-					<Button onPress={onAddWorkspace} size="lg">
+					<Button onClick={onAddWorkspace} size="lg">
 						<FolderPlus className="size-4" />
 						Add workspace
 					</Button>
@@ -556,8 +532,7 @@ function SessionRow({
 						}
 					}}
 					placeholder={truncate(session.firstMessage, 36) || "Session name"}
-					variant="secondary"
-					className="w-full text-[13px]"
+					className="w-full text-[13px] h-8"
 				/>
 			</form>
 		);
@@ -568,43 +543,55 @@ function SessionRow({
 
 	return (
 		<div
-			className="group/sessionrow relative"
+			className="group/sessionrow relative w-full min-w-0"
 			onDoubleClick={(e) => {
 				e.preventDefault();
 				onStartRename();
 			}}
 		>
-			<SidebarItem
-				active={active}
+			<div
 				onClick={onClick}
-				activeClassName="bg-primary/10 text-primary ring-primary/20"
-				icon={
-					<MessageSquare
+				role="button"
+				tabIndex={0}
+				onKeyDown={(e) => {
+					if (e.key === "Enter" || e.key === " " ) {
+						e.preventDefault();
+						onClick();
+					}
+				}}
+				className={cn(
+					"flex min-h-[36px] w-full min-w-0 cursor-pointer items-center rounded-[12px] px-3 py-1.5 text-left transition-colors duration-150",
+					active
+						? "bg-primary/8 text-primary"
+						: "text-foreground/60 hover:bg-foreground/[0.03] hover:text-foreground/80",
+				)}
+			>
+				<div className="min-w-0 flex-1 overflow-hidden pl-3">
+					<div
 						className={cn(
-							"size-3.5",
-							active ? "text-primary" : "text-muted-foreground/60",
+							"truncate text-[12.5px] leading-tight",
+							active ? "font-medium text-primary" : "font-normal",
 						)}
-					/>
-				}
-				title={sessionTitle}
-				subtitle={sessionSubtitle}
-				title2={session.firstMessage}
-				right={
-					<Button
-						isIconOnly
-						size="sm"
-						variant="tertiary"
-						onPress={onDelete}
+					>
+						{sessionTitle}
+					</div>
+				</div>
+				<div className="ml-auto shrink-0 opacity-0 transition-opacity group-hover/sessionrow:opacity-100">
+					<button
+						onClick={(e) => {
+							e.stopPropagation();
+							onDelete();
+						}}
 						aria-label="Delete session"
 						className={cn(
-							"h-6 w-6 min-w-0 text-muted-foreground opacity-0 hover:text-destructive group-hover/sidebar-item:opacity-100",
-							active && "text-primary/70",
+							"flex size-5 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-destructive",
+							active && "text-primary/50",
 						)}
 					>
 						<Trash2 className="size-3" />
-					</Button>
-				}
-			/>
+					</button>
+				</div>
+			</div>
 		</div>
 	);
 }

@@ -10,7 +10,7 @@ import {
 	Terminal,
 	Wrench,
 } from "lucide-react";
-import { Button, Card, Chip } from "@heroui/react";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { DiffViewer } from "@/components/chat/DiffViewer";
 
@@ -43,25 +43,23 @@ export function ToolCallCard({ call, result }: Props) {
 	const diffPatch = pickDiffPatch(call, result);
 
 	return (
-		<Card
-			variant="transparent"
+		<div
 			className={cn(
-				"overflow-hidden rounded-xl border bg-card/40 text-[12px] backdrop-blur",
+				"overflow-hidden rounded-[18px] border bg-card/60 text-[12px] backdrop-blur transition-colors",
 				errored
-					? "border-destructive/40"
+					? "border-destructive/30"
 					: running
 						? "border-primary/30"
-						: "border-border/40",
+						: "border-border/50",
 			)}
 		>
-			<Button
-				variant="tertiary"
-				onPress={() => setOpen((o) => !o)}
-				className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-foreground/[0.04]"
+			<button
+				onClick={() => setOpen((o) => !o)}
+				className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-foreground/[0.03]"
 			>
 				<ChevronRight
 					className={cn(
-						"size-3 shrink-0 transition-transform",
+						"size-3 shrink-0 transition-transform duration-200",
 						open && "rotate-90",
 					)}
 				/>
@@ -72,38 +70,37 @@ export function ToolCallCard({ call, result }: Props) {
 							? "text-destructive"
 							: running
 								? "text-primary"
-								: "text-muted-foreground/80",
+								: "text-muted-foreground",
 					)}
 				/>
 				<span className="font-medium text-foreground/90">{call.name}</span>
 				{summary ? (
-					<span className="min-w-0 flex-1 truncate font-mono text-[11px] text-muted-foreground/70">
+					<span className="min-w-0 flex-1 truncate font-mono text-[11px] text-muted-foreground">
 						{summary}
 					</span>
 				) : (
 					<span className="flex-1" />
 				)}
-				<Chip
+				<Badge
+					variant={errored ? "destructive" : running ? "primary" : "default"}
 					size="sm"
-					variant="soft"
-					color={errored ? "danger" : running ? "accent" : "default"}
 				>
-					<Chip.Label>{errored ? "ERROR" : running ? "RUNNING" : "DONE"}</Chip.Label>
-				</Chip>
-			</Button>
+					{errored ? "ERROR" : running ? "RUNNING" : "DONE"}
+				</Badge>
+			</button>
 			{open ? (
-				<div className="space-y-2 border-t border-border/30 bg-background/30 px-3 py-2.5">
+				<div className="space-y-2.5 border-t border-border/30 bg-background/30 px-3 py-2.5">
 					<div>
-						<div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+						<div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
 							Input
 						</div>
-						<pre className="max-h-48 overflow-auto whitespace-pre-wrap font-mono text-[11px] text-foreground/85">
+						<pre className="max-h-48 overflow-auto whitespace-pre-wrap font-mono text-[11px] text-foreground/80">
 							{prettyArgs(call.arguments)}
 						</pre>
 					</div>
 					{diffPatch ? (
 						<div>
-							<div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+							<div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
 								Diff
 							</div>
 							<DiffViewer patch={diffPatch} className="max-h-72" />
@@ -111,13 +108,13 @@ export function ToolCallCard({ call, result }: Props) {
 					) : null}
 					{result ? (
 						<div>
-							<div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+							<div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
 								{errored ? "Error" : "Output"}
 							</div>
 							<pre
 								className={cn(
 									"max-h-72 overflow-auto whitespace-pre-wrap font-mono text-[11px]",
-									errored ? "text-destructive" : "text-foreground/85",
+									errored ? "text-destructive" : "text-foreground/80",
 								)}
 							>
 								{resultText || "(no output)"}
@@ -126,7 +123,7 @@ export function ToolCallCard({ call, result }: Props) {
 					) : null}
 				</div>
 			) : null}
-		</Card>
+		</div>
 	);
 }
 

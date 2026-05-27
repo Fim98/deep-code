@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
-import { Button, Input, Popover, ScrollShadow } from "@heroui/react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { pi } from "@/lib/rpc";
 import { useSessions } from "@/stores/session-state";
@@ -77,8 +81,6 @@ export function ModelPicker({ sessionId, model, thinkingLevel }: Props) {
 			modelId: m.id,
 		});
 		if (resp.success) {
-			// pi doesn't emit a model_change AgentEvent; pull the new state
-			// so the badge + RpcSessionState in our store stay in sync.
 			await useSessions.getState().hydrate(sessionId);
 		}
 		setOpen(false);
@@ -95,23 +97,24 @@ export function ModelPicker({ sessionId, model, thinkingLevel }: Props) {
 	}
 
 	return (
-		<Popover isOpen={open} onOpenChange={setOpen}>
-			<Button size="sm" variant="tertiary" className="h-7 gap-1.5 px-2 text-[11px]">
+		<Popover open={open} onOpenChange={setOpen}>
+			<PopoverTrigger asChild>
+				<Button size="sm" variant="ghost" className="h-7 gap-1.5 px-2 text-[11px]">
 					<span className="font-medium">
 						{model ? `${model.provider}/${model.id}` : "Select model"}
 					</span>
 					{thinkingLevel && thinkingLevel !== "off" ? (
-						<span className="rounded bg-primary/15 px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider text-primary">
+						<Badge variant="primary" size="sm">
 							{thinkingLevel}
-						</span>
+						</Badge>
 					) : null}
 					<ChevronDown className="size-3 opacity-60" />
-			</Button>
-			<Popover.Content
-				placement="bottom start"
+				</Button>
+			</PopoverTrigger>
+			<PopoverContent
+				align="start"
 				className="w-[420px] p-0"
 			>
-				<Popover.Dialog className="outline-none">
 				<div className="border-b border-border/30 p-2">
 					<Input
 						autoFocus
@@ -119,11 +122,10 @@ export function ModelPicker({ sessionId, model, thinkingLevel }: Props) {
 						value={query}
 						onChange={(e) => setQuery(e.target.value)}
 						placeholder="Search models..."
-						variant="secondary"
-						className="w-full text-[12px]"
+						className="w-full text-[12px] h-8"
 					/>
 				</div>
-				<ScrollShadow className="max-h-[360px]">
+				<ScrollArea className="max-h-[360px]">
 					<div className="py-1">
 						{loading ? (
 							<div className="px-3 py-6 text-center text-[11px] text-muted-foreground">
@@ -136,20 +138,21 @@ export function ModelPicker({ sessionId, model, thinkingLevel }: Props) {
 						) : (
 							grouped.map(([provider, list]) => (
 								<div key={provider} className="px-1 pb-1">
-									<div className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+									<div className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
 										{provider}
 									</div>
 									{list.map((m) => {
 										const active =
 											model?.provider === m.provider && model.id === m.id;
 										return (
-											<Button
+											<button
 												key={`${m.provider}/${m.id}`}
-												variant={active ? "secondary" : "tertiary"}
-												onPress={() => pick(m)}
+												onClick={() => pick(m)}
 												className={cn(
-													"w-full justify-start gap-2 px-2.5 text-left text-[12px]",
-													active && "text-accent-soft-foreground",
+													"flex w-full cursor-pointer items-center gap-2 rounded-[12px] px-2.5 py-2 text-left text-[12px] transition-colors",
+													active
+														? "bg-foreground/[0.06] text-foreground"
+														: "text-foreground/70 hover:bg-foreground/[0.04] hover:text-foreground",
 												)}
 											>
 												<Check
@@ -160,46 +163,43 @@ export function ModelPicker({ sessionId, model, thinkingLevel }: Props) {
 												/>
 												<span className="min-w-0 flex-1 truncate">{m.name}</span>
 												{m.reasoning ? (
-													<span className="shrink-0 rounded bg-foreground/[0.07] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
-														R
-													</span>
+													<Badge variant="default" size="sm">R</Badge>
 												) : null}
 												{m.contextWindow ? (
-													<span className="shrink-0 text-[10px] tabular-nums text-muted-foreground/70">
+													<span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
 														{formatContext(m.contextWindow)}
 													</span>
 												) : null}
-											</Button>
+											</button>
 										);
 									})}
 								</div>
 							))
 						)}
 					</div>
-				</ScrollShadow>
+				</ScrollArea>
 				<div className="border-t border-border/30 p-2">
-					<div className="mb-1 px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+					<div className="mb-1 px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
 						Thinking
 					</div>
 					<div className="flex flex-wrap gap-1">
 						{THINKING_LEVELS.map((lv) => (
-							<Button
+							<button
 								key={lv}
-								size="sm"
-								variant={lv === thinkingLevel ? "primary" : "tertiary"}
-								onPress={() => setThinking(lv)}
+								onClick={() => setThinking(lv)}
 								className={cn(
-									"h-7 px-2 text-[11px] uppercase tracking-wider",
-									lv !== thinkingLevel && "text-foreground/70",
+									"cursor-pointer rounded-full px-2.5 py-1 text-[11px] font-medium uppercase tracking-wider transition-colors",
+									lv === thinkingLevel
+										? "bg-primary text-primary-foreground"
+										: "bg-foreground/[0.04] text-foreground/70 hover:bg-foreground/[0.08] hover:text-foreground",
 								)}
 							>
 								{lv}
-							</Button>
+							</button>
 						))}
 					</div>
 				</div>
-				</Popover.Dialog>
-			</Popover.Content>
+			</PopoverContent>
 		</Popover>
 	);
 }

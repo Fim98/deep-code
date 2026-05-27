@@ -1,13 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-	Button,
-	Card,
-	Popover,
-	ProgressBar,
-	Separator,
-	Spinner,
-} from "@heroui/react";
 import { Gauge } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import { Spinner } from "@/components/ui/spinner";
 import { pi } from "@/lib/rpc";
 import { emitToast } from "@/lib/toast";
 
@@ -48,12 +46,10 @@ export function ContextBar({ sessionId, modelId, modelContextWindow }: Props) {
 		}
 	}, [sessionId]);
 
-	// Fetch stats on mount and when sessionId changes
 	useEffect(() => {
 		void refresh();
 	}, [refresh]);
 
-	// Re-fetch after every turn_end event
 	useEffect(() => {
 		const unsub = pi.rpc.subscribe(sessionId, (ev) => {
 			if (ev.type === "turn_end" || ev.type === "agent_end") {
@@ -70,7 +66,7 @@ export function ContextBar({ sessionId, modelId, modelContextWindow }: Props) {
 			if (!resp.success) {
 				emitToast(`Compact failed: ${resp.error}`);
 			} else {
-				emitToast("Context compacted successfully");
+				emitToast("Context compacted successfully", "info");
 				await refresh();
 			}
 		} catch (e) {
@@ -97,63 +93,59 @@ export function ContextBar({ sessionId, modelId, modelContextWindow }: Props) {
 
 	return (
 		<Popover>
-			<Button size="sm" variant="tertiary" className="h-7 gap-1.5 px-2 text-[11px]">
-				<Gauge className="size-3.5" />
-				{formatTokens(usedTokens)} / {formatTokens(maxTokens)}
-			</Button>
-			<Popover.Content placement="bottom" className="w-[340px] p-0">
-				<Popover.Dialog className="outline-none">
-					<Card className="border-0 bg-transparent shadow-none" variant="transparent">
-						<Card.Header>
-							<Card.Title>Context</Card.Title>
-							<Card.Description>
-								{modelId ?? "Current session usage"}
-							</Card.Description>
-						</Card.Header>
-						<Card.Content className="space-y-3">
-							<ProgressBar aria-label="Context usage" value={progressValue}>
-								<ProgressBar.Track>
-									<ProgressBar.Fill />
-								</ProgressBar.Track>
-							</ProgressBar>
-							<div className="grid grid-cols-2 gap-2 text-[11px]">
-								<UsageStat label="Input" value={stats.tokens.input} />
-								<UsageStat label="Output" value={stats.tokens.output} />
-								<UsageStat label="Cache read" value={stats.tokens.cacheRead} />
-								<UsageStat label="Cache write" value={stats.tokens.cacheWrite} />
-							</div>
-							<Separator />
-							<div className="flex items-center justify-between text-[11px] text-muted-foreground">
-								<span>Total tokens</span>
-								<span className="font-mono text-foreground">{formatTokens(stats.tokens.total)}</span>
-							</div>
-							<div className="flex items-center justify-between text-[11px] text-muted-foreground">
-								<span>Cost</span>
-								<span className="font-mono text-foreground">${stats.cost.toFixed(4)}</span>
-							</div>
-						</Card.Content>
-						<Card.Footer>
-							<Button
-								fullWidth
-								size="sm"
-								variant="secondary"
-								onPress={handleCompact}
-								isDisabled={compacting}
-							>
-								{compacting ? <Spinner color="current" size="sm" /> : null}
-								Compact context
-							</Button>
-						</Card.Footer>
-					</Card>
-				</Popover.Dialog>
-			</Popover.Content>
+			<PopoverTrigger asChild>
+				<Button size="sm" variant="ghost" className="h-7 gap-1.5 px-2 text-[11px]">
+					<Gauge className="size-3.5" />
+					{formatTokens(usedTokens)} / {formatTokens(maxTokens)}
+				</Button>
+			</PopoverTrigger>
+			<PopoverContent align="end" className="w-[340px] p-0">
+				<Card className="border-0 bg-transparent shadow-none">
+					<CardHeader>
+						<CardTitle>Context</CardTitle>
+						<CardDescription>
+							{modelId ?? "Current session usage"}
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="space-y-3">
+						<Progress value={progressValue} className="h-2" />
+						<div className="grid grid-cols-2 gap-2 text-[11px]">
+							<UsageStat label="Input" value={stats.tokens.input} />
+							<UsageStat label="Output" value={stats.tokens.output} />
+							<UsageStat label="Cache read" value={stats.tokens.cacheRead} />
+							<UsageStat label="Cache write" value={stats.tokens.cacheWrite} />
+						</div>
+						<Separator />
+						<div className="flex items-center justify-between text-[11px] text-muted-foreground">
+							<span>Total tokens</span>
+							<span className="font-mono text-foreground">{formatTokens(stats.tokens.total)}</span>
+						</div>
+						<div className="flex items-center justify-between text-[11px] text-muted-foreground">
+							<span>Cost</span>
+							<span className="font-mono text-foreground">${stats.cost.toFixed(4)}</span>
+						</div>
+					</CardContent>
+					<CardFooter>
+						<Button
+							className="w-full"
+							size="sm"
+							variant="secondary"
+							onClick={handleCompact}
+							disabled={compacting}
+						>
+							{compacting ? <Spinner size="sm" /> : null}
+							Compact context
+						</Button>
+					</CardFooter>
+				</Card>
+			</PopoverContent>
 		</Popover>
 	);
 }
 
 function UsageStat({ label, value }: { label: string; value: number }) {
 	return (
-		<div className="rounded-xl bg-foreground/[0.04] px-2.5 py-2">
+		<div className="rounded-[14px] bg-foreground/[0.04] px-2.5 py-2">
 			<div className="text-muted-foreground">{label}</div>
 			<div className="mt-1 font-mono text-foreground">{formatTokens(value)}</div>
 		</div>

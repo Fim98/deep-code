@@ -1,6 +1,7 @@
-import { useMemo } from "react";
-import { Sparkles } from "lucide-react";
-import { Button, Disclosure, ScrollShadow } from "@heroui/react";
+import { useMemo, useState } from "react";
+import { ChevronRight, Sparkles } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { ToolCallCard } from "@/components/chat/ToolCallCard";
 import { useSessions, type ChatMessage } from "@/stores/session-state";
@@ -60,11 +61,11 @@ export function MessageTimeline({ sessionId }: Props) {
 
 	return (
 		<div className="flex h-full min-h-0 flex-col">
-			<ScrollShadow className="min-h-0 flex-1" size={48}>
+			<ScrollArea className="min-h-0 flex-1">
 				<div className="mx-auto w-full max-w-3xl space-y-4 px-4 py-6">
 					{messages.length === 0 ? (
 						<div className="flex min-h-[55vh] flex-col items-center justify-center text-center">
-							<div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/25 to-primary/10 text-primary shadow-lg shadow-primary/10">
+							<div className="mb-5 flex size-14 items-center justify-center rounded-[18px] bg-gradient-to-br from-primary/20 to-primary/10 text-primary shadow-md shadow-primary/10">
 								<Sparkles className="size-7" />
 							</div>
 							<div className="text-xl font-semibold text-foreground">
@@ -86,7 +87,7 @@ export function MessageTimeline({ sessionId }: Props) {
 						))
 					)}
 				</div>
-			</ScrollShadow>
+			</ScrollArea>
 		</div>
 	);
 }
@@ -150,11 +151,11 @@ function UserRow({ content }: { content: string | unknown[] }) {
 						key={i}
 						alt=""
 						src={`data:${img.mimeType};base64,${img.data}`}
-						className="max-h-72 rounded-md border border-border/40"
+						className="max-h-72 rounded-[14px] border border-border/40"
 					/>
 				))}
 				{text ? (
-					<div className="whitespace-pre-wrap rounded-3xl rounded-br-lg bg-primary px-4 py-2.5 text-[14px] leading-relaxed text-primary-foreground shadow-md shadow-primary/20">
+					<div className="whitespace-pre-wrap rounded-[24px] rounded-br-[10px] bg-primary px-4 py-2.5 text-[14px] leading-relaxed text-primary-foreground shadow-md shadow-primary/15">
 						{text}
 					</div>
 				) : null}
@@ -185,8 +186,6 @@ function AssistantRow({
 	);
 	if (!hasContent) return null;
 
-	const lastIdx = parts.length - 1;
-
 	return (
 		<div className="flex justify-start">
 			<div className="flex max-w-[86%] flex-col gap-2.5">
@@ -196,31 +195,14 @@ function AssistantRow({
 						return (
 							<div
 								key={i}
-								className="whitespace-pre-wrap rounded-3xl rounded-bl-lg bg-card/70 px-4 py-3 text-[14px] leading-relaxed text-foreground shadow-md ring-1 ring-border/30 backdrop-blur"
+								className="whitespace-pre-wrap rounded-[24px] rounded-bl-[10px] bg-card px-4 py-3 text-[14px] leading-relaxed text-foreground shadow-sm ring-1 ring-border/40"
 							>
 								{p.text}
 							</div>
 						);
 					}
 					if (p.type === "thinking") {
-						return (
-							<Disclosure
-								key={i}
-								className="rounded-2xl border border-border/40 bg-card/30 px-3 py-2 text-[12px]"
-							>
-								<Disclosure.Heading>
-									<Button slot="trigger" size="sm" variant="tertiary" className="h-6 px-0 text-muted-foreground">
-										{isStreaming && i === lastIdx ? "Thinking..." : "Thinking"}
-										<Disclosure.Indicator />
-									</Button>
-								</Disclosure.Heading>
-								<Disclosure.Content>
-									<Disclosure.Body className="mt-2 whitespace-pre-wrap text-muted-foreground/90">
-										{p.thinking || ""}
-									</Disclosure.Body>
-								</Disclosure.Content>
-							</Disclosure>
-						);
+						return <ThinkingBlock key={i} thinking={p.thinking} isStreaming={isStreaming} />;
 					}
 					if (p.type === "toolCall") {
 						return (
@@ -230,7 +212,7 @@ function AssistantRow({
 					return null;
 				})}
 				{model || stopReason ? (
-					<div className="mt-1 text-[10px] font-medium tracking-wide text-muted-foreground/60">
+					<div className="mt-1 text-[10px] font-medium tracking-wide text-muted-foreground/50">
 						{model ?? ""}
 						{stopReason && stopReason !== "stop" ? ` · ${stopReason}` : ""}
 					</div>
@@ -240,9 +222,35 @@ function AssistantRow({
 	);
 }
 
+function ThinkingBlock({ thinking, isStreaming }: { thinking: string; isStreaming: boolean }) {
+	const [open, setOpen] = useState(false);
+	return (
+		<Collapsible open={open} onOpenChange={setOpen}>
+			<div className="rounded-[14px] border border-border/40 bg-foreground/[0.02] px-3 py-2 text-[12px]">
+				<CollapsibleTrigger className="flex w-full cursor-pointer items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground">
+					<ChevronRight
+						className={cn(
+							"size-3 transition-transform duration-200",
+							open && "rotate-90",
+						)}
+					/>
+					<span className="font-medium">
+						{isStreaming && !open ? "Thinking..." : "Thinking"}
+					</span>
+				</CollapsibleTrigger>
+				<CollapsibleContent>
+					<div className="mt-2 whitespace-pre-wrap text-muted-foreground">
+						{thinking || ""}
+					</div>
+				</CollapsibleContent>
+			</div>
+		</Collapsible>
+	);
+}
+
 function CustomRow({ data }: { data: ChatMessage & { role: "custom" } }) {
 	return (
-		<div className="rounded-xl border border-border/30 bg-card/40 px-3.5 py-2 text-[11px] text-muted-foreground backdrop-blur">
+		<div className="rounded-[14px] border border-border/30 bg-foreground/[0.02] px-3.5 py-2 text-[11px] text-muted-foreground">
 			<span className="font-semibold uppercase tracking-wider opacity-70">
 				{data.subtype}
 			</span>
@@ -271,10 +279,10 @@ function OrphanToolResult({
 		<div className="flex justify-start">
 			<div
 				className={cn(
-					"max-w-[78%] rounded-xl border px-3.5 py-2 text-[12px] backdrop-blur",
+					"max-w-[78%] rounded-[14px] border px-3.5 py-2 text-[12px]",
 					isError
-						? "border-destructive/40 bg-destructive/10 text-destructive"
-						: "border-border/30 bg-card/30 text-muted-foreground",
+						? "border-destructive/30 bg-destructive/5 text-destructive"
+						: "border-border/30 bg-foreground/[0.02] text-muted-foreground",
 				)}
 			>
 				<div className="mb-1 flex items-center gap-1.5 text-[10px] uppercase tracking-wider">

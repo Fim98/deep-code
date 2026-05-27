@@ -1,8 +1,9 @@
-import { Toast, toast } from "@heroui/react";
+import { toast } from "sonner";
+import { Toaster } from "sonner";
 
 export function emitToast(message: string, kind: "error" | "info" = "error") {
 	if (kind === "error") {
-		toast.danger(message);
+		toast.error(message);
 		return;
 	}
 	toast.info(message);
@@ -22,5 +23,15 @@ export function installGlobalErrorToasts() {
 }
 
 export function ToastHost() {
-	return <Toast.Provider placement="bottom" />;
+	return (
+		<Toaster
+			position="bottom-right"
+			toastOptions={{
+				className: "rounded-[18px] border border-border bg-card text-card-foreground shadow-md",
+				style: {
+					fontSize: "13px",
+				},
+			}}
+		/>
+	);
 }
