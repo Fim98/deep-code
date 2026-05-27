@@ -162,13 +162,13 @@ function UserRow({ content }: { content: string | unknown[] }) {
 				);
 	return (
 		<Message from="user">
-			<MessageContent className="flex flex-col items-end gap-3">
+			<MessageContent className="flex flex-col items-stretch gap-3">
 				{images.map((img, i) => (
 					<img
 						key={i}
 						alt=""
 						src={`data:${img.mimeType};base64,${img.data}`}
-						className="max-h-72 rounded-[18px] border border-white/25 object-contain"
+						className="max-h-72 self-end rounded-[18px] border border-white/25 object-contain"
 					/>
 				))}
 				{text ? <div className="whitespace-pre-wrap">{text}</div> : null}
@@ -279,7 +279,7 @@ function StreamingStatus({
 function CustomRow({ data }: { data: ChatMessage & { role: "custom" } }) {
 	return (
 		<Message from="assistant">
-			<MessageContent className="max-w-[74%] rounded-[18px] border border-border/40 bg-card/50 px-4 py-3 text-[12px] text-muted-foreground shadow-[0_2px_8px_rgba(0,0,0,0.03)] backdrop-blur-xl">
+			<MessageContent className="rounded-[18px] border border-border/40 bg-card/50 px-4 py-3 text-[12px] text-muted-foreground shadow-[0_2px_8px_rgba(0,0,0,0.03)] backdrop-blur-xl">
 				<div className="font-medium uppercase tracking-[0.08em] opacity-70">
 					{data.subtype}
 				</div>
@@ -309,7 +309,7 @@ function OrphanToolResult({
 		<Message from="assistant">
 			<MessageContent
 				className={cn(
-					"max-w-[78%] rounded-[18px] border px-4 py-3 text-[12px] shadow-[0_2px_8px_rgba(0,0,0,0.03)] backdrop-blur-xl",
+					"rounded-[18px] border px-4 py-3 text-[12px] shadow-[0_2px_8px_rgba(0,0,0,0.03)] backdrop-blur-xl",
 					isError
 						? "border-destructive/30 bg-destructive/5 text-destructive"
 						: "border-border/40 bg-card/50 text-muted-foreground",

@@ -93,7 +93,7 @@ export function ConversationContent({
 	return (
 		<div
 			className={cn(
-				"mx-auto flex w-full max-w-[840px] flex-col gap-7 px-8 py-8",
+				"mx-auto flex w-full max-w-3xl flex-col gap-7 px-8 py-8",
 				className,
 			)}
 			{...props}

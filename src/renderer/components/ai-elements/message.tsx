@@ -29,9 +29,7 @@ export function MessageContent({
 	return (
 		<div
 			className={cn(
-				"w-full max-w-[84%] text-[15px] leading-7 text-foreground",
-				"group-data-[role=user]/message:w-fit",
-				"group-data-[role=user]/message:max-w-[72%]",
+				"w-full max-w-none text-[15px] leading-7 text-foreground",
 				"group-data-[role=user]/message:rounded-[24px] group-data-[role=user]/message:rounded-br-[10px]",
 				"group-data-[role=user]/message:bg-primary group-data-[role=user]/message:px-5 group-data-[role=user]/message:py-3",
 				"group-data-[role=user]/message:text-primary-foreground group-data-[role=user]/message:shadow-[0_10px_30px_rgba(91,91,247,0.12)]",
