@@ -1,13 +1,18 @@
 import {
-	type CSSProperties,
-	type ElementType,
+	motion,
+	type HTMLMotionProps,
+	type MotionProps,
+} from "motion/react";
+import {
 	type ComponentPropsWithoutRef,
+	type ElementType,
+	type ReactNode,
 } from "react";
 import { cn } from "@/lib/utils";
 
 type ShimmerProps<T extends ElementType> = {
 	as?: T;
-	children: string;
+	children: ReactNode;
 	className?: string;
 	duration?: number;
 	spread?: number;
@@ -17,25 +22,31 @@ export function Shimmer<T extends ElementType = "span">({
 	as,
 	children,
 	className,
-	duration = 2.2,
+	duration = 2,
 	spread = 2,
-	style,
 	...props
 }: ShimmerProps<T>) {
-	const Component = (as ?? "span") as ElementType;
-	const mergedStyle = {
-		"--shimmer-duration": `${duration}s`,
-		backgroundSize: `${Math.max(children.length * spread, 18)}ch 100%`,
-		...(style as CSSProperties),
-	} as CSSProperties & { "--shimmer-duration": string };
+	const Component = motion.create((as ?? "span") as ElementType);
+	const textLength =
+		typeof children === "string" ? Math.max(children.length, 12) : 18;
+
 	return (
 		<Component
 			className={cn(
-				"inline-block animate-[shimmer_var(--shimmer-duration)_linear_infinite] bg-[linear-gradient(110deg,var(--muted-foreground)_0%,var(--muted-foreground)_35%,var(--foreground)_50%,var(--muted-foreground)_65%,var(--muted-foreground)_100%)] bg-clip-text text-transparent",
+				"inline-block bg-clip-text text-transparent",
+				"bg-[linear-gradient(110deg,var(--muted-foreground)_0%,var(--muted-foreground)_38%,var(--foreground)_50%,var(--muted-foreground)_62%,var(--muted-foreground)_100%)]",
 				className,
 			)}
-			style={mergedStyle}
-			{...props}
+			animate={{ backgroundPosition: ["100% 0", "0% 0"] }}
+			transition={{
+				duration,
+				ease: "linear",
+				repeat: Infinity,
+			}}
+			style={{
+				backgroundSize: `${textLength * spread}ch 100%`,
+			}}
+			{...(props as MotionProps & HTMLMotionProps<"span">)}
 		>
 			{children}
 		</Component>

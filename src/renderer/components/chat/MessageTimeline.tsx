@@ -61,6 +61,8 @@ interface ActivityItem {
 	label: string;
 	status: ActivityStatus;
 	toolName?: string;
+	action?: "read" | "create" | "edit" | "run" | "search" | "think" | "process";
+	diffStat?: string;
 }
 
 interface ActivityGroup {
@@ -332,8 +334,8 @@ function ActivityPanel({
 function ActivityGroupRow({ group }: { group: ActivityGroup }) {
 	const [open, setOpen] = useState(false);
 	const Icon = iconForKind(group.kind);
-	const title = groupTitle(group);
 	const running = group.status === "running" || group.status === "pending";
+	const title = running ? runningGroupTitle(group) : groupTitle(group);
 	return (
 		<div className="text-[13px]">
 			<button
@@ -357,24 +359,35 @@ function ActivityGroupRow({ group }: { group: ActivityGroup }) {
 					)}
 				/>
 			</button>
-			{open ? (
+			{running ? (
 				<div className="mt-2 space-y-1.5 pl-6">
 					{group.items.map((item) => (
-						<div
-							key={item.id}
-							className={cn(
-								"truncate font-mono text-[12px] leading-5",
-								item.status === "error"
-									? "text-destructive"
-									: "text-muted-foreground",
-							)}
-							title={item.label}
-						>
-							{item.label}
-						</div>
+						<ActivityItemRow key={item.id} item={item} />
+					))}
+				</div>
+			) : open ? (
+				<div className="mt-2 space-y-1.5 pl-6">
+					{group.items.map((item) => (
+						<ActivityItemRow key={item.id} item={item} />
 					))}
 				</div>
 			) : null}
+		</div>
+	);
+}
+
+function ActivityItemRow({ item }: { item: ActivityItem }) {
+	const label = formatItemLabel(item);
+	const running = item.status === "running" || item.status === "pending";
+	return (
+		<div
+			className={cn(
+				"truncate font-mono text-[12px] leading-5",
+				item.status === "error" ? "text-destructive" : "text-muted-foreground",
+			)}
+			title={label}
+		>
+			{running ? <Shimmer>{label}</Shimmer> : label}
 		</div>
 	);
 }
@@ -445,6 +458,7 @@ function buildActivities(
 			kind: "thinking",
 			label: `${thinkingCount} reasoning ${thinkingCount === 1 ? "block" : "blocks"}`,
 			status: "done",
+			action: "think",
 		});
 	}
 	for (const part of parts) {
@@ -457,6 +471,8 @@ function buildActivities(
 			label: summarizeTool(part.name, part.arguments),
 			status: statusForTool(result, execution),
 			toolName: part.name,
+			action: actionForTool(part.name, part.arguments),
+			diffStat: diffStatForTool(part.name, part.arguments, result),
 		});
 	}
 	if (includeActiveOrphans) {
@@ -469,6 +485,8 @@ function buildActivities(
 				label: summarizeTool(execution.toolName, execution.args),
 				status: statusForTool(undefined, execution),
 				toolName: execution.toolName,
+				action: actionForTool(execution.toolName, execution.args),
+				diffStat: diffStatForTool(execution.toolName, execution.args),
 			});
 		}
 	}
@@ -505,6 +523,39 @@ function groupTitle(group: ActivityGroup) {
 	const unit = unitForKind(group.kind);
 	const failureText = failed > 0 ? `，其中 ${failed} ${unit}失败` : "";
 	return `${prefix} ${count} ${unit}${failureText}`;
+}
+
+function runningGroupTitle(group: ActivityGroup) {
+	const current =
+		group.items.find((item) => item.status === "running") ??
+		group.items.find((item) => item.status === "pending") ??
+		group.items[0];
+	if (!current) return groupTitle(group);
+	if (group.items.length === 1) return formatItemLabel(current, true);
+	return `${formatItemLabel(current, true)} 等 ${group.items.length} 项`;
+}
+
+function formatItemLabel(item: ActivityItem, withAction = false) {
+	const label = item.diffStat ? `${item.label} ${item.diffStat}` : item.label;
+	if (!withAction) return label;
+	switch (item.action ?? item.kind) {
+		case "think":
+		case "thinking":
+			return "正在思考";
+		case "create":
+			return `正在创建 ${label}`;
+		case "edit":
+			return `正在编辑 ${label}`;
+		case "run":
+		case "command":
+			return `正在运行 ${label}`;
+		case "read":
+			return `正在读取 ${label}`;
+		case "search":
+			return `正在搜索 ${label}`;
+		default:
+			return `正在处理 ${label}`;
+	}
 }
 
 function runningPrefix(kind: ActivityKind) {
@@ -593,6 +644,27 @@ function kindForTool(name: string, args: Record<string, unknown>): ActivityKind 
 	return "other";
 }
 
+function actionForTool(
+	name: string,
+	args: Record<string, unknown>,
+): ActivityItem["action"] {
+	const lower = name.toLowerCase();
+	if ("command" in args || lower.includes("bash") || lower.includes("shell") || lower.includes("exec")) {
+		return "run";
+	}
+	if (lower.includes("create") || lower.includes("write")) return "create";
+	if (lower.includes("edit") || lower.includes("patch") || lower.includes("apply")) {
+		return "edit";
+	}
+	if (lower.includes("grep") || lower.includes("search") || "query" in args || "pattern" in args) {
+		return "search";
+	}
+	if ("path" in args || "file" in args || lower.includes("read") || lower.includes("view") || lower.includes("cat")) {
+		return "read";
+	}
+	return "process";
+}
+
 function statusForTool(
 	result: ToolResultInfo | undefined,
 	execution: ToolExecutionState | undefined,
@@ -607,17 +679,56 @@ function summarizeTool(name: string, args: Record<string, unknown>) {
 	if (!args || typeof args !== "object") return name;
 	if ("command" in args) return String(args.command).split("\n")[0];
 	if ("path" in args) {
-		const path = String(args.path);
+		const path = compactPath(String(args.path));
 		if ("pattern" in args) return `${path}  ‹${String(args.pattern)}›`;
 		return path;
 	}
-	if ("file" in args) return String(args.file);
+	if ("file" in args) return compactPath(String(args.file));
 	if ("query" in args) return String(args.query);
 	if ("pattern" in args) return String(args.pattern);
 	const first = Object.values(args).find(
 		(value) => typeof value === "string" || typeof value === "number",
 	);
 	return first == null ? name : String(first);
+}
+
+function compactPath(path: string) {
+	const parts = path.split(/[\\/]/).filter(Boolean);
+	if (parts.length <= 2) return path;
+	return parts.at(-1) ?? path;
+}
+
+function diffStatForTool(
+	name: string,
+	args: Record<string, unknown>,
+	result?: ToolResultInfo,
+) {
+	const details = result?.details as { patch?: string; diff?: string } | undefined;
+	const patch = details?.patch ?? details?.diff;
+	if (patch) return diffStatFromPatch(patch);
+	const lower = name.toLowerCase();
+	if (
+		(lower.includes("write") || lower.includes("create")) &&
+		typeof args.content === "string"
+	) {
+		const added = String(args.content).split("\n").length;
+		return `+${added} -0`;
+	}
+	if (typeof args.patch === "string") return diffStatFromPatch(args.patch);
+	if (typeof args.diff === "string") return diffStatFromPatch(args.diff);
+	return undefined;
+}
+
+function diffStatFromPatch(patch: string) {
+	let added = 0;
+	let removed = 0;
+	for (const line of patch.split("\n")) {
+		if (line.startsWith("+++") || line.startsWith("---")) continue;
+		if (line.startsWith("+")) added++;
+		if (line.startsWith("-")) removed++;
+	}
+	if (added === 0 && removed === 0) return undefined;
+	return `+${added} -${removed}`;
 }
 
 function iconForKind(kind: ActivityKind) {
