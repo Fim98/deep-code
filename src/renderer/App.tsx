@@ -194,6 +194,14 @@ export function App() {
 	}
 
 	const activeWorkspace = workspaces.find((w) => w.id === activeWs);
+	const activeMessageCount = slice?.messages.length ?? 0;
+	const headerSubtitle = activeSid
+		? `${activeWorkspace?.name ?? "Workspace"} · ${
+				slice?.isStreaming
+					? "Thinking"
+					: `${activeMessageCount} ${activeMessageCount === 1 ? "message" : "messages"}`
+			}`
+		: "Choose a workspace to begin";
 
 	return (
 		<div className="flex h-full w-full bg-background">
@@ -249,7 +257,7 @@ export function App() {
 								</div>
 							) : null}
 							<div className="mt-1 flex items-center gap-2 text-[12px] text-muted-foreground">
-								<span>{activeSid ? "Updated just now" : "Choose a workspace to begin"}</span>
+								<span>{headerSubtitle}</span>
 								{activeSid ? (
 									<>
 										<span className="text-muted-foreground/40">·</span>
@@ -378,8 +386,12 @@ function WorkspaceWithSessions({
 			<SidebarItem
 				active={active}
 				onClick={() => {
+					if (active) {
+						setExpanded((prev) => !prev);
+						return;
+					}
 					onSelectWorkspace(workspace.id);
-					setExpanded(!expanded);
+					setExpanded(true);
 				}}
 				icon={
 					expanded ? (

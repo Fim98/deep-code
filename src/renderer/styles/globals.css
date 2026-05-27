@@ -161,3 +161,37 @@
 .dark ::-webkit-scrollbar-thumb:hover {
 	background: rgba(255, 255, 255, 0.2);
 }
+
+.model-picker-scroll {
+	scrollbar-width: thin;
+	scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
+}
+
+.dark .model-picker-scroll {
+	scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+
+.model-picker-scroll::-webkit-scrollbar {
+	width: 4px;
+}
+
+.model-picker-scroll::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.model-picker-scroll::-webkit-scrollbar-thumb {
+	background: rgba(0, 0, 0, 0.1);
+	border-radius: 999px;
+}
+
+.dark .model-picker-scroll::-webkit-scrollbar-thumb {
+	background: rgba(255, 255, 255, 0.12);
+}
+
+.model-picker-scroll::-webkit-scrollbar-thumb:hover {
+	background: rgba(0, 0, 0, 0.16);
+}
+
+.dark .model-picker-scroll::-webkit-scrollbar-thumb:hover {
+	background: rgba(255, 255, 255, 0.18);
+}
