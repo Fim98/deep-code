@@ -5,7 +5,7 @@ Status as of 2026-05-26.
 ## Context
 
 The MVP (M1–M10) is complete and deployable end-to-end: workspace + session
-management, in-process pi SDK bridge, ai-elements–powered chat & composer,
+management, in-process pi SDK bridge, HeroUI-powered chat & composer,
 tool/diff/bash panels, model picker, provider auth UI, light/dark themes,
 session rename/delete, keyboard shortcuts. The next phases focus on (a)
 shipping deepcode as a real macOS/Windows/Linux app, (b) the everyday-flow
@@ -31,9 +31,9 @@ Single-shortcut launcher for:
 - toggle bash panel, theme, settings dialog
 - invoke pi slash commands (`get_commands` already exists)
 
-**Tech**: `cmdk` is already in the bundle via shadcn `command.tsx`. New
-`components/command-palette/CommandPalette.tsx` + global `⌘K` shortcut in
-`lib/keyboard.ts`. RPC: `get_commands`, `get_available_models`.
+**Tech**: build the overlay with HeroUI `Modal`, `ListBox`, and `Input`.
+New `components/command-palette/CommandPalette.tsx` + global `⌘K`
+shortcut in `lib/keyboard.ts`. RPC: `get_commands`, `get_available_models`.
 
 **Done when**: pressing `⌘K` opens an overlay with grouped actions and
 fuzzy-search; selecting routes via the existing handlers.
@@ -46,7 +46,7 @@ shiki's full language pack + mermaid. Cold start on a HiDPI MacBook is
 ~600ms.
 
 **Tech**: configure vite `build.rollupOptions.output.manualChunks` to
-split `streamdown`, `shiki`, `mermaid`, `@radix-ui/*`. Investigate
+split `streamdown`, `shiki`, and `mermaid`. Investigate
 Streamdown's `langs` option to inline only ~20 popular languages and
 lazy-load the rest (already lazy-chunked, but the entry pulls them
 eagerly via the language registry).
@@ -57,16 +57,14 @@ java/kotlin/swift/c/cpp/cs/sql/yaml/toml/bash/sh/diff).
 
 ---
 
-### N3 · PromptInput attachments (images + files) — **M**
-The ai-elements `PromptInput` ships with attachment + screenshot machinery
-that we currently don't wire up. Agent `prompt` already accepts
-`ImageContent[]`.
+### N3 · HeroUI composer attachments (images + files) — **M**
+The composer should support drag/drop, file picking, and screenshot capture.
+Agent `prompt` already accepts `ImageContent[]`.
 
-**Tech**: wrap our Composer in `<PromptInputBody>` + `<PromptInputHeader>`
-with `<PromptInputAttachmentsDisplay>` + `<PromptInputActionMenu>`
-(attach files / capture screenshot). On submit, read each file to base64
-and pass as `images: ImageContent[]` to `pi.rpc.send(sid, { type:
-"prompt", message, images })`.
+**Tech**: extend the HeroUI composer with `Button`, `Popover`, `Chip`, and
+hidden file input plumbing owned by the component. On submit, read each
+file to base64 and pass as `images: ImageContent[]` to
+`pi.rpc.send(sid, { type: "prompt", message, images })`.
 
 **Done when**: dragging an image onto the composer attaches it; sending
 includes it in the prompt; assistant can `read` the image (vision
@@ -88,7 +86,7 @@ nested layout:
 **Tech**: pi `SettingsManager.getProjectSettings()` / `getGlobalSettings()`
 exposes `mcpServers: Record<string, McpConfig>`. New main IPC
 `pi:settings:get` / `pi:settings:set` (writes through SettingsManager
-locking). Use shadcn `Tabs` (not yet added).
+locking). Use HeroUI `Tabs`.
 
 **Done when**: provider auth still works; can add an MCP server (e.g.
 filesystem) and see it surface in pi's available tools after restart.
@@ -127,21 +125,20 @@ dev`, IPC + RPC work, electron-store persists across launches.
 
 ## P1 — Important feature gaps
 
-### N7 · ai-elements `<Tool>` replaces ToolCallCard — **S**
-Currently we render tool calls with our own card. Switching to ai-elements
-`<Tool>` + `<ToolHeader>` + `<ToolInput>` + `<ToolOutput>` gives us the
-official status pills, consistent typography, and free integration with
-`<CodeBlock>` for diffs.
+### N7 · HeroUI tool-call surface polish — **S**
+Currently we render tool calls with our own HeroUI card. Tighten it around
+HeroUI `Disclosure`, `Card`, `Chip`, and `CodeBlock`-style typography for
+the official status pills and consistent spacing.
 
 **Tech**: adapter that maps our `AssistantMessage.content[].toolCall` +
 the joined `ToolResultMessage` into Vercel AI SDK's `ToolUIPart` shape:
 `{ type: "tool-<name>", toolCallId, state, input, output, errorText }`.
-Keep our diff renderer (`DiffViewer`) inside `<ToolOutput>` when the
-detail has `patch`.
+Keep our diff renderer (`DiffViewer`) inside the HeroUI disclosure body
+when the detail has `patch`.
 
-**Done when**: every read/edit/bash/grep/find/write tool renders via
-ai-elements; collapsing state persists across re-renders; diffs still
-appear for edit/write.
+**Done when**: every read/edit/bash/grep/find/write tool renders via the
+HeroUI tool surface; collapsing state persists across re-renders; diffs
+still appear for edit/write.
 
 ---
 
@@ -208,9 +205,9 @@ work as described; large repos (10k files) don't freeze the UI.
 
 ## P2 — Quality-of-life
 
-### N12 · ai-elements `<Terminal>` replaces BashPanel — **S**
-Brings ANSI color support and a more terminal-like look. We're still
-running one-shot commands, not pty.
+### N12 · HeroUI terminal polish — **S**
+Add ANSI color support and a more terminal-like look to the existing
+HeroUI BashPanel. We're still running one-shot commands, not pty.
 
 ---
 
@@ -313,7 +310,7 @@ If I were picking the next 1–2 weeks:
 2. **N1** command palette (M) — single biggest navigation upgrade.
 3. **N5** context usage bar (S) — answers the most common "why is it
    slow / expensive" question.
-4. **N3** PromptInput attachments (M) — unlocks vision flows.
+4. **N3** HeroUI composer attachments (M) — unlocks vision flows.
 5. **N6** electron-builder packaging (M) — lets you actually hand the
    app to a friend.
 

@@ -1,54 +1,53 @@
 import type { Config } from "tailwindcss";
-import animate from "tailwindcss-animate";
 
 export default {
-	darkMode: "class",
+	darkMode: ["class", '[data-theme="dark"]'],
 	content: ["./src/renderer/**/*.{ts,tsx,html}"],
 	theme: {
 		extend: {
 			colors: {
-				border: "hsl(var(--border) / <alpha-value>)",
-				input: "hsl(var(--input) / <alpha-value>)",
-				ring: "hsl(var(--ring) / <alpha-value>)",
-				background: "hsl(var(--background) / <alpha-value>)",
-				foreground: "hsl(var(--foreground) / <alpha-value>)",
+				border: "var(--border)",
+				input: "var(--field-background)",
+				ring: "var(--focus)",
+				background: "var(--background)",
+				foreground: "var(--foreground)",
 				primary: {
-					DEFAULT: "hsl(var(--primary) / <alpha-value>)",
-					foreground: "hsl(var(--primary-foreground) / <alpha-value>)",
+					DEFAULT: "var(--accent)",
+					foreground: "var(--accent-foreground)",
 				},
 				secondary: {
-					DEFAULT: "hsl(var(--secondary) / <alpha-value>)",
-					foreground: "hsl(var(--secondary-foreground) / <alpha-value>)",
+					DEFAULT: "var(--default)",
+					foreground: "var(--default-foreground)",
 				},
 				muted: {
-					DEFAULT: "hsl(var(--muted) / <alpha-value>)",
-					foreground: "hsl(var(--muted-foreground) / <alpha-value>)",
+					DEFAULT: "var(--surface-secondary)",
+					foreground: "var(--muted)",
 				},
 				accent: {
-					DEFAULT: "hsl(var(--accent) / <alpha-value>)",
-					foreground: "hsl(var(--accent-foreground) / <alpha-value>)",
+					DEFAULT: "var(--accent-soft)",
+					foreground: "var(--accent-soft-foreground)",
 				},
 				destructive: {
-					DEFAULT: "hsl(var(--destructive) / <alpha-value>)",
-					foreground: "hsl(var(--destructive-foreground) / <alpha-value>)",
+					DEFAULT: "var(--danger)",
+					foreground: "var(--danger-foreground)",
 				},
 				card: {
-					DEFAULT: "hsl(var(--card) / <alpha-value>)",
-					foreground: "hsl(var(--card-foreground) / <alpha-value>)",
+					DEFAULT: "var(--surface)",
+					foreground: "var(--surface-foreground)",
 				},
 				popover: {
-					DEFAULT: "hsl(var(--popover) / <alpha-value>)",
-					foreground: "hsl(var(--popover-foreground) / <alpha-value>)",
+					DEFAULT: "var(--overlay)",
+					foreground: "var(--overlay-foreground)",
 				},
 				sidebar: {
-					DEFAULT: "hsl(var(--sidebar) / <alpha-value>)",
-					foreground: "hsl(var(--sidebar-foreground) / <alpha-value>)",
+					DEFAULT: "var(--background)",
+					foreground: "var(--foreground)",
 				},
 			},
 			borderRadius: {
-				lg: "var(--radius)",
-				md: "calc(var(--radius) - 2px)",
-				sm: "calc(var(--radius) - 4px)",
+				lg: "calc(var(--radius) * 1.5)",
+				md: "var(--radius)",
+				sm: "calc(var(--radius) * 0.75)",
 			},
 			fontFamily: {
 				sans: [
@@ -62,5 +61,5 @@ export default {
 			},
 		},
 	},
-	plugins: [animate],
+	plugins: [],
 } satisfies Config;

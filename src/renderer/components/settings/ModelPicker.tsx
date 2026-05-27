@@ -1,11 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, ChevronDown, Search } from "lucide-react";
-import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Check, ChevronDown } from "lucide-react";
+import { Button, Input, Popover, ScrollShadow } from "@heroui/react";
 import { cn } from "@/lib/utils";
 import { pi } from "@/lib/rpc";
 import { useSessions } from "@/stores/session-state";
@@ -100,12 +95,8 @@ export function ModelPicker({ sessionId, model, thinkingLevel }: Props) {
 	}
 
 	return (
-		<Popover open={open} onOpenChange={setOpen}>
-			<PopoverTrigger asChild>
-				<button
-					type="button"
-					className="flex items-center gap-1.5 rounded-md border border-border/40 bg-foreground/[0.05] px-2 py-1 text-[11px] text-foreground/80 transition-colors hover:bg-foreground/[0.08] hover:text-foreground"
-				>
+		<Popover isOpen={open} onOpenChange={setOpen}>
+			<Button size="sm" variant="tertiary" className="h-7 gap-1.5 px-2 text-[11px]">
 					<span className="font-medium">
 						{model ? `${model.provider}/${model.id}` : "Select model"}
 					</span>
@@ -115,26 +106,24 @@ export function ModelPicker({ sessionId, model, thinkingLevel }: Props) {
 						</span>
 					) : null}
 					<ChevronDown className="size-3 opacity-60" />
-				</button>
-			</PopoverTrigger>
-			<PopoverContent
-				align="start"
+			</Button>
+			<Popover.Content
+				placement="bottom start"
 				className="w-[420px] p-0"
-				onOpenAutoFocus={(e) => e.preventDefault()}
 			>
+				<Popover.Dialog className="outline-none">
 				<div className="border-b border-border/30 p-2">
-					<div className="flex items-center gap-2 rounded-md bg-foreground/[0.05] px-2 py-1.5">
-						<Search className="size-3.5 text-muted-foreground" />
-						<input
-							autoFocus
-							value={query}
-							onChange={(e) => setQuery(e.target.value)}
-							placeholder="Search models…"
-							className="flex-1 bg-transparent text-[12px] text-foreground placeholder:text-muted-foreground focus:outline-none"
-						/>
-					</div>
+					<Input
+						autoFocus
+						aria-label="Search models"
+						value={query}
+						onChange={(e) => setQuery(e.target.value)}
+						placeholder="Search models..."
+						variant="secondary"
+						className="w-full text-[12px]"
+					/>
 				</div>
-				<ScrollArea className="max-h-[360px]">
+				<ScrollShadow className="max-h-[360px]">
 					<div className="py-1">
 						{loading ? (
 							<div className="px-3 py-6 text-center text-[11px] text-muted-foreground">
@@ -154,15 +143,13 @@ export function ModelPicker({ sessionId, model, thinkingLevel }: Props) {
 										const active =
 											model?.provider === m.provider && model.id === m.id;
 										return (
-											<button
-												type="button"
+											<Button
 												key={`${m.provider}/${m.id}`}
-												onClick={() => pick(m)}
+												variant={active ? "secondary" : "tertiary"}
+												onPress={() => pick(m)}
 												className={cn(
-													"flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] transition-colors",
-													active
-														? "bg-primary/15 text-foreground"
-														: "text-foreground/85 hover:bg-foreground/[0.06]",
+													"w-full justify-start gap-2 px-2.5 text-left text-[12px]",
+													active && "text-accent-soft-foreground",
 												)}
 											>
 												<Check
@@ -182,37 +169,37 @@ export function ModelPicker({ sessionId, model, thinkingLevel }: Props) {
 														{formatContext(m.contextWindow)}
 													</span>
 												) : null}
-											</button>
+											</Button>
 										);
 									})}
 								</div>
 							))
 						)}
 					</div>
-				</ScrollArea>
+				</ScrollShadow>
 				<div className="border-t border-border/30 p-2">
 					<div className="mb-1 px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
 						Thinking
 					</div>
 					<div className="flex flex-wrap gap-1">
 						{THINKING_LEVELS.map((lv) => (
-							<button
-								type="button"
+							<Button
 								key={lv}
-								onClick={() => setThinking(lv)}
+								size="sm"
+								variant={lv === thinkingLevel ? "primary" : "tertiary"}
+								onPress={() => setThinking(lv)}
 								className={cn(
-									"rounded-md px-2 py-1 text-[11px] uppercase tracking-wider transition-colors",
-									lv === thinkingLevel
-										? "bg-primary text-primary-foreground"
-										: "bg-foreground/[0.05] text-foreground/70 hover:bg-foreground/[0.10]",
+									"h-7 px-2 text-[11px] uppercase tracking-wider",
+									lv !== thinkingLevel && "text-foreground/70",
 								)}
 							>
 								{lv}
-							</button>
+							</Button>
 						))}
 					</div>
 				</div>
-			</PopoverContent>
+				</Popover.Dialog>
+			</Popover.Content>
 		</Popover>
 	);
 }

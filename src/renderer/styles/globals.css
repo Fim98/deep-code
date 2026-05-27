@@ -1,85 +1,102 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@import "@heroui/styles";
+
+@theme inline {
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+	--color-card: var(--surface);
+	--color-card-foreground: var(--surface-foreground);
+	--color-popover: var(--overlay);
+	--color-popover-foreground: var(--overlay-foreground);
+	--color-primary: var(--accent);
+	--color-primary-foreground: var(--accent-foreground);
+	--color-secondary: var(--default);
+	--color-secondary-foreground: var(--default-foreground);
+	--color-muted: var(--surface-secondary);
+	--color-muted-foreground: var(--muted);
+	--color-accent: var(--accent-soft);
+	--color-accent-foreground: var(--accent-soft-foreground);
+	--color-destructive: var(--danger);
+	--color-destructive-foreground: var(--danger-foreground);
+	--color-border: var(--border);
+	--color-input: var(--field-background);
+	--color-ring: var(--focus);
+	--color-sidebar: var(--background);
+	--color-sidebar-foreground: var(--foreground);
+	--radius-lg: calc(var(--radius) * 1.5);
+	--radius-md: var(--radius);
+	--radius-sm: calc(var(--radius) * 0.75);
+}
+
+:root,
+.light,
+.default,
+[data-theme="light"],
+[data-theme="default"] {
+	--background: oklch(0.9702 0 0);
+	--foreground: oklch(0.2103 0.0059 285.89);
+	--surface: oklch(1 0 0);
+	--surface-foreground: var(--foreground);
+	--surface-secondary: oklch(0.9524 0.0013 286.37);
+	--surface-secondary-foreground: var(--foreground);
+	--surface-tertiary: oklch(0.9373 0.0013 286.37);
+	--surface-tertiary-foreground: var(--foreground);
+	--overlay: var(--surface);
+	--overlay-foreground: var(--foreground);
+	--muted: oklch(0.5517 0.0138 285.94);
+	--default: oklch(0.94 0.001 286.375);
+	--default-foreground: var(--foreground);
+	--accent: oklch(0.6204 0.195 253.83);
+	--accent-foreground: oklch(0.9911 0 0);
+	--accent-soft: color-mix(in oklab, var(--accent) 15%, transparent);
+	--accent-soft-foreground: color-mix(in oklab, var(--accent) 70%, var(--foreground) 30%);
+	--danger: oklch(0.6532 0.2328 25.74);
+	--danger-foreground: oklch(0.9911 0 0);
+	--border: oklch(0.9 0.004 286.32);
+	--separator: oklch(0.92 0.004 286.32);
+	--focus: var(--accent);
+	--field-background: var(--surface);
+	--field-foreground: var(--foreground);
+	--field-placeholder: var(--muted);
+	--field-border: transparent;
+	--radius: 0.75rem;
+	--sidebar-shadow: inset -1px 0 0 0 var(--border);
+	color-scheme: light;
+}
+
+.dark,
+[data-theme="dark"] {
+	--background: oklch(0.1701 0.006 286.06);
+	--foreground: oklch(0.9674 0.0013 286.38);
+	--surface: oklch(0.2117 0.006 286.04);
+	--surface-foreground: var(--foreground);
+	--surface-secondary: oklch(0.2686 0.006 286.03);
+	--surface-secondary-foreground: var(--foreground);
+	--surface-tertiary: oklch(0.319 0.007 286.02);
+	--surface-tertiary-foreground: var(--foreground);
+	--overlay: oklch(0.245 0.006 286.04);
+	--overlay-foreground: var(--foreground);
+	--muted: oklch(0.712 0.013 286.1);
+	--default: oklch(0.274 0.006 286.03);
+	--default-foreground: var(--foreground);
+	--accent: oklch(0.6604 0.185 253.83);
+	--accent-foreground: oklch(0.9911 0 0);
+	--accent-soft: color-mix(in oklab, var(--accent) 22%, transparent);
+	--accent-soft-foreground: color-mix(in oklab, var(--accent) 80%, var(--foreground) 20%);
+	--danger: oklch(0.671 0.225 25.74);
+	--danger-foreground: oklch(0.9911 0 0);
+	--border: oklch(0.331 0.008 286.05);
+	--separator: oklch(0.299 0.007 286.04);
+	--focus: var(--accent);
+	--field-background: var(--surface-secondary);
+	--field-foreground: var(--foreground);
+	--field-placeholder: var(--muted);
+	--field-border: transparent;
+	--sidebar-shadow: inset -1px 0 0 0 var(--border);
+	color-scheme: dark;
+}
 
 @layer base {
-	/* ---- Light (Apple Music light) ---- */
-	:root {
-		--background: 0 0% 100%;
-		--foreground: 240 10% 4%;
-
-		--card: 240 6% 95%;
-		--card-foreground: 240 10% 4%;
-
-		--popover: 0 0% 100%;
-		--popover-foreground: 240 10% 4%;
-
-		/* Apple Music red */
-		--primary: 351 100% 56%;
-		--primary-foreground: 0 0% 100%;
-
-		--secondary: 240 5% 96%;
-		--secondary-foreground: 240 10% 10%;
-
-		--muted: 240 5% 95%;
-		--muted-foreground: 240 4% 46%;
-
-		--accent: 351 100% 96%;
-		--accent-foreground: 351 95% 46%;
-
-		--destructive: 0 75% 51%;
-		--destructive-foreground: 0 0% 100%;
-
-		--border: 240 6% 91%;
-		--input: 240 6% 91%;
-		--ring: 351 100% 56%;
-
-		--sidebar: 240 7% 97%;
-		--sidebar-foreground: 240 10% 4%;
-		--sidebar-shadow: inset -1px 0 0 0 hsl(240 6% 89%), 4px 0 14px -8px hsl(240 8% 55% / 0.18);
-
-		--titlebar-divider: 240 6% 94%;
-
-		--radius: 0.85rem;
-	}
-
-	/* ---- Dark (Apple Music dark) ---- */
-	.dark {
-		--background: 240 6% 9%;
-		--foreground: 240 5% 96%;
-
-		--card: 240 5% 13%;
-		--card-foreground: 240 5% 96%;
-
-		--popover: 240 5% 14%;
-		--popover-foreground: 240 5% 96%;
-
-		--primary: 351 100% 66%;
-		--primary-foreground: 0 0% 100%;
-
-		--secondary: 240 4% 18%;
-		--secondary-foreground: 240 5% 96%;
-
-		--muted: 240 4% 18%;
-		--muted-foreground: 240 5% 62%;
-
-		--accent: 351 55% 18%;
-		--accent-foreground: 351 100% 75%;
-
-		--destructive: 0 72% 60%;
-		--destructive-foreground: 0 0% 100%;
-
-		--border: 240 4% 22%;
-		--input: 240 4% 22%;
-		--ring: 351 100% 66%;
-
-		--sidebar: 240 6% 7%;
-		--sidebar-foreground: 240 5% 96%;
-		--sidebar-shadow: inset -1px 0 0 0 hsl(0 0% 100% / 0.06), 12px 0 32px -16px hsl(0 0% 0% / 0.6);
-
-		--titlebar-divider: 240 4% 16%;
-	}
-
 	html,
 	body,
 	#root {
@@ -89,7 +106,7 @@
 	body {
 		font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
 		background: transparent;
-		color: hsl(var(--foreground));
+		color: var(--foreground);
 		font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display",
 			"SF Pro Text", "Helvetica Neue", sans-serif;
 		-webkit-font-smoothing: antialiased;
@@ -97,7 +114,7 @@
 	}
 
 	* {
-		border-color: hsl(var(--border));
+		border-color: var(--border);
 	}
 }
 

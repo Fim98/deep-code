@@ -4,3 +4,5 @@ out-tsc/
 .vite/
 dist/
 *.log
+# heroui-agents-md
+.heroui-docs/

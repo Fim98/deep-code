@@ -1,9 +1,5 @@
 import { Monitor, Moon, Sun } from "lucide-react";
-import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@/components/ui/popover";
+import { Button, Popover } from "@heroui/react";
 import { cn } from "@/lib/utils";
 import { useTheme, type ThemeChoice } from "@/stores/theme";
 
@@ -25,41 +21,36 @@ export function ThemeSwitcher() {
 
 	return (
 		<Popover>
-			<PopoverTrigger asChild>
-				<button
-					type="button"
-					title="Theme"
-					className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
-				>
-					<Active className="size-3.5" />
-				</button>
-			</PopoverTrigger>
-			<PopoverContent align="end" className="w-44 p-1">
-				{OPTIONS.map(({ value, label, icon: Icon }) => {
-					const active = choice === value;
-					return (
-						<button
-							key={value}
-							type="button"
-							onClick={() => setChoice(value)}
-							className={cn(
-								"flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] transition-colors",
-								active
-									? "bg-accent text-accent-foreground"
-									: "text-foreground/85 hover:bg-foreground/[0.06]",
-							)}
-						>
-							<Icon className="size-3.5" />
-							<span className="flex-1">{label}</span>
-							{active ? (
-								<span className="text-[10px] uppercase tracking-wider text-primary">
-									●
-								</span>
-							) : null}
-						</button>
-					);
-				})}
-			</PopoverContent>
+			<Button isIconOnly size="sm" variant="tertiary" aria-label="Theme">
+				<Active className="size-3.5" />
+			</Button>
+			<Popover.Content placement="bottom end" className="w-44 p-1">
+				<Popover.Dialog className="outline-none">
+					{OPTIONS.map(({ value, label, icon: Icon }) => {
+						const active = choice === value;
+						return (
+							<Button
+								key={value}
+								variant={active ? "secondary" : "tertiary"}
+								size="sm"
+								onPress={() => setChoice(value)}
+								className={cn(
+									"w-full justify-start gap-2 px-2.5 text-left text-[12px]",
+									active && "text-accent-soft-foreground",
+								)}
+							>
+								<Icon className="size-3.5" />
+								<span className="flex-1">{label}</span>
+								{active ? (
+									<span className="text-[10px] uppercase tracking-wider text-primary">
+										●
+									</span>
+								) : null}
+							</Button>
+						);
+					})}
+				</Popover.Dialog>
+			</Popover.Content>
 		</Popover>
 	);
 }

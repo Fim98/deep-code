@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Square, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button, InputGroup, ScrollShadow } from "@heroui/react";
 import { pi } from "@/lib/rpc";
 import { cn } from "@/lib/utils";
 
@@ -94,16 +93,16 @@ export function BashPanel({ sessionId, onClose }: Props) {
 				</span>
 				<div className="ml-auto flex items-center gap-1">
 					{running ? (
-						<Button size="iconSm" variant="ghost" onClick={abort} title="Abort">
+						<Button isIconOnly size="sm" variant="tertiary" onPress={abort} aria-label="Abort">
 							<Square className="size-3 fill-current text-destructive" />
 						</Button>
 					) : null}
-					<Button size="iconSm" variant="ghost" onClick={onClose} title="Close">
+					<Button isIconOnly size="sm" variant="tertiary" onPress={onClose} aria-label="Close">
 						<X className="size-3.5" />
 					</Button>
 				</div>
 			</div>
-			<ScrollArea className="flex-1">
+			<ScrollShadow className="flex-1">
 				<div
 					ref={scrollRef}
 					className="space-y-2 px-3 py-2 font-mono text-[11.5px]"
@@ -117,18 +116,24 @@ export function BashPanel({ sessionId, onClose }: Props) {
 						history.map((h, i) => <BashRow key={i} entry={h} />)
 					)}
 				</div>
-			</ScrollArea>
+			</ScrollShadow>
 			<div className="flex shrink-0 items-center gap-2 border-t border-border/30 px-3 py-2">
-				<span className="select-none font-mono text-[12px] text-primary">$</span>
-				<input
-					ref={inputRef}
-					value={input}
-					onChange={(e) => setInput(e.target.value)}
-					onKeyDown={onKey}
-					placeholder="Run a bash command…"
-					className="flex-1 bg-transparent font-mono text-[12.5px] text-foreground placeholder:text-muted-foreground focus:outline-none"
-					disabled={running}
-				/>
+				<InputGroup variant="secondary" className="flex-1 font-mono text-[12.5px]">
+					<InputGroup.Prefix>
+						<span className="select-none font-mono text-[12px] text-primary">
+							$
+						</span>
+					</InputGroup.Prefix>
+					<InputGroup.Input
+						ref={inputRef}
+						value={input}
+						onChange={(e) => setInput(e.target.value)}
+						onKeyDown={onKey}
+						placeholder="Run a bash command..."
+						disabled={running}
+						className="min-w-0 flex-1 font-mono text-[12.5px]"
+					/>
+				</InputGroup>
 			</div>
 		</div>
 	);

@@ -10,6 +10,7 @@ import {
 	Terminal,
 	Wrench,
 } from "lucide-react";
+import { Button, Card, Chip } from "@heroui/react";
 import { cn } from "@/lib/utils";
 import { DiffViewer } from "@/components/chat/DiffViewer";
 
@@ -42,7 +43,8 @@ export function ToolCallCard({ call, result }: Props) {
 	const diffPatch = pickDiffPatch(call, result);
 
 	return (
-		<div
+		<Card
+			variant="transparent"
 			className={cn(
 				"overflow-hidden rounded-xl border bg-card/40 text-[12px] backdrop-blur",
 				errored
@@ -52,9 +54,9 @@ export function ToolCallCard({ call, result }: Props) {
 						: "border-border/40",
 			)}
 		>
-			<button
-				type="button"
-				onClick={() => setOpen((o) => !o)}
+			<Button
+				variant="tertiary"
+				onPress={() => setOpen((o) => !o)}
 				className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-foreground/[0.04]"
 			>
 				<ChevronRight
@@ -81,19 +83,14 @@ export function ToolCallCard({ call, result }: Props) {
 				) : (
 					<span className="flex-1" />
 				)}
-				<span
-					className={cn(
-						"shrink-0 text-[10px] tracking-wider",
-						errored
-							? "text-destructive"
-							: running
-								? "text-primary"
-								: "text-muted-foreground/60",
-					)}
+				<Chip
+					size="sm"
+					variant="soft"
+					color={errored ? "danger" : running ? "accent" : "default"}
 				>
-					{errored ? "ERROR" : running ? "RUNNING" : "DONE"}
-				</span>
-			</button>
+					<Chip.Label>{errored ? "ERROR" : running ? "RUNNING" : "DONE"}</Chip.Label>
+				</Chip>
+			</Button>
 			{open ? (
 				<div className="space-y-2 border-t border-border/30 bg-background/30 px-3 py-2.5">
 					<div>
@@ -129,7 +126,7 @@ export function ToolCallCard({ call, result }: Props) {
 					) : null}
 				</div>
 			) : null}
-		</div>
+		</Card>
 	);
 }
 

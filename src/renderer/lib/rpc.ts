@@ -3,9 +3,32 @@ import type {
 	RpcCommand,
 	RpcResponse,
 } from "@earendil-works/pi-coding-agent";
-import type { WorkspaceEntry } from "../../main/workspace-store.js";
-import type { SessionListItem } from "../../main/session-fs.js";
-import type { OpenSessionResult } from "../../main/session-registry.js";
+
+export interface WorkspaceEntry {
+	id: string;
+	name: string;
+	path: string;
+	addedAt: number;
+}
+
+export interface SessionListItem {
+	path: string;
+	id: string;
+	cwd: string;
+	name?: string;
+	parentSessionPath?: string;
+	created: number;
+	modified: number;
+	messageCount: number;
+	firstMessage: string;
+}
+
+export interface OpenSessionResult {
+	sessionId: string;
+	workspaceId: string;
+	sessionFile: string | undefined;
+	piSessionId: string;
+}
 
 export interface PiBridge {
 	ping: () => Promise<string>;

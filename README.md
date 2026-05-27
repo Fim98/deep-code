@@ -9,7 +9,7 @@ An Apple Music–style Electron desktop client for the [pi](https://www.npmjs.co
 - **Main process** directly imports `@earendil-works/pi-coding-agent` and manages a `Map<sessionId, AgentSession>`. No subprocess, no JSON-over-stdio — every renderer RPC call is a function call in the same V8 instance.
 - **Multi-workspace, multi-session.** Each `AgentSession` carries its own `cwd` / `SessionManager` / event bus; shared `AuthStorage` and `ModelRegistry` are singletons.
 - **IPC payloads reuse pi's `RpcCommand` / `RpcResponse` types** verbatim, but the implementation is a direct switch over `AgentSession` methods (`dispatchRpc`).
-- **Renderer** is React 19 + TailwindCSS + shadcn/ui + ai-elements. State managed with Zustand.
+- **Renderer** is React 19 + Tailwind CSS v4 + HeroUI React v3. State managed with Zustand.
 
 ```
 Renderer (React)

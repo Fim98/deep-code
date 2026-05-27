@@ -1,18 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-	Context,
-	ContextCacheUsage,
-	ContextContent,
-	ContextContentBody,
-	ContextContentFooter,
-	ContextContentHeader,
-	ContextInputUsage,
-	ContextOutputUsage,
-	ContextReasoningUsage,
-	ContextTrigger,
-} from "@/components/ai-elements/context";
+	Button,
+	Card,
+	Popover,
+	ProgressBar,
+	Separator,
+	Spinner,
+} from "@heroui/react";
+import { Gauge } from "lucide-react";
 import { pi } from "@/lib/rpc";
-import { emitToast } from "@/components/ui/toast";
+import { emitToast } from "@/lib/toast";
 
 interface SessionStatsData {
 	tokens: {
@@ -95,35 +92,77 @@ export function ContextBar({ sessionId, modelId, modelContextWindow }: Props) {
 			}
 		: undefined;
 
+	const percent = contextUsage?.percent ?? (maxTokens ? usedTokens / maxTokens : null);
+	const progressValue = percent == null ? 0 : Math.min(100, Math.round(percent * 100));
+
 	return (
-		<Context
-			maxTokens={maxTokens}
-			modelId={modelId}
-			usage={{
-				inputTokens: stats.tokens.input,
-				outputTokens: stats.tokens.output,
-				reasoningTokens: 0,
-				cachedInputTokens: stats.tokens.cacheRead,
-				totalTokens: stats.tokens.total,
-			}}
-			usedTokens={usedTokens}
-			contextUsage={contextUsage}
-		>
-			<ContextTrigger />
-			<ContextContent>
-				<ContextContentHeader />
-				<ContextContentBody>
-					<ContextInputUsage />
-					<ContextOutputUsage />
-					<ContextReasoningUsage />
-					<ContextCacheUsage />
-				</ContextContentBody>
-				<ContextContentFooter
-					onCompact={handleCompact}
-					compacting={compacting}
-					cost={stats.cost}
-				/>
-			</ContextContent>
-		</Context>
+		<Popover>
+			<Button size="sm" variant="tertiary" className="h-7 gap-1.5 px-2 text-[11px]">
+				<Gauge className="size-3.5" />
+				{formatTokens(usedTokens)} / {formatTokens(maxTokens)}
+			</Button>
+			<Popover.Content placement="bottom" className="w-[340px] p-0">
+				<Popover.Dialog className="outline-none">
+					<Card className="border-0 bg-transparent shadow-none" variant="transparent">
+						<Card.Header>
+							<Card.Title>Context</Card.Title>
+							<Card.Description>
+								{modelId ?? "Current session usage"}
+							</Card.Description>
+						</Card.Header>
+						<Card.Content className="space-y-3">
+							<ProgressBar aria-label="Context usage" value={progressValue}>
+								<ProgressBar.Track>
+									<ProgressBar.Fill />
+								</ProgressBar.Track>
+							</ProgressBar>
+							<div className="grid grid-cols-2 gap-2 text-[11px]">
+								<UsageStat label="Input" value={stats.tokens.input} />
+								<UsageStat label="Output" value={stats.tokens.output} />
+								<UsageStat label="Cache read" value={stats.tokens.cacheRead} />
+								<UsageStat label="Cache write" value={stats.tokens.cacheWrite} />
+							</div>
+							<Separator />
+							<div className="flex items-center justify-between text-[11px] text-muted-foreground">
+								<span>Total tokens</span>
+								<span className="font-mono text-foreground">{formatTokens(stats.tokens.total)}</span>
+							</div>
+							<div className="flex items-center justify-between text-[11px] text-muted-foreground">
+								<span>Cost</span>
+								<span className="font-mono text-foreground">${stats.cost.toFixed(4)}</span>
+							</div>
+						</Card.Content>
+						<Card.Footer>
+							<Button
+								fullWidth
+								size="sm"
+								variant="secondary"
+								onPress={handleCompact}
+								isDisabled={compacting}
+							>
+								{compacting ? <Spinner color="current" size="sm" /> : null}
+								Compact context
+							</Button>
+						</Card.Footer>
+					</Card>
+				</Popover.Dialog>
+			</Popover.Content>
+		</Popover>
 	);
+}
+
+function UsageStat({ label, value }: { label: string; value: number }) {
+	return (
+		<div className="rounded-xl bg-foreground/[0.04] px-2.5 py-2">
+			<div className="text-muted-foreground">{label}</div>
+			<div className="mt-1 font-mono text-foreground">{formatTokens(value)}</div>
+		</div>
+	);
+}
+
+function formatTokens(value: number | null | undefined) {
+	if (value == null) return "--";
+	if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+	if (value >= 1_000) return `${Math.round(value / 1_000)}K`;
+	return String(value);
 }

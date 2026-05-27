@@ -1,4 +1,4 @@
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button, ScrollShadow } from "@heroui/react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -8,18 +8,18 @@ interface Props {
 export function Sidebar({ children }: Props) {
 	return (
 		<aside
-			className="sidebar-floating relative z-10 flex w-[260px] shrink-0 flex-col bg-sidebar/85 backdrop-blur-2xl"
+			className="sidebar-floating relative z-10 flex w-[240px] shrink-0 flex-col bg-sidebar text-sidebar-foreground"
 			style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
 		>
-			<div className="h-12 shrink-0" />
-			<ScrollArea className="flex-1 px-3 pb-4">
+			<div className="h-5 shrink-0" />
+			<ScrollShadow className="min-h-0 flex-1 pb-5" hideScrollBar size={36}>
 				<div
-					className="space-y-6"
+					className="space-y-6 px-4"
 					style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
 				>
 					{children}
 				</div>
-			</ScrollArea>
+			</ScrollShadow>
 		</aside>
 	);
 }
@@ -32,15 +32,19 @@ interface SectionProps {
 
 export function SidebarSection({ title, action, children }: SectionProps) {
 	return (
-		<div>
-			<div className="mb-1 flex items-center justify-between px-3 pt-1">
-				<div className="select-none text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/70">
+		<section className="group/section overflow-visible">
+			<div className="mb-2 flex items-center justify-between px-3 pt-1">
+				<div className="select-none text-[12px] font-semibold text-muted-foreground">
 					{title}
 				</div>
-				{action}
+				<div className="opacity-0 transition-opacity group-hover/section:opacity-100 focus-within:opacity-100">
+					{action}
+				</div>
 			</div>
-			<div className="space-y-0.5">{children}</div>
-		</div>
+			<div className="space-y-1 overflow-visible">
+				{children}
+			</div>
+		</section>
 	);
 }
 
@@ -53,6 +57,7 @@ interface ItemProps {
 	right?: React.ReactNode;
 	title2?: string;
 	className?: string;
+	activeClassName?: string;
 }
 
 export function SidebarItem({
@@ -64,58 +69,62 @@ export function SidebarItem({
 	right,
 	title2,
 	className,
+	activeClassName,
 }: ItemProps) {
-	const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-		if (!onClick) return;
-		if (e.key === "Enter" || e.key === " ") {
-			e.preventDefault();
-			onClick();
-		}
-	};
 	return (
-		// We render the row as <div role="button"> rather than a real <button>
-		// so consumers can nest interactive elements (e.g. a delete icon) inside
-		// the trailing slot without violating HTML's no-nested-button rule.
-		<div
-			role="button"
-			tabIndex={0}
-			onClick={onClick}
-			onKeyDown={handleKeyDown}
-			title={title2}
-			className={cn(
-				"group flex w-full cursor-pointer select-none items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-[13px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
-				active
-					? "bg-accent text-accent-foreground"
-					: "text-foreground/75 hover:bg-foreground/[0.05] hover:text-foreground",
-				className,
-			)}
-		>
-			{icon ? (
-				<span
-					className={cn(
-						"flex h-5 w-5 shrink-0 items-center justify-center rounded-md",
-						active ? "text-accent-foreground" : "text-muted-foreground/85",
-					)}
-				>
-					{icon}
-				</span>
-			) : null}
-			<div className="min-w-0 flex-1">
-				<div className={cn("truncate", active && "font-semibold")}>{title}</div>
-				{subtitle ? (
-					<div
+		<div className="group/sidebar-item relative">
+			<Button
+				variant="tertiary"
+				onPress={onClick}
+				aria-label={title2}
+				className={cn(
+					"group min-h-10 w-full justify-start gap-3 rounded-2xl px-3 py-2 text-left text-[14px]",
+					active
+						? cn(
+								"bg-secondary text-foreground shadow-none ring-0 hover:bg-secondary",
+								activeClassName,
+							)
+						: "text-foreground/80 hover:bg-foreground/[0.05] hover:text-foreground",
+					right && "pr-9",
+					className,
+				)}
+			>
+				{icon ? (
+					<span
 						className={cn(
-							"truncate text-[10.5px]",
-							active
-								? "text-accent-foreground/80"
-								: "text-muted-foreground/70",
+							"flex h-5 w-5 shrink-0 items-center justify-center rounded-md transition-colors",
+							active ? "text-foreground" : "text-muted-foreground",
 						)}
 					>
-						{subtitle}
-					</div>
+						{icon}
+					</span>
 				) : null}
-			</div>
-			{right}
+				<div className="min-w-0 flex-1 py-px">
+					<div
+						className={cn(
+							"truncate text-[14px] font-medium leading-tight",
+							active ? "text-foreground" : "text-foreground/90",
+						)}
+					>
+						{title}
+					</div>
+					{subtitle ? (
+						<div
+							className={cn(
+								"mt-1 truncate text-[11px] leading-tight",
+								active ? "text-foreground/60" : "text-muted-foreground/60",
+							)}
+						>
+							{subtitle}
+						</div>
+					) : null}
+				</div>
+			</Button>
+			{right ? (
+				<div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
+					{right}
+				</div>
+			) : null}
 		</div>
 	);
 }

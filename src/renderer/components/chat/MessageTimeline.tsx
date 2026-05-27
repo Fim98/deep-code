@@ -1,26 +1,8 @@
 import { useMemo } from "react";
 import { Sparkles } from "lucide-react";
-import {
-	Conversation,
-	ConversationContent,
-	ConversationEmptyState,
-	ConversationScrollButton,
-} from "@/components/ai-elements/conversation";
-import {
-	Message,
-	MessageContent,
-	MessageResponse,
-} from "@/components/ai-elements/message";
-import {
-	Reasoning,
-	ReasoningContent,
-	ReasoningTrigger,
-} from "@/components/ai-elements/reasoning";
+import { Button, Disclosure, ScrollShadow } from "@heroui/react";
+import { cn } from "@/lib/utils";
 import { ToolCallCard } from "@/components/chat/ToolCallCard";
-import {
-	OrphanToolResult,
-	type ToolResultInfo,
-} from "@/components/chat/MessageBubbles";
 import { useSessions, type ChatMessage } from "@/stores/session-state";
 
 interface Props {
@@ -32,6 +14,13 @@ interface ToolCallPart {
 	id: string;
 	name: string;
 	arguments: Record<string, unknown>;
+}
+
+interface ToolResultInfo {
+	toolName: string;
+	content: unknown[];
+	isError: boolean;
+	details?: unknown;
 }
 
 type Part =
@@ -71,18 +60,20 @@ export function MessageTimeline({ sessionId }: Props) {
 
 	return (
 		<div className="flex h-full min-h-0 flex-col">
-			<Conversation>
-				<ConversationContent className="mx-auto w-full max-w-3xl px-4 py-6">
+			<ScrollShadow className="min-h-0 flex-1" size={48}>
+				<div className="mx-auto w-full max-w-3xl space-y-4 px-4 py-6">
 					{messages.length === 0 ? (
-						<ConversationEmptyState
-							icon={
-								<div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/25 to-primary/10 text-primary shadow-lg shadow-primary/10">
-									<Sparkles className="size-7" />
-								</div>
-							}
-							title="Send a message to begin"
-							description="Ask pi to read, edit, search, or run anything in this workspace."
-						/>
+						<div className="flex min-h-[55vh] flex-col items-center justify-center text-center">
+							<div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/25 to-primary/10 text-primary shadow-lg shadow-primary/10">
+								<Sparkles className="size-7" />
+							</div>
+							<div className="text-xl font-semibold text-foreground">
+								Send a message to begin
+							</div>
+							<p className="mt-2 max-w-md text-sm text-muted-foreground">
+								Ask pi to read, edit, search, or run anything in this workspace.
+							</p>
+						</div>
 					) : (
 						messages.map((m, i) => (
 							<Row
@@ -94,9 +85,8 @@ export function MessageTimeline({ sessionId }: Props) {
 							/>
 						))
 					)}
-				</ConversationContent>
-				<ConversationScrollButton />
-			</Conversation>
+				</div>
+			</ScrollShadow>
 		</div>
 	);
 }
@@ -113,7 +103,7 @@ function Row({
 	isStreamingLast: boolean;
 }) {
 	if (m.role === "user") return <UserRow content={m.content} />;
-	if (m.role === "assistant")
+	if (m.role === "assistant") {
 		return (
 			<AssistantRow
 				content={m.content as unknown[]}
@@ -123,6 +113,7 @@ function Row({
 				isStreaming={isStreamingLast}
 			/>
 		);
+	}
 	if (m.role === "toolResult") {
 		if (claimed.has(m.toolCallId)) return null;
 		return (
@@ -152,8 +143,8 @@ function UserRow({ content }: { content: string | unknown[] }) {
 					(p): p is Part & { type: "image" } => p?.type === "image",
 				);
 	return (
-		<Message from="user">
-			<MessageContent>
+		<div className="flex justify-end">
+			<div className="flex max-w-[78%] flex-col items-end gap-2">
 				{images.map((img, i) => (
 					<img
 						key={i}
@@ -162,9 +153,13 @@ function UserRow({ content }: { content: string | unknown[] }) {
 						className="max-h-72 rounded-md border border-border/40"
 					/>
 				))}
-				{text ? <MessageResponse>{text}</MessageResponse> : null}
-			</MessageContent>
-		</Message>
+				{text ? (
+					<div className="whitespace-pre-wrap rounded-3xl rounded-br-lg bg-primary px-4 py-2.5 text-[14px] leading-relaxed text-primary-foreground shadow-md shadow-primary/20">
+						{text}
+					</div>
+				) : null}
+			</div>
+		</div>
 	);
 }
 
@@ -193,23 +188,38 @@ function AssistantRow({
 	const lastIdx = parts.length - 1;
 
 	return (
-		<Message from="assistant">
-			<MessageContent>
+		<div className="flex justify-start">
+			<div className="flex max-w-[86%] flex-col gap-2.5">
 				{parts.map((p, i) => {
 					if (p.type === "text") {
 						if (!p.text) return null;
-						return <MessageResponse key={i}>{p.text}</MessageResponse>;
+						return (
+							<div
+								key={i}
+								className="whitespace-pre-wrap rounded-3xl rounded-bl-lg bg-card/70 px-4 py-3 text-[14px] leading-relaxed text-foreground shadow-md ring-1 ring-border/30 backdrop-blur"
+							>
+								{p.text}
+							</div>
+						);
 					}
 					if (p.type === "thinking") {
 						return (
-							<Reasoning
+							<Disclosure
 								key={i}
-								isStreaming={isStreaming && i === lastIdx}
-								defaultOpen={false}
+								className="rounded-2xl border border-border/40 bg-card/30 px-3 py-2 text-[12px]"
 							>
-								<ReasoningTrigger />
-								<ReasoningContent>{p.thinking || ""}</ReasoningContent>
-							</Reasoning>
+								<Disclosure.Heading>
+									<Button slot="trigger" size="sm" variant="tertiary" className="h-6 px-0 text-muted-foreground">
+										{isStreaming && i === lastIdx ? "Thinking..." : "Thinking"}
+										<Disclosure.Indicator />
+									</Button>
+								</Disclosure.Heading>
+								<Disclosure.Content>
+									<Disclosure.Body className="mt-2 whitespace-pre-wrap text-muted-foreground/90">
+										{p.thinking || ""}
+									</Disclosure.Body>
+								</Disclosure.Content>
+							</Disclosure>
 						);
 					}
 					if (p.type === "toolCall") {
@@ -225,8 +235,8 @@ function AssistantRow({
 						{stopReason && stopReason !== "stop" ? ` · ${stopReason}` : ""}
 					</div>
 				) : null}
-			</MessageContent>
-		</Message>
+			</div>
+		</div>
 	);
 }
 
@@ -243,10 +253,47 @@ function CustomRow({ data }: { data: ChatMessage & { role: "custom" } }) {
 	);
 }
 
+function OrphanToolResult({
+	toolName,
+	content,
+	isError,
+}: {
+	toolName: string;
+	content: unknown[];
+	isError: boolean;
+}) {
+	const text = (content as Part[])
+		.filter((p): p is Part & { type: "text" } => p?.type === "text")
+		.map((p) => p.text)
+		.join("\n");
+
+	return (
+		<div className="flex justify-start">
+			<div
+				className={cn(
+					"max-w-[78%] rounded-xl border px-3.5 py-2 text-[12px] backdrop-blur",
+					isError
+						? "border-destructive/40 bg-destructive/10 text-destructive"
+						: "border-border/30 bg-card/30 text-muted-foreground",
+				)}
+			>
+				<div className="mb-1 flex items-center gap-1.5 text-[10px] uppercase tracking-wider">
+					<span className="font-semibold">{toolName}</span>
+					<span className="opacity-60">·</span>
+					<span>{isError ? "error" : "result"}</span>
+				</div>
+				<pre className="max-h-48 overflow-auto whitespace-pre-wrap font-mono text-[11px]">
+					{text || "(no output)"}
+				</pre>
+			</div>
+		</div>
+	);
+}
+
 function summarize(v: unknown): string {
 	try {
 		const s = JSON.stringify(v, null, 2);
-		return s.length > 400 ? `${s.slice(0, 400)}…` : s;
+		return s.length > 400 ? `${s.slice(0, 400)}...` : s;
 	} catch {
 		return String(v);
 	}
