@@ -1,0 +1,81 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="112" y1="88" x2="912" y2="936" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.5" stop-color="#F5F5F7"/>
+      <stop offset="1" stop-color="#E7E8EC"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="246" y1="188" x2="796" y2="842" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2B2D36"/>
+      <stop offset="0.48" stop-color="#182925"/>
+      <stop offset="1" stop-color="#0E1218"/>
+    </linearGradient>
+    <linearGradient id="slash" x1="474" y1="298" x2="586" y2="714" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F7FFFC"/>
+      <stop offset="0.42" stop-color="#84F4DA"/>
+      <stop offset="1" stop-color="#25BFA8"/>
+    </linearGradient>
+    <linearGradient id="glyph" x1="260" y1="338" x2="760" y2="650" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#EAF1F0"/>
+    </linearGradient>
+    <linearGradient id="whale" x1="318" y1="560" x2="760" y2="790" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#74F1D8"/>
+      <stop offset="0.58" stop-color="#37D6C1"/>
+      <stop offset="1" stop-color="#1EA7B8"/>
+    </linearGradient>
+    <filter id="markShadow" x="116" y="130" width="792" height="812" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="34"/>
+      <feGaussianBlur stdDeviation="38"/>
+      <feComposite in2="hardAlpha" operator="out"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.04 0 0 0 0 0.07 0 0 0 0 0.07 0 0 0 0.22 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="drop"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="drop" result="shape"/>
+    </filter>
+    <filter id="softInset" x="184" y="156" width="656" height="704" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="-10"/>
+      <feGaussianBlur stdDeviation="16"/>
+      <feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.32 0"/>
+      <feBlend mode="normal" in2="shape" result="inset"/>
+    </filter>
+    <clipPath id="appMask">
+      <rect x="76" y="76" width="872" height="872" rx="192"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#appMask)">
+    <rect x="76" y="76" width="872" height="872" rx="192" fill="url(#bg)"/>
+    <path d="M604 24C787 65 917 204 951 392C974 517 940 632 859 733C751 868 558 935 375 897C214 865 99 760 49 608C3 466 37 312 140 197C250 76 424 -17 604 24Z" fill="#E8ECEB"/>
+    <path d="M30 689C145 592 298 563 437 628C550 681 613 782 630 907H30V689Z" fill="#DDF7F0"/>
+    <rect x="76" y="76" width="872" height="872" fill="white" fill-opacity="0.18"/>
+
+    <g transform="translate(512 512) scale(0.86) translate(-512 -512)">
+      <g filter="url(#markShadow)">
+        <g filter="url(#softInset)">
+          <path d="M512 178C696.5 178 846 327.5 846 512C846 696.5 696.5 846 512 846C459.9 846 410.6 834.1 366.7 812.8L262.1 840.8C236.5 847.6 213.1 824.2 219.9 798.6L248.6 693.7C225.9 648.9 214 598.2 214 545C214 342.3 347.4 178 512 178Z" fill="url(#mark)"/>
+        </g>
+      </g>
+
+      <path d="M306 658C376 727 482 762 592 744C681 730 754 681 802 606C761 627 712 640 658 641C554 643 468 600 400 568C357 548 320 536 286 548C286 590 292 626 306 658Z" fill="url(#whale)" fill-opacity="0.92"/>
+      <path d="M718 598C752 554 790 535 836 542C820 578 792 602 748 614C789 626 818 652 834 690C786 694 748 674 718 632C688 674 650 694 602 690C618 652 647 626 688 614C644 602 616 578 600 542C646 535 684 554 718 598Z" fill="#7EF4DC"/>
+      <path d="M358 662C436 706 536 718 628 690" stroke="white" stroke-opacity="0.22" stroke-width="20" stroke-linecap="round"/>
+
+      <path d="M384 406L278 500L384 594" stroke="url(#glyph)" stroke-width="76" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M640 406L746 500L640 594" stroke="url(#glyph)" stroke-width="76" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M556 332L468 668" stroke="url(#slash)" stroke-width="78" stroke-linecap="round"/>
+
+      <path d="M356 286C402.5 250.2 459.6 232 520 232" stroke="white" stroke-opacity="0.2" stroke-width="24" stroke-linecap="round"/>
+      <path d="M704 258C752 292.4 788.1 342.2 805 400" stroke="#7EF4DC" stroke-opacity="0.26" stroke-width="20" stroke-linecap="round"/>
+
+      <circle cx="744" cy="282" r="24" fill="#48E0C4"/>
+      <circle cx="276" cy="344" r="16" fill="#FFFFFF" fill-opacity="0.66"/>
+      <circle cx="790" cy="708" r="14" fill="#FFFFFF" fill-opacity="0.56"/>
+    </g>
+  </g>
+</svg>

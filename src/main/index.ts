@@ -1,16 +1,44 @@
+import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { BrowserWindow, app, nativeTheme } from "electron";
+import { BrowserWindow, app, nativeImage, nativeTheme } from "electron";
 import { registerIpcHandlers } from "./ipc.js";
 
 const isDev = !app.isPackaged;
+const defaultAppIcon = "app-icon-apple.png";
+const windowIconByPlatform: Partial<Record<NodeJS.Platform, string>> = {
+	win32: "app-icon-apple.ico",
+};
 let mainWindow: BrowserWindow | undefined;
 
+function findResourcePath(fileName: string) {
+	const basePaths = isDev ? [process.cwd(), app.getAppPath()] : [process.resourcesPath, app.getAppPath()];
+	for (const basePath of basePaths) {
+		const resourcePath = join(basePath, "resources", fileName);
+		if (existsSync(resourcePath)) return resourcePath;
+	}
+	return undefined;
+}
+
+function getNativeIcon(fileName = defaultAppIcon) {
+	const iconPath = findResourcePath(fileName);
+	if (!iconPath) return undefined;
+	const icon = nativeImage.createFromPath(iconPath);
+	return icon.isEmpty() ? undefined : icon;
+}
+
+function getWindowIconPath() {
+	return findResourcePath(windowIconByPlatform[process.platform] ?? defaultAppIcon);
+}
+
 async function createWindow(): Promise<BrowserWindow> {
+	const icon = getWindowIconPath();
+
 	const win = new BrowserWindow({
 		width: 1280,
 		height: 820,
 		minWidth: 960,
 		minHeight: 600,
+		icon,
 		titleBarStyle: "hiddenInset",
 		trafficLightPosition: { x: 16, y: 16 },
 		vibrancy: "sidebar",
@@ -50,6 +78,8 @@ async function createWindow(): Promise<BrowserWindow> {
 
 app.whenReady().then(async () => {
 	registerIpcHandlers(() => mainWindow);
+	const icon = getNativeIcon();
+	if (process.platform === "darwin" && icon) app.dock?.setIcon(icon);
 	await createWindow();
 
 	app.on("activate", async () => {
