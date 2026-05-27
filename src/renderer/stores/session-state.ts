@@ -148,7 +148,9 @@ function applyEvent(
 				break;
 			}
 			case "agent_end": {
-				const messages = event.messages.map(toChatMessage);
+				const messages = event.messages
+					.map(toChatMessage)
+					.reduce(updateMessage, slice.messages);
 				next = { ...slice, messages, isStreaming: false, activeTools: {} };
 				break;
 			}
