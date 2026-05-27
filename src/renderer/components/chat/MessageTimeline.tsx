@@ -71,6 +71,21 @@ interface ActivityGroup {
 	status: ActivityStatus;
 }
 
+type TimelineItem =
+	| { type: "user"; key: string; message: Extract<ChatMessage, { role: "user" }> }
+	| {
+			type: "assistantTurn";
+			key: string;
+			messages: Array<Extract<ChatMessage, { role: "assistant" }>>;
+			lastIndex: number;
+	  }
+	| {
+			type: "toolResult";
+			key: string;
+			message: Extract<ChatMessage, { role: "toolResult" }>;
+	  }
+	| { type: "custom"; key: string; message: Extract<ChatMessage, { role: "custom" }> };
+
 export function MessageTimeline({ sessionId }: Props) {
 	const slice = useSessions((s) => s.bySession[sessionId]);
 	const messages = slice?.messages ?? [];
@@ -79,8 +94,13 @@ export function MessageTimeline({ sessionId }: Props) {
 
 	const { toolResults, claimed } = useMemo(() => {
 		const map = new Map<string, ToolResultInfo>();
-		const claimedIds = new Set<string>();
+		const toolCallIds = new Set<string>();
 		for (const m of messages) {
+			if (m.role === "assistant") {
+				for (const part of (m.content ?? []) as Part[]) {
+					if (part?.type === "toolCall") toolCallIds.add(part.id);
+				}
+			}
 			if (m.role === "toolResult") {
 				map.set(m.toolCallId, {
 					toolName: m.toolName,
@@ -89,10 +109,9 @@ export function MessageTimeline({ sessionId }: Props) {
 					details: m.details,
 					timestamp: m.timestamp,
 				});
-				claimedIds.add(m.toolCallId);
 			}
 		}
-		return { toolResults: map, claimed: claimedIds };
+		return { toolResults: map, claimed: toolCallIds };
 	}, [messages]);
 
 	const lastAssistantIdx = useMemo(() => {
@@ -101,6 +120,10 @@ export function MessageTimeline({ sessionId }: Props) {
 		}
 		return -1;
 	}, [messages]);
+	const timelineItems = useMemo(
+		() => buildTimelineItems(messages, claimed),
+		[messages, claimed],
+	);
 
 	return (
 		<Conversation>
@@ -112,14 +135,17 @@ export function MessageTimeline({ sessionId }: Props) {
 						description="Ask pi to read, edit, search, or run anything in this workspace."
 					/>
 				) : (
-					messages.map((m, i) => (
-						<Row
-							key={i}
-							m={m}
+					timelineItems.map((item) => (
+						<TimelineRow
+							key={item.key}
+							item={item}
 							toolResults={toolResults}
 							activeTools={activeTools}
-							claimed={claimed}
-							isStreamingLast={isStreaming && i === lastAssistantIdx}
+							isStreamingLast={
+								isStreaming &&
+								item.type === "assistantTurn" &&
+								item.lastIndex === lastAssistantIdx
+							}
 						/>
 					))
 				)}
@@ -129,41 +155,38 @@ export function MessageTimeline({ sessionId }: Props) {
 	);
 }
 
-function Row({
-	m,
+function TimelineRow({
+	item,
 	toolResults,
 	activeTools,
-	claimed,
 	isStreamingLast,
 }: {
-	m: ChatMessage;
+	item: TimelineItem;
 	toolResults: Map<string, ToolResultInfo>;
 	activeTools: Record<string, ToolExecutionState>;
-	claimed: Set<string>;
 	isStreamingLast: boolean;
 }) {
-	if (m.role === "user") return <UserRow content={m.content} />;
-	if (m.role === "assistant") {
+	if (item.type === "user") return <UserRow content={item.message.content} />;
+	if (item.type === "assistantTurn") {
 		return (
 			<AssistantRow
-				message={m}
+				messages={item.messages}
 				toolResults={toolResults}
 				activeTools={activeTools}
 				isStreaming={isStreamingLast}
 			/>
 		);
 	}
-	if (m.role === "toolResult") {
-		if (claimed.has(m.toolCallId)) return null;
+	if (item.type === "toolResult") {
 		return (
 			<OrphanToolResult
-				toolName={m.toolName}
-				content={m.content}
-				isError={m.isError}
+				toolName={item.message.toolName}
+				content={item.message.content}
+				isError={item.message.isError}
 			/>
 		);
 	}
-	if (m.role === "custom") return <CustomRow data={m} />;
+	if (item.type === "custom") return <CustomRow data={item.message} />;
 	return null;
 }
 
@@ -198,18 +221,69 @@ function UserRow({ content }: { content: string | unknown[] }) {
 	);
 }
 
+function buildTimelineItems(
+	messages: ChatMessage[],
+	claimedToolResultIds: Set<string>,
+): TimelineItem[] {
+	const items: TimelineItem[] = [];
+	for (let index = 0; index < messages.length; index++) {
+		const message = messages[index];
+		if (message.role === "user") {
+			items.push({
+				type: "user",
+				key: `user-${message.timestamp}-${index}`,
+				message,
+			});
+			continue;
+		}
+		if (message.role === "assistant") {
+			const last = items[items.length - 1];
+			if (last?.type === "assistantTurn") {
+				last.messages.push(message);
+				last.lastIndex = index;
+			} else {
+				items.push({
+					type: "assistantTurn",
+					key: `assistant-${message.timestamp}-${index}`,
+					messages: [message],
+					lastIndex: index,
+				});
+			}
+			continue;
+		}
+		if (message.role === "toolResult") {
+			if (!claimedToolResultIds.has(message.toolCallId)) {
+				items.push({
+					type: "toolResult",
+					key: `tool-${message.toolCallId}-${message.timestamp}-${index}`,
+					message,
+				});
+			}
+			continue;
+		}
+		if (message.role === "custom") {
+			items.push({
+				type: "custom",
+				key: `custom-${message.subtype}-${message.timestamp}-${index}`,
+				message,
+			});
+		}
+	}
+	return items;
+}
+
 function AssistantRow({
-	message,
+	messages,
 	toolResults,
 	activeTools,
 	isStreaming,
 }: {
-	message: Extract<ChatMessage, { role: "assistant" }>;
+	messages: Array<Extract<ChatMessage, { role: "assistant" }>>;
 	toolResults: Map<string, ToolResultInfo>;
 	activeTools: Record<string, ToolExecutionState>;
 	isStreaming: boolean;
 }) {
-	const parts = (message.content ?? []) as Part[];
+	const parts = messages.flatMap((message) => (message.content ?? []) as Part[]);
 	const text = parts
 		.filter((p): p is Part & { type: "text" } => p.type === "text" && !!p.text)
 		.map((p) => p.text)
@@ -219,10 +293,19 @@ function AssistantRow({
 	const hasContent = hasFinalText || activities.length > 0;
 	if (!hasContent) return null;
 
-	const endedAt = latestActivityTimestamp(activities, toolResults, message.timestamp);
-	const elapsed = formatDuration(
-		Math.max(0, (isStreaming ? Date.now() : endedAt) - message.timestamp),
+	const firstMessage = messages[0];
+	const lastMessage = messages[messages.length - 1];
+	const startedAt = firstMessage?.timestamp ?? Date.now();
+	const endedAt = latestActivityTimestamp(
+		activities,
+		toolResults,
+		lastMessage?.timestamp ?? startedAt,
 	);
+	const elapsed = formatDuration(
+		Math.max(0, (isStreaming ? Date.now() : endedAt) - startedAt),
+	);
+	const model = lastMessage?.model;
+	const stopReason = lastMessage?.stopReason;
 
 	return (
 		<Message from="assistant">
@@ -232,14 +315,14 @@ function AssistantRow({
 					elapsed={elapsed}
 					isStreaming={isStreaming}
 					hasFinalText={hasFinalText}
-					stopReason={message.stopReason}
+					stopReason={stopReason}
 				/>
 				{hasFinalText ? <MessageResponse>{text}</MessageResponse> : null}
-				{message.model || message.stopReason ? (
+				{model || stopReason ? (
 					<div className="text-[11px] font-medium text-muted-foreground/55">
-						{message.model ?? ""}
-						{message.stopReason && message.stopReason !== "stop"
-							? ` · ${message.stopReason}`
+						{model ?? ""}
+						{stopReason && stopReason !== "stop"
+							? ` · ${stopReason}`
 							: ""}
 					</div>
 				) : null}
