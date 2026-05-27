@@ -31,10 +31,29 @@ export type ChatMessage =
 			timestamp: number;
 	  };
 
+export interface ToolExecutionState {
+	toolCallId: string;
+	toolName: string;
+	args: Record<string, unknown>;
+	status: "pending" | "running" | "done" | "error";
+	partialResult?: {
+		content?: unknown[];
+		isError?: boolean;
+		details?: unknown;
+	};
+	result?: {
+		content?: unknown[];
+		isError?: boolean;
+		details?: unknown;
+	};
+	updatedAt: number;
+}
+
 interface SessionSlice {
 	messages: ChatMessage[];
 	state: RpcSessionState | null;
 	isStreaming: boolean;
+	activeTools: Record<string, ToolExecutionState>;
 }
 
 interface Store {
@@ -49,6 +68,7 @@ const emptySlice = (): SessionSlice => ({
 	messages: [],
 	state: null,
 	isStreaming: false,
+	activeTools: {},
 });
 
 function toChatMessage(m: any): ChatMessage {
@@ -101,6 +121,7 @@ export const useSessions = create<Store>((set, get) => ({
 					messages,
 					state,
 					isStreaming: state?.isStreaming ?? false,
+					activeTools: {},
 				},
 			},
 		}));
@@ -128,7 +149,7 @@ function applyEvent(
 			}
 			case "agent_end": {
 				const messages = event.messages.map(toChatMessage);
-				next = { ...slice, messages, isStreaming: false };
+				next = { ...slice, messages, isStreaming: false, activeTools: {} };
 				break;
 			}
 			case "message_start":
@@ -159,8 +180,10 @@ function applyEvent(
 			case "tool_execution_start":
 			case "tool_execution_update":
 			case "tool_execution_end": {
-				// Tool execution intermediate updates land in the next message_update;
-				// no separate state needed for MVP.
+				next = {
+					...slice,
+					activeTools: updateToolState(slice.activeTools ?? {}, event),
+				};
 				break;
 			}
 			default: {
@@ -170,4 +193,65 @@ function applyEvent(
 		}
 		return { bySession: { ...s.bySession, [sid]: next } };
 	});
+}
+
+function updateToolState(
+	tools: Record<string, ToolExecutionState>,
+	event: AgentSessionEvent,
+): Record<string, ToolExecutionState> {
+	const ev = event as Extract<
+		AgentSessionEvent,
+		{
+			type:
+				| "tool_execution_start"
+				| "tool_execution_update"
+				| "tool_execution_end";
+		}
+	>;
+	if (
+		ev.type !== "tool_execution_start" &&
+		ev.type !== "tool_execution_update" &&
+		ev.type !== "tool_execution_end"
+	) {
+		return tools;
+	}
+	const current = tools[ev.toolCallId];
+	const now = Date.now();
+	if (ev.type === "tool_execution_start") {
+		return {
+			...tools,
+			[ev.toolCallId]: {
+				toolCallId: ev.toolCallId,
+				toolName: ev.toolName,
+				args: (ev.args ?? {}) as Record<string, unknown>,
+				status: "running",
+				updatedAt: now,
+			},
+		};
+	}
+	if (ev.type === "tool_execution_update") {
+		if (!current) return tools;
+		return {
+			...tools,
+			[ev.toolCallId]: {
+				...current,
+				status: "running",
+				partialResult: ev.partialResult as ToolExecutionState["partialResult"],
+				updatedAt: now,
+			},
+		};
+	}
+	if (!current) return tools;
+	return {
+		...tools,
+		[ev.toolCallId]: {
+			...current,
+			status: ev.isError ? "error" : "done",
+			result: {
+				...(ev.result as ToolExecutionState["result"]),
+				isError: ev.isError,
+			},
+			updatedAt: now,
+		},
+	};
 }

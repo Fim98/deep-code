@@ -1,10 +1,28 @@
-import { useMemo, useState } from "react";
-import { ChevronRight, Sparkles } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
-import { cn } from "@/lib/utils";
+import { useMemo } from "react";
+import { Activity, Sparkles } from "lucide-react";
+import {
+	Conversation,
+	ConversationContent,
+	ConversationEmptyState,
+	ConversationScrollButton,
+} from "@/components/ai-elements/conversation";
+import {
+	Message,
+	MessageContent,
+	MessageResponse,
+} from "@/components/ai-elements/message";
+import {
+	Reasoning,
+	ReasoningContent,
+	ReasoningTrigger,
+} from "@/components/ai-elements/reasoning";
 import { ToolCallCard } from "@/components/chat/ToolCallCard";
-import { useSessions, type ChatMessage } from "@/stores/session-state";
+import {
+	useSessions,
+	type ChatMessage,
+	type ToolExecutionState,
+} from "@/stores/session-state";
+import { cn } from "@/lib/utils";
 
 interface Props {
 	sessionId: string;
@@ -34,6 +52,7 @@ export function MessageTimeline({ sessionId }: Props) {
 	const slice = useSessions((s) => s.bySession[sessionId]);
 	const messages = slice?.messages ?? [];
 	const isStreaming = slice?.isStreaming ?? false;
+	const activeTools = slice?.activeTools ?? {};
 
 	const { toolResults, claimed } = useMemo(() => {
 		const map = new Map<string, ToolResultInfo>();
@@ -60,46 +79,43 @@ export function MessageTimeline({ sessionId }: Props) {
 	}, [messages]);
 
 	return (
-		<div className="flex h-full min-h-0 flex-col">
-			<ScrollArea className="min-h-0 flex-1">
-				<div className="mx-auto w-full max-w-3xl space-y-4 px-4 py-6">
-					{messages.length === 0 ? (
-						<div className="flex min-h-[55vh] flex-col items-center justify-center text-center">
-							<div className="mb-5 flex size-14 items-center justify-center rounded-[18px] bg-gradient-to-br from-primary/20 to-primary/10 text-primary shadow-md shadow-primary/10">
-								<Sparkles className="size-7" />
-							</div>
-							<div className="text-xl font-semibold text-foreground">
-								Send a message to begin
-							</div>
-							<p className="mt-2 max-w-md text-sm text-muted-foreground">
-								Ask pi to read, edit, search, or run anything in this workspace.
-							</p>
-						</div>
-					) : (
-						messages.map((m, i) => (
-							<Row
-								key={i}
-								m={m}
-								toolResults={toolResults}
-								claimed={claimed}
-								isStreamingLast={isStreaming && i === lastAssistantIdx}
-							/>
-						))
-					)}
-				</div>
-			</ScrollArea>
-		</div>
+		<Conversation>
+			<ConversationContent>
+				{messages.length === 0 ? (
+					<ConversationEmptyState
+						icon={<Sparkles className="size-7" />}
+						title="Send a message to begin"
+						description="Ask pi to read, edit, search, or run anything in this workspace."
+					/>
+				) : (
+					messages.map((m, i) => (
+						<Row
+							key={i}
+							m={m}
+							toolResults={toolResults}
+							activeTools={activeTools}
+							claimed={claimed}
+							isStreamingLast={isStreaming && i === lastAssistantIdx}
+						/>
+					))
+				)}
+				{isStreaming ? <StreamingStatus activeTools={activeTools} /> : null}
+			</ConversationContent>
+			<ConversationScrollButton />
+		</Conversation>
 	);
 }
 
 function Row({
 	m,
 	toolResults,
+	activeTools,
 	claimed,
 	isStreamingLast,
 }: {
 	m: ChatMessage;
 	toolResults: Map<string, ToolResultInfo>;
+	activeTools: Record<string, ToolExecutionState>;
 	claimed: Set<string>;
 	isStreamingLast: boolean;
 }) {
@@ -111,6 +127,7 @@ function Row({
 				model={m.model}
 				stopReason={m.stopReason}
 				toolResults={toolResults}
+				activeTools={activeTools}
 				isStreaming={isStreamingLast}
 			/>
 		);
@@ -144,23 +161,19 @@ function UserRow({ content }: { content: string | unknown[] }) {
 					(p): p is Part & { type: "image" } => p?.type === "image",
 				);
 	return (
-		<div className="flex justify-end">
-			<div className="flex max-w-[78%] flex-col items-end gap-2">
+		<Message from="user">
+			<MessageContent className="flex flex-col items-end gap-3">
 				{images.map((img, i) => (
 					<img
 						key={i}
 						alt=""
 						src={`data:${img.mimeType};base64,${img.data}`}
-						className="max-h-72 rounded-[14px] border border-border/40"
+						className="max-h-72 rounded-[18px] border border-white/25 object-contain"
 					/>
 				))}
-				{text ? (
-					<div className="whitespace-pre-wrap rounded-[24px] rounded-br-[10px] bg-primary px-4 py-2.5 text-[14px] leading-relaxed text-primary-foreground shadow-md shadow-primary/15">
-						{text}
-					</div>
-				) : null}
-			</div>
-		</div>
+				{text ? <div className="whitespace-pre-wrap">{text}</div> : null}
+			</MessageContent>
+		</Message>
 	);
 }
 
@@ -169,12 +182,14 @@ function AssistantRow({
 	model,
 	stopReason,
 	toolResults,
+	activeTools,
 	isStreaming,
 }: {
 	content: unknown[];
 	model?: string;
 	stopReason?: string;
 	toolResults: Map<string, ToolResultInfo>;
+	activeTools: Record<string, ToolExecutionState>;
 	isStreaming: boolean;
 }) {
 	const parts = (content ?? []) as Part[];
@@ -187,77 +202,92 @@ function AssistantRow({
 	if (!hasContent) return null;
 
 	return (
-		<div className="flex justify-start">
-			<div className="flex max-w-[86%] flex-col gap-2.5">
+		<Message from="assistant">
+			<MessageContent className="flex flex-col gap-4">
 				{parts.map((p, i) => {
 					if (p.type === "text") {
 						if (!p.text) return null;
-						return (
-							<div
-								key={i}
-								className="whitespace-pre-wrap rounded-[24px] rounded-bl-[10px] bg-card px-4 py-3 text-[14px] leading-relaxed text-foreground shadow-sm ring-1 ring-border/40"
-							>
-								{p.text}
-							</div>
-						);
+						return <MessageResponse key={i}>{p.text}</MessageResponse>;
 					}
 					if (p.type === "thinking") {
-						return <ThinkingBlock key={i} thinking={p.thinking} isStreaming={isStreaming} />;
+						return (
+							<ThinkingBlock
+								key={i}
+								thinking={p.thinking}
+								isStreaming={isStreaming}
+							/>
+						);
 					}
 					if (p.type === "toolCall") {
 						return (
-							<ToolCallCard key={p.id} call={p} result={toolResults.get(p.id)} />
+							<ToolCallCard
+								key={p.id}
+								call={p}
+								result={toolResults.get(p.id)}
+								execution={activeTools[p.id]}
+							/>
 						);
 					}
 					return null;
 				})}
 				{model || stopReason ? (
-					<div className="mt-1 text-[10px] font-medium tracking-wide text-muted-foreground/50">
+					<div className="text-[11px] font-medium text-muted-foreground/55">
 						{model ?? ""}
 						{stopReason && stopReason !== "stop" ? ` · ${stopReason}` : ""}
 					</div>
 				) : null}
-			</div>
-		</div>
+			</MessageContent>
+		</Message>
 	);
 }
 
-function ThinkingBlock({ thinking, isStreaming }: { thinking: string; isStreaming: boolean }) {
-	const [open, setOpen] = useState(false);
+function ThinkingBlock({
+	thinking,
+	isStreaming,
+}: {
+	thinking: string;
+	isStreaming: boolean;
+}) {
 	return (
-		<Collapsible open={open} onOpenChange={setOpen}>
-			<div className="rounded-[14px] border border-border/40 bg-foreground/[0.02] px-3 py-2 text-[12px]">
-				<CollapsibleTrigger className="flex w-full cursor-pointer items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground">
-					<ChevronRight
-						className={cn(
-							"size-3 transition-transform duration-200",
-							open && "rotate-90",
-						)}
-					/>
-					<span className="font-medium">
-						{isStreaming && !open ? "Thinking..." : "Thinking"}
-					</span>
-				</CollapsibleTrigger>
-				<CollapsibleContent>
-					<div className="mt-2 whitespace-pre-wrap text-muted-foreground">
-						{thinking || ""}
-					</div>
-				</CollapsibleContent>
-			</div>
-		</Collapsible>
+		<Reasoning isStreaming={isStreaming} defaultOpen={isStreaming}>
+			<ReasoningTrigger>{isStreaming ? "Thinking..." : "Thinking"}</ReasoningTrigger>
+			<ReasoningContent>{thinking || ""}</ReasoningContent>
+		</Reasoning>
+	);
+}
+
+function StreamingStatus({
+	activeTools,
+}: {
+	activeTools: Record<string, ToolExecutionState>;
+}) {
+	const running = Object.values(activeTools).filter(
+		(t) => t.status === "running" || t.status === "pending",
+	);
+	const label =
+		running.length > 0
+			? running.map((t) => t.toolName).join(", ")
+			: "Working";
+	return (
+		<div className="flex items-center gap-2 pl-1 text-[12px] text-muted-foreground">
+			<Activity className="size-3.5 animate-pulse text-primary" />
+			<span>{label}</span>
+		</div>
 	);
 }
 
 function CustomRow({ data }: { data: ChatMessage & { role: "custom" } }) {
 	return (
-		<div className="rounded-[14px] border border-border/30 bg-foreground/[0.02] px-3.5 py-2 text-[11px] text-muted-foreground">
-			<span className="font-semibold uppercase tracking-wider opacity-70">
-				{data.subtype}
-			</span>
-			<pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap font-mono text-[10.5px]">
-				{summarize(data.data)}
-			</pre>
-		</div>
+		<Message from="assistant">
+			<MessageContent className="max-w-[74%] rounded-[18px] border border-border/40 bg-card/50 px-4 py-3 text-[12px] text-muted-foreground shadow-[0_2px_8px_rgba(0,0,0,0.03)] backdrop-blur-xl">
+				<div className="font-medium uppercase tracking-[0.08em] opacity-70">
+					{data.subtype}
+				</div>
+				<pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap font-mono text-[11px] leading-5">
+					{summarize(data.data)}
+				</pre>
+			</MessageContent>
+		</Message>
 	);
 }
 
@@ -276,25 +306,25 @@ function OrphanToolResult({
 		.join("\n");
 
 	return (
-		<div className="flex justify-start">
-			<div
+		<Message from="assistant">
+			<MessageContent
 				className={cn(
-					"max-w-[78%] rounded-[14px] border px-3.5 py-2 text-[12px]",
+					"max-w-[78%] rounded-[18px] border px-4 py-3 text-[12px] shadow-[0_2px_8px_rgba(0,0,0,0.03)] backdrop-blur-xl",
 					isError
 						? "border-destructive/30 bg-destructive/5 text-destructive"
-						: "border-border/30 bg-foreground/[0.02] text-muted-foreground",
+						: "border-border/40 bg-card/50 text-muted-foreground",
 				)}
 			>
-				<div className="mb-1 flex items-center gap-1.5 text-[10px] uppercase tracking-wider">
-					<span className="font-semibold">{toolName}</span>
-					<span className="opacity-60">·</span>
+				<div className="mb-2 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.08em]">
+					<span>{toolName}</span>
+					<span className="opacity-50">·</span>
 					<span>{isError ? "error" : "result"}</span>
 				</div>
-				<pre className="max-h-48 overflow-auto whitespace-pre-wrap font-mono text-[11px]">
+				<pre className="max-h-48 overflow-auto whitespace-pre-wrap font-mono text-[11px] leading-5">
 					{text || "(no output)"}
 				</pre>
-			</div>
-		</div>
+			</MessageContent>
+		</Message>
 	);
 }
 

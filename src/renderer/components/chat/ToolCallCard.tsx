@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-	ChevronRight,
 	FileText,
 	FilePen,
 	FilePlus,
@@ -10,9 +9,18 @@ import {
 	Terminal,
 	Wrench,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { DiffViewer } from "@/components/chat/DiffViewer";
+import {
+	Tool,
+	ToolContent,
+	ToolHeader,
+	ToolInput,
+	ToolOutput,
+	type ToolState,
+} from "@/components/ai-elements/tool";
+import { MessageResponse } from "@/components/ai-elements/message";
+import type { ToolExecutionState } from "@/stores/session-state";
 
 interface ToolCallPart {
 	type: "toolCall";
@@ -31,38 +39,44 @@ interface ToolResult {
 interface Props {
 	call: ToolCallPart;
 	result?: ToolResult;
+	execution?: ToolExecutionState;
 }
 
-export function ToolCallCard({ call, result }: Props) {
-	const [open, setOpen] = useState(false);
+export function ToolCallCard({ call, result, execution }: Props) {
+	const [open, setOpen] = useState(() => !result);
 	const Icon = iconFor(call.name);
 	const summary = summarizeArgs(call.name, call.arguments);
-	const resultText = result ? extractText(result.content) : null;
-	const errored = !!result?.isError;
-	const running = !result;
+	const liveResult = result ?? executionToResult(execution);
+	const resultText = liveResult ? extractText(liveResult.content) : null;
+	const errored = !!liveResult?.isError || execution?.status === "error";
+	const running =
+		!result && (execution?.status === "running" || execution?.status === "pending");
 	const diffPatch = pickDiffPatch(call, result);
+	const state: ToolState = errored
+		? "output-error"
+		: result || liveResult || execution?.status === "done"
+			? "output-available"
+			: running
+				? "input-available"
+				: "input-streaming";
 
 	return (
-		<div
+		<Tool
+			open={open}
+			onOpenChange={setOpen}
 			className={cn(
-				"overflow-hidden rounded-[18px] border bg-card/60 text-[12px] backdrop-blur transition-colors",
 				errored
 					? "border-destructive/30"
 					: running
 						? "border-primary/30"
-						: "border-border/50",
+						: undefined,
 			)}
 		>
-			<button
-				onClick={() => setOpen((o) => !o)}
-				className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-foreground/[0.03]"
+			<ToolHeader
+				toolType={`tool-${call.name}`}
+				state={state}
+				title={call.name}
 			>
-				<ChevronRight
-					className={cn(
-						"size-3 shrink-0 transition-transform duration-200",
-						open && "rotate-90",
-					)}
-				/>
 				<Icon
 					className={cn(
 						"size-3.5 shrink-0",
@@ -73,7 +87,6 @@ export function ToolCallCard({ call, result }: Props) {
 								: "text-muted-foreground",
 					)}
 				/>
-				<span className="font-medium text-foreground/90">{call.name}</span>
 				{summary ? (
 					<span className="min-w-0 flex-1 truncate font-mono text-[11px] text-muted-foreground">
 						{summary}
@@ -81,49 +94,29 @@ export function ToolCallCard({ call, result }: Props) {
 				) : (
 					<span className="flex-1" />
 				)}
-				<Badge
-					variant={errored ? "destructive" : running ? "primary" : "default"}
-					size="sm"
-				>
-					{errored ? "ERROR" : running ? "RUNNING" : "DONE"}
-				</Badge>
-			</button>
-			{open ? (
-				<div className="space-y-2.5 border-t border-border/30 bg-background/30 px-3 py-2.5">
+			</ToolHeader>
+			<ToolContent>
+				<ToolInput input={call.arguments} />
+				{diffPatch ? (
 					<div>
-						<div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-							Input
+						<div className="mb-1.5 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+							Diff
 						</div>
-						<pre className="max-h-48 overflow-auto whitespace-pre-wrap font-mono text-[11px] text-foreground/80">
-							{prettyArgs(call.arguments)}
-						</pre>
+						<DiffViewer patch={diffPatch} className="max-h-72" />
 					</div>
-					{diffPatch ? (
-						<div>
-							<div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-								Diff
-							</div>
-							<DiffViewer patch={diffPatch} className="max-h-72" />
-						</div>
-					) : null}
-					{result ? (
-						<div>
-							<div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-								{errored ? "Error" : "Output"}
-							</div>
-							<pre
-								className={cn(
-									"max-h-72 overflow-auto whitespace-pre-wrap font-mono text-[11px]",
-									errored ? "text-destructive" : "text-foreground/80",
-								)}
-							>
+				) : null}
+				{liveResult ? (
+					<ToolOutput
+						errorText={liveResult.isError ? resultText || "Tool failed" : undefined}
+						output={
+							<MessageResponse className="text-[12px] leading-6">
 								{resultText || "(no output)"}
-							</pre>
-						</div>
-					) : null}
-				</div>
-			) : null}
-		</div>
+							</MessageResponse>
+						}
+					/>
+				) : null}
+			</ToolContent>
+		</Tool>
 	);
 }
 
@@ -163,14 +156,6 @@ function summarizeArgs(toolName: string, args: Record<string, unknown>): string 
 	return first ? `${first[0]}=${first[1]}` : "";
 }
 
-function prettyArgs(args: Record<string, unknown>): string {
-	try {
-		return JSON.stringify(args, null, 2);
-	} catch {
-		return String(args);
-	}
-}
-
 function extractText(content: unknown[]): string {
 	return (content as Array<{ type: string; text?: string }>)
 		.filter((p) => p?.type === "text")
@@ -194,4 +179,16 @@ function pickDiffPatch(call: ToolCallPart, result?: ToolResult): string | null {
 		].join("\n");
 	}
 	return null;
+}
+
+function executionToResult(execution?: ToolExecutionState): ToolResult | undefined {
+	if (!execution) return undefined;
+	const payload = execution.result ?? execution.partialResult;
+	if (!payload?.content) return undefined;
+	return {
+		toolName: execution.toolName,
+		content: payload.content,
+		isError: execution.status === "error" || !!payload.isError,
+		details: payload.details,
+	};
 }
