@@ -4,6 +4,7 @@ import { listConfiguredProviders, listKnownProviders, removeProvider, setApiKey 
 import { dispatchRpc } from "./dispatch-rpc.js";
 import { deleteSessionFile, listSessionsForCwd } from "./session-fs.js";
 import { sessionRegistry } from "./session-registry.js";
+import { getAgentDirPath, getDesktopSettings, setDesktopSetting } from "./settings.js";
 import {
 	addWorkspace,
 	getActiveWorkspaceId,
@@ -80,6 +81,17 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 	});
 
 	ipcMain.handle("pi:ping", () => "pong");
+
+	// Settings
+	ipcMain.handle("pi:settings:get", () => getDesktopSettings());
+	ipcMain.handle("pi:settings:set", (_e, key: string, value: unknown) => {
+		setDesktopSetting(key, value);
+	});
+	ipcMain.handle("pi:settings:agent-dir", () => getAgentDirPath());
+	ipcMain.handle("pi:app:version", () => {
+		const { app } = require("electron");
+		return app.getVersion();
+	});
 
 	ipcMain.handle("pi:auth:list", () => listConfiguredProviders());
 	ipcMain.handle("pi:auth:known-providers", () => listKnownProviders());

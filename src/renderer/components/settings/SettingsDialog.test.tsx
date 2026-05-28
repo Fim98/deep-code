@@ -5,111 +5,224 @@ import { SettingsDialog } from "./SettingsDialog";
 
 const mockPi = (window as any).pi;
 
-/** Helper: render and wait for async effects to settle. */
-async function renderOpen() {
-	await act(async () => {
-		render(<SettingsDialog open={true} onOpenChange={vi.fn()} />);
-	});
-}
-
 describe("SettingsDialog", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		// Reset mock implementations to defaults
+		mockPi.auth.list.mockResolvedValue([]);
+		mockPi.auth.knownProviders.mockResolvedValue([]);
+		mockPi.settings.get.mockResolvedValue({
+			defaultProvider: undefined,
+			defaultModel: undefined,
+			defaultThinkingLevel: "off",
+			transport: "sse",
+			steeringMode: "all",
+			followUpMode: "all",
+			theme: undefined,
+			compactionEnabled: true,
+			retryEnabled: true,
+			hideThinkingBlock: false,
+			showImages: true,
+			imageAutoResize: true,
+			blockImages: false,
+			enabledModels: undefined,
+		});
+		mockPi.settings.agentDir.mockResolvedValue("/tmp/test-agent");
+		mockPi.appInfo.version.mockResolvedValue("0.0.0-test");
 	});
 
 	it("renders nothing when closed", () => {
 		render(<SettingsDialog open={false} onOpenChange={vi.fn()} />);
-		expect(screen.queryByText("Provider Settings")).not.toBeInTheDocument();
+		expect(screen.queryByText("Settings")).not.toBeInTheDocument();
 	});
 
-	it("renders dialog when open", async () => {
-		mockPi.auth.list.mockResolvedValue([]);
-		mockPi.auth.knownProviders.mockResolvedValue(["anthropic", "openai"]);
-
-		await renderOpen();
-		expect(screen.getByText("Provider Settings")).toBeInTheDocument();
+	it("renders dialog with tab navigation when open", async () => {
+		await act(async () => {
+			render(<SettingsDialog open={true} onOpenChange={vi.fn()} />);
+		});
+		expect(screen.getByText("Settings")).toBeInTheDocument();
+		// Tab buttons
+		expect(screen.getByText("General")).toBeInTheDocument();
+		expect(screen.getByText("Providers")).toBeInTheDocument();
+		expect(screen.getByText("Models")).toBeInTheDocument();
+		expect(screen.getByText("About")).toBeInTheDocument();
 	});
 
-	it("fetches providers on open", async () => {
-		mockPi.auth.list.mockResolvedValue([]);
-		mockPi.auth.knownProviders.mockResolvedValue(["anthropic"]);
-
-		await renderOpen();
-
-		// Both list and knownProviders should be called
-		expect(mockPi.auth.list).toHaveBeenCalled();
-		expect(mockPi.auth.knownProviders).toHaveBeenCalled();
+	it("shows General tab by default", async () => {
+		await act(async () => {
+			render(<SettingsDialog open={true} onOpenChange={vi.fn()} />);
+		});
+		// General tab content
+		expect(screen.getByText("Appearance")).toBeInTheDocument();
+		expect(screen.getByText("AI Behavior")).toBeInTheDocument();
+		expect(screen.getByText("Keyboard Shortcuts")).toBeInTheDocument();
 	});
 
-	it("shows empty state when no providers configured", async () => {
-		mockPi.auth.list.mockResolvedValue([]);
-		mockPi.auth.knownProviders.mockResolvedValue(["anthropic"]);
-
-		await renderOpen();
-
-		// Wait for loading to complete
-		expect(await screen.findByText("No credentials configured yet.")).toBeInTheDocument();
-	});
-
-	it("shows configured providers", async () => {
-		mockPi.auth.list.mockResolvedValue([
-			{ provider: "anthropic", type: "api_key", maskedKey: "sk-a…5678" },
-		]);
-		mockPi.auth.knownProviders.mockResolvedValue([]);
-
-		await renderOpen();
-
-		expect(await screen.findByText("Anthropic")).toBeInTheDocument();
-		expect(screen.getByText("sk-a…5678")).toBeInTheDocument();
-	});
-
-	it("shows OAuth badge for oauth providers", async () => {
-		mockPi.auth.list.mockResolvedValue([{ provider: "anthropic", type: "oauth" }]);
-		mockPi.auth.knownProviders.mockResolvedValue([]);
-
-		await renderOpen();
-
-		expect(await screen.findByText("OAuth")).toBeInTheDocument();
-	});
-
-	it("shows API key badge for api_key providers", async () => {
-		mockPi.auth.list.mockResolvedValue([
-			{ provider: "openai", type: "api_key", maskedKey: "sk-o…7890" },
-		]);
-		mockPi.auth.knownProviders.mockResolvedValue([]);
-
-		await renderOpen();
-
-		expect(await screen.findByText("API key")).toBeInTheDocument();
-	});
-
-	it("removes provider on delete click", async () => {
+	it("switches to Providers tab", async () => {
 		const user = userEvent.setup();
-		mockPi.auth.list.mockResolvedValue([
-			{ provider: "openai", type: "api_key", maskedKey: "sk-test" },
-		]);
-		mockPi.auth.knownProviders.mockResolvedValue([]);
-		mockPi.auth.remove.mockResolvedValue(undefined);
+		await act(async () => {
+			render(<SettingsDialog open={true} onOpenChange={vi.fn()} />);
+		});
 
-		await renderOpen();
+		await act(async () => {
+			await user.click(screen.getByText("Providers"));
+		});
 
-		// Wait for provider to render
-		await screen.findByText("OpenAI");
-
-		// Click remove button
-		const removeButton = screen.getByLabelText("Remove");
-		await user.click(removeButton);
-
-		expect(mockPi.auth.remove).toHaveBeenCalledWith("openai");
+		expect(await screen.findByText("Configured Providers")).toBeInTheDocument();
 	});
 
-	it("shows custom models hint with docs link", async () => {
-		mockPi.auth.list.mockResolvedValue([]);
-		mockPi.auth.knownProviders.mockResolvedValue(["anthropic"]);
+	it("switches to Models tab", async () => {
+		const user = userEvent.setup();
+		await act(async () => {
+			render(<SettingsDialog open={true} onOpenChange={vi.fn()} />);
+		});
 
-		await renderOpen();
+		await act(async () => {
+			await user.click(screen.getByText("Models"));
+		});
 
-		expect(await screen.findByText(/models\.json/)).toBeInTheDocument();
-		expect(screen.getByText("Docs")).toBeInTheDocument();
+		expect(await screen.findByText("Enabled Models")).toBeInTheDocument();
+	});
+
+	it("switches to About tab", async () => {
+		const user = userEvent.setup();
+		await act(async () => {
+			render(<SettingsDialog open={true} onOpenChange={vi.fn()} />);
+		});
+
+		await act(async () => {
+			await user.click(screen.getByText("About"));
+		});
+
+		expect(await screen.findByText("deepcode")).toBeInTheDocument();
+		expect(screen.getByText("0.0.0-test")).toBeInTheDocument();
+	});
+
+	// ── Providers tab ─────────────────────────────────────────────────────
+
+	describe("Providers tab", () => {
+		async function openProvidersTab() {
+			const user = userEvent.setup();
+			await act(async () => {
+				render(<SettingsDialog open={true} onOpenChange={vi.fn()} />);
+			});
+			await act(async () => {
+				await user.click(screen.getByText("Providers"));
+			});
+		}
+
+		it("shows empty state when no providers configured", async () => {
+			mockPi.auth.list.mockResolvedValue([]);
+			mockPi.auth.knownProviders.mockResolvedValue(["anthropic"]);
+
+			await openProvidersTab();
+
+			expect(await screen.findByText("No credentials configured yet.")).toBeInTheDocument();
+		});
+
+		it("shows configured providers", async () => {
+			mockPi.auth.list.mockResolvedValue([
+				{ provider: "anthropic", type: "api_key", maskedKey: "sk-a…5678" },
+			]);
+			mockPi.auth.knownProviders.mockResolvedValue([]);
+
+			await openProvidersTab();
+
+			expect(await screen.findByText("Anthropic")).toBeInTheDocument();
+			expect(screen.getByText("sk-a…5678")).toBeInTheDocument();
+		});
+
+		it("shows OAuth badge for oauth providers", async () => {
+			mockPi.auth.list.mockResolvedValue([{ provider: "anthropic", type: "oauth" }]);
+			mockPi.auth.knownProviders.mockResolvedValue([]);
+
+			await openProvidersTab();
+
+			expect(await screen.findByText("OAuth")).toBeInTheDocument();
+		});
+
+		it("removes provider on delete click", async () => {
+			const user = userEvent.setup();
+			mockPi.auth.list.mockResolvedValue([
+				{ provider: "openai", type: "api_key", maskedKey: "sk-test" },
+			]);
+			mockPi.auth.knownProviders.mockResolvedValue([]);
+			mockPi.auth.remove.mockResolvedValue(undefined);
+
+			await openProvidersTab();
+
+			await screen.findByText("OpenAI");
+
+			const removeButton = screen.getByLabelText("Remove");
+			await user.click(removeButton);
+
+			expect(mockPi.auth.remove).toHaveBeenCalledWith("openai");
+		});
+	});
+
+	// ── General tab ───────────────────────────────────────────────────────
+
+	describe("General tab", () => {
+		it("shows theme options", async () => {
+			await act(async () => {
+				render(<SettingsDialog open={true} onOpenChange={vi.fn()} />);
+			});
+
+			expect(screen.getByText("Theme")).toBeInTheDocument();
+			expect(screen.getByText("system")).toBeInTheDocument();
+			expect(screen.getByText("light")).toBeInTheDocument();
+			expect(screen.getByText("dark")).toBeInTheDocument();
+		});
+
+		it("shows keyboard shortcuts", async () => {
+			await act(async () => {
+				render(<SettingsDialog open={true} onOpenChange={vi.fn()} />);
+			});
+
+			expect(screen.getByText("Command palette")).toBeInTheDocument();
+			expect(screen.getByText("New session")).toBeInTheDocument();
+			expect(screen.getByText("Toggle bash panel")).toBeInTheDocument();
+		});
+
+		it("shows auto-compaction toggle", async () => {
+			await act(async () => {
+				render(<SettingsDialog open={true} onOpenChange={vi.fn()} />);
+			});
+
+			expect(screen.getByText("Auto-compaction")).toBeInTheDocument();
+		});
+	});
+
+	// ── About tab ─────────────────────────────────────────────────────────
+
+	describe("About tab", () => {
+		it("shows version and agent directory", async () => {
+			const user = userEvent.setup();
+			await act(async () => {
+				render(<SettingsDialog open={true} onOpenChange={vi.fn()} />);
+			});
+
+			await act(async () => {
+				await user.click(screen.getByText("About"));
+			});
+
+			expect(await screen.findByText("Version")).toBeInTheDocument();
+			expect(screen.getByText("0.0.0-test")).toBeInTheDocument();
+			expect(screen.getByText("Agent directory")).toBeInTheDocument();
+		});
+
+		it("shows links section", async () => {
+			const user = userEvent.setup();
+			await act(async () => {
+				render(<SettingsDialog open={true} onOpenChange={vi.fn()} />);
+			});
+
+			await act(async () => {
+				await user.click(screen.getByText("About"));
+			});
+
+			expect(await screen.findByText("Pi Documentation")).toBeInTheDocument();
+			expect(screen.getByText("GitHub")).toBeInTheDocument();
+		});
 	});
 });

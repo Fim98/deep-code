@@ -123,7 +123,7 @@ base64 and pass as `images: ImageContent[]` to
 
 ---
 
-### B3 · Settings dialog v2 — General + Providers + Models + About — **M**
+### B3 · Settings dialog v2 — General + Providers + Models + About — **M** — Done
 
 Today's `SettingsDialog` shows providers only. Split into a left-rail nested
 layout:
@@ -139,8 +139,14 @@ layout:
 format. New main IPC `pi:settings:get` / `pi:settings:set` should write through
 pi's settings manager.
 
-**Done when**: provider auth still works, theme/startup/general settings are
-editable, and settings persist through pi's normal global/project files.
+**Done**: Settings dialog now has a left-rail tab navigation with four tabs:
+- **General**: theme selector, default thinking level, auto-compaction, auto-retry, image handling, keyboard shortcuts reference
+- **Providers**: existing API key management (configured list + add form)
+- **Models**: enabled model patterns editor (textarea, one per line), block images toggle, models.json docs link
+- **About**: app version, agent directory path, config file locations, external links
+
+Main process uses pi `SettingsManager` via new `pi:settings:get/set` IPC.
+Preload and renderer types updated. 18 tests cover all tabs and interactions.
 
 ---
 
@@ -320,7 +326,7 @@ above.
 2. ~~**A3** runtime/session alignment (L)~~ — **Done** (AgentSessionRuntime integrated).
 3. ~~**B1** command palette (M)~~ — **Done** (⌘K overlay with fuzzy search + 15 tests).
 4. ~~**B2** attachments (M)~~ — **Done** (drag/drop/paste/file picker + 26 tests).
-5. **B3** Settings dialog v2 (M) — makes pi settings editable from the app.
+5. ~~**B3** Settings dialog v2 (M)~~ — **Done** (4-tab layout + SettingsManager IPC + 18 tests).
 6. **B4** Session & message search (M).
 
 After this sprint, deepcode is closer to a real alpha than a dev demo.

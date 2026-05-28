@@ -26,6 +26,23 @@ export interface OpenSessionResult {
 	piSessionId: string;
 }
 
+export interface DesktopSettings {
+	defaultProvider: string | undefined;
+	defaultModel: string | undefined;
+	defaultThinkingLevel: string | undefined;
+	transport: string;
+	steeringMode: string;
+	followUpMode: string;
+	theme: string | undefined;
+	compactionEnabled: boolean;
+	retryEnabled: boolean;
+	hideThinkingBlock: boolean;
+	showImages: boolean;
+	imageAutoResize: boolean;
+	blockImages: boolean;
+	enabledModels: string[] | undefined;
+}
+
 export interface PiBridge {
 	ping: () => Promise<string>;
 	workspaces: {
@@ -56,6 +73,14 @@ export interface PiBridge {
 		knownProviders: () => Promise<string[]>;
 		setKey: (provider: string, key: string) => Promise<void>;
 		remove: (provider: string) => Promise<void>;
+	};
+	settings: {
+		get: () => Promise<DesktopSettings>;
+		set: (key: string, value: unknown) => Promise<void>;
+		agentDir: () => Promise<string>;
+	};
+	appInfo: {
+		version: () => Promise<string>;
 	};
 }
 

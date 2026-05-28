@@ -1,4 +1,20 @@
-import { ExternalLink, Eye, EyeOff, Key, Plus, ShieldCheck, Trash2 } from "lucide-react";
+import {
+	Cog,
+	ExternalLink,
+	Eye,
+	EyeOff,
+	FolderOpen,
+	Info,
+	Key,
+	Keyboard,
+	LayoutGrid,
+	Monitor,
+	Moon,
+	Plus,
+	ShieldCheck,
+	Sun,
+	Trash2,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,12 +34,218 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { type ProviderEntry, pi } from "@/lib/rpc";
+import { type DesktopSettings, type ProviderEntry, pi } from "@/lib/rpc";
 import { emitToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
+// ─── Constants ───────────────────────────────────────────────────────────────
+
 const MODELS_DOCS_URL = "https://pi.dev/docs/latest/models";
 const AUTH_CONFIG_PATH = "~/.pi/agent/auth.json";
+
+type TabId = "general" | "providers" | "models" | "about";
+
+const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
+	{ id: "general", label: "General", icon: <Cog className="size-4" /> },
+	{ id: "providers", label: "Providers", icon: <Key className="size-4" /> },
+	{ id: "models", label: "Models", icon: <LayoutGrid className="size-4" /> },
+	{ id: "about", label: "About", icon: <Info className="size-4" /> },
+];
+
+// ─── Main Dialog ─────────────────────────────────────────────────────────────
+
+interface Props {
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+}
+
+export function SettingsDialog({ open, onOpenChange }: Props) {
+	const [tab, setTab] = useState<TabId>("general");
+
+	return (
+		<Dialog open={open} onOpenChange={onOpenChange}>
+			<DialogContent className="flex max-h-[84vh] max-w-3xl flex-col gap-0 overflow-hidden p-0">
+				<DialogHeader className="shrink-0 border-b border-border/40 px-7 py-5">
+					<div className="flex items-center gap-3">
+						<div className="flex size-10 shrink-0 items-center justify-center rounded-[16px] bg-primary-soft text-primary">
+							<Cog className="size-5" />
+						</div>
+						<div>
+							<DialogTitle className="text-[22px] font-medium tracking-tight">Settings</DialogTitle>
+							<DialogDescription className="text-[13px] text-muted-foreground">
+								Configure your deepcode experience
+							</DialogDescription>
+						</div>
+					</div>
+				</DialogHeader>
+				<div className="flex min-h-0 flex-1">
+					{/* Left rail */}
+					<nav className="flex w-[180px] shrink-0 flex-col gap-0.5 border-r border-border/30 p-3">
+						{TABS.map((t) => (
+							<button
+								key={t.id}
+								onClick={() => setTab(t.id)}
+								className={cn(
+									"flex cursor-pointer items-center gap-2.5 rounded-[12px] px-3 py-2 text-left text-[13px] font-medium transition-colors duration-100",
+									tab === t.id
+										? "bg-primary/10 text-primary"
+										: "text-foreground/60 hover:bg-foreground/[0.04] hover:text-foreground",
+								)}
+							>
+								{t.icon}
+								{t.label}
+							</button>
+						))}
+					</nav>
+					{/* Right panel */}
+					<ScrollArea className="flex-1">
+						<div className="px-7 py-6">
+							{tab === "general" && <GeneralTab />}
+							{tab === "providers" && <ProvidersTab />}
+							{tab === "models" && <ModelsTab />}
+							{tab === "about" && <AboutTab />}
+						</div>
+					</ScrollArea>
+				</div>
+			</DialogContent>
+		</Dialog>
+	);
+}
+
+// ─── General Tab ─────────────────────────────────────────────────────────────
+
+function GeneralTab() {
+	const [settings, setSettings] = useState<DesktopSettings | null>(null);
+
+	useEffect(() => {
+		pi.settings.get().then(setSettings).catch(formatError);
+	}, []);
+
+	async function update(key: string, value: unknown) {
+		try {
+			await pi.settings.set(key, value);
+			const next = await pi.settings.get();
+			setSettings(next);
+		} catch (e) {
+			emitToast(formatError(e));
+		}
+	}
+
+	const thinkingLevels = ["off", "minimal", "low", "medium", "high", "xhigh"] as const;
+
+	return (
+		<div className="space-y-8">
+			{/* Theme */}
+			<section className="space-y-3">
+				<SectionHeader title="Appearance" />
+				<SettingRow
+					label="Theme"
+					description="Choose light, dark, or follow your system preference"
+				>
+					<div className="flex gap-1.5">
+						{(["system", "light", "dark"] as const).map((opt) => {
+							const Icon = opt === "system" ? Monitor : opt === "light" ? Sun : Moon;
+							return (
+								<button
+									key={opt}
+									onClick={() => {
+										void pi.theme.setSource(opt);
+									}}
+									className={cn(
+										"flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium capitalize transition-colors",
+										"bg-foreground/[0.04] text-foreground/60 hover:bg-foreground/[0.08] hover:text-foreground",
+									)}
+								>
+									<Icon className="size-3.5" />
+									{opt}
+								</button>
+							);
+						})}
+					</div>
+				</SettingRow>
+			</section>
+
+			{/* AI Behavior */}
+			<section className="space-y-3">
+				<SectionHeader title="AI Behavior" />
+				<SettingRow
+					label="Default thinking level"
+					description="Controls how much reasoning the model does before responding"
+				>
+					<Select
+						value={settings?.defaultThinkingLevel ?? "off"}
+						onValueChange={(v) => update("defaultThinkingLevel", v)}
+					>
+						<SelectTrigger className="w-[140px] text-[13px]">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							{thinkingLevels.map((lv) => (
+								<SelectItem key={lv} value={lv}>
+									{lv}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</SettingRow>
+				<SettingRow
+					label="Auto-compaction"
+					description="Automatically compact context when it gets too long"
+				>
+					<ToggleSwitch
+						checked={settings?.compactionEnabled ?? true}
+						onChange={(v) => update("compactionEnabled", v)}
+					/>
+				</SettingRow>
+				<SettingRow label="Auto-retry" description="Automatically retry failed requests">
+					<ToggleSwitch
+						checked={settings?.retryEnabled ?? true}
+						onChange={(v) => update("retryEnabled", v)}
+					/>
+				</SettingRow>
+			</section>
+
+			{/* Images */}
+			<section className="space-y-3">
+				<SectionHeader title="Images" />
+				<SettingRow
+					label="Show images in results"
+					description="Display images returned by tool calls"
+				>
+					<ToggleSwitch
+						checked={settings?.showImages ?? true}
+						onChange={(v) => update("showImages", v)}
+					/>
+				</SettingRow>
+				<SettingRow
+					label="Auto-resize images"
+					description="Resize large images before sending to the model"
+				>
+					<ToggleSwitch
+						checked={settings?.imageAutoResize ?? true}
+						onChange={(v) => update("imageAutoResize", v)}
+					/>
+				</SettingRow>
+			</section>
+
+			{/* Keyboard shortcuts */}
+			<section className="space-y-3">
+				<SectionHeader title="Keyboard Shortcuts" />
+				<div className="rounded-[18px] border border-border/60 bg-card p-4 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
+					<div className="space-y-2.5">
+						<ShortcutRow keys={["⌘", "K"]} label="Command palette" />
+						<ShortcutRow keys={["⌘", "N"]} label="New session" />
+						<ShortcutRow keys={["⌘", "B"]} label="Toggle bash panel" />
+						<ShortcutRow keys={["Enter"]} label="Send message" />
+						<ShortcutRow keys={["Shift", "Enter"]} label="New line" />
+					</div>
+				</div>
+			</section>
+		</div>
+	);
+}
+
+// ─── Providers Tab ───────────────────────────────────────────────────────────
 
 const oauthProviderIds = new Set(["anthropic", "openai-codex", "github-copilot"]);
 
@@ -33,11 +255,7 @@ const providerHints: Record<string, { label: string; hint: string; env?: string 
 		hint: "Claude models. Supports /login for Claude Pro/Max or API key auth.",
 		env: "ANTHROPIC_API_KEY",
 	},
-	openai: {
-		label: "OpenAI",
-		hint: "GPT models through OpenAI APIs.",
-		env: "OPENAI_API_KEY",
-	},
+	openai: { label: "OpenAI", hint: "GPT models through OpenAI APIs.", env: "OPENAI_API_KEY" },
 	google: {
 		label: "Google Gemini",
 		hint: "Gemini via Google Generative AI.",
@@ -57,15 +275,8 @@ const providerHints: Record<string, { label: string; hint: string; env?: string 
 		hint: "Gateway routing for supported model providers.",
 		env: "AI_GATEWAY_API_KEY",
 	},
-	deepseek: {
-		label: "DeepSeek",
-		hint: "DeepSeek hosted models.",
-		env: "DEEPSEEK_API_KEY",
-	},
-	"github-copilot": {
-		label: "GitHub Copilot",
-		hint: "Copilot subscription provider. Use /login.",
-	},
+	deepseek: { label: "DeepSeek", hint: "DeepSeek hosted models.", env: "DEEPSEEK_API_KEY" },
+	"github-copilot": { label: "GitHub Copilot", hint: "Copilot subscription provider. Use /login." },
 	moonshotai: {
 		label: "Moonshot AI",
 		hint: "Kimi models through Moonshot.",
@@ -78,20 +289,14 @@ const providerHints: Record<string, { label: string; hint: string; env?: string 
 	},
 };
 
-interface Props {
-	open: boolean;
-	onOpenChange: (open: boolean) => void;
-}
-
-export function SettingsDialog({ open, onOpenChange }: Props) {
+function ProvidersTab() {
 	const [configured, setConfigured] = useState<ProviderEntry[]>([]);
 	const [known, setKnown] = useState<string[]>([]);
 	const [loading, setLoading] = useState(false);
 
 	useEffect(() => {
-		if (!open) return;
 		void refresh();
-	}, [open]);
+	}, []);
 
 	async function refresh() {
 		setLoading(true);
@@ -132,63 +337,238 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
 	);
 
 	return (
-		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-h-[84vh] max-w-2xl gap-0 overflow-hidden p-0">
-				<DialogHeader className="border-b border-border/40 px-7 py-6">
-					<div className="flex items-start gap-4">
-						<div className="flex size-11 shrink-0 items-center justify-center rounded-[18px] bg-primary-soft text-primary">
-							<Key className="size-5" />
-						</div>
-						<div className="min-w-0">
-							<DialogTitle className="text-[24px] font-medium tracking-tight">
-								Provider Settings
-							</DialogTitle>
-							<DialogDescription className="mt-2 max-w-2xl text-[13px] leading-6">
-								Configured credentials from <span className="font-mono">/login</span> appear here.
-								Custom providers and models are configured separately.
-							</DialogDescription>
-						</div>
-					</div>
-				</DialogHeader>
-				<ScrollArea className="max-h-[calc(84vh-125px)]">
-					<div className="space-y-5 px-7 py-6">
-						<section className="space-y-4">
-							<SettingsSectionHeader
-								title="Configured Providers"
-								description={`Credentials are stored in ${AUTH_CONFIG_PATH}. Use /login to add supported providers.`}
+		<div className="space-y-6">
+			<section className="space-y-4">
+				<SectionHeader
+					title="Configured Providers"
+					description={`Credentials are stored in ${AUTH_CONFIG_PATH}. Use /login to add supported providers.`}
+				/>
+				<div className="grid gap-3">
+					{loading && configured.length === 0 ? (
+						<EmptyHint text="Loading providers..." />
+					) : configured.length === 0 ? (
+						<EmptyHint text="No credentials configured yet." />
+					) : (
+						configured.map((entry) => (
+							<ConfiguredRow
+								key={entry.provider}
+								entry={entry}
+								onRemove={() => handleRemove(entry.provider)}
 							/>
-							<div className="grid gap-3">
-								{loading && configured.length === 0 ? (
-									<EmptyHint text="Loading providers..." />
-								) : configured.length === 0 ? (
-									<EmptyHint text="No credentials configured yet." />
-								) : (
-									configured.map((entry) => (
-										<ConfiguredRow
-											key={entry.provider}
-											entry={entry}
-											onRemove={() => handleRemove(entry.provider)}
-										/>
-									))
-								)}
-							</div>
-						</section>
-						<PresetProviderForm providers={availableProviders} onSave={handleSave} />
-						<CustomModelsHint />
-					</div>
-				</ScrollArea>
-			</DialogContent>
-		</Dialog>
+						))
+					)}
+				</div>
+			</section>
+			<PresetProviderForm providers={availableProviders} onSave={handleSave} />
+		</div>
 	);
 }
 
-function SettingsSectionHeader({ title, description }: { title: string; description: string }) {
+// ─── Models Tab ──────────────────────────────────────────────────────────────
+
+function ModelsTab() {
+	const [settings, setSettings] = useState<DesktopSettings | null>(null);
+	const [editText, setEditText] = useState("");
+
+	useEffect(() => {
+		pi.settings.get().then((s) => {
+			setSettings(s);
+			setEditText((s.enabledModels ?? []).join("\n"));
+		});
+	}, []);
+
+	async function saveEnabledModels() {
+		const patterns = editText
+			.split("\n")
+			.map((l) => l.trim())
+			.filter(Boolean);
+		try {
+			await pi.settings.set("enabledModels", patterns.length > 0 ? patterns : undefined);
+			const next = await pi.settings.get();
+			setSettings(next);
+			emitToast("Model filters saved");
+		} catch (e) {
+			emitToast(formatError(e));
+		}
+	}
+
 	return (
-		<div className="space-y-1">
-			<div className="select-none text-[11px] font-medium uppercase tracking-[0.14em] text-primary/70">
+		<div className="space-y-8">
+			<section className="space-y-3">
+				<SectionHeader
+					title="Enabled Models"
+					description="Filter which models are available. One pattern per line (e.g. provider/model-id). Leave empty to show all."
+				/>
+				<div className="rounded-[18px] border border-border/60 bg-card p-4 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
+					<textarea
+						value={editText}
+						onChange={(e) => setEditText(e.target.value)}
+						placeholder="anthropic/claude-sonnet-4-20250514&#10;openai/gpt-4o"
+						className="min-h-[120px] w-full resize-y rounded-[12px] border border-border/40 bg-background px-3 py-2.5 font-mono text-[12px] text-foreground placeholder:text-muted-foreground/50 focus:border-primary/40 focus:outline-none"
+					/>
+					<div className="mt-3 flex justify-end">
+						<Button
+							size="sm"
+							variant="primary"
+							onClick={saveEnabledModels}
+							className="rounded-full"
+						>
+							Save
+						</Button>
+					</div>
+				</div>
+			</section>
+
+			<CustomModelsHint />
+
+			<section className="space-y-3">
+				<SectionHeader title="Image Handling" />
+				<SettingRow
+					label="Block images"
+					description="Prevent images from being sent to the model (text placeholder instead)"
+				>
+					<ToggleSwitch
+						checked={settings?.blockImages ?? false}
+						onChange={async (v) => {
+							await pi.settings.set("blockImages", v);
+							const next = await pi.settings.get();
+							setSettings(next);
+						}}
+					/>
+				</SettingRow>
+			</section>
+		</div>
+	);
+}
+
+// ─── About Tab ───────────────────────────────────────────────────────────────
+
+function AboutTab() {
+	const [version, setVersion] = useState("…");
+	const [agentDir, setAgentDir] = useState("…");
+
+	useEffect(() => {
+		pi.appInfo
+			.version()
+			.then(setVersion)
+			.catch(() => setVersion("unknown"));
+		pi.settings
+			.agentDir()
+			.then(setAgentDir)
+			.catch(() => setAgentDir("unknown"));
+	}, []);
+
+	return (
+		<div className="space-y-8">
+			<section className="space-y-4">
+				<SectionHeader title="deepcode" />
+				<div className="rounded-[18px] border border-border/60 bg-card p-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
+					<div className="space-y-3">
+						<InfoRow label="Version" value={version} />
+						<InfoRow label="Agent directory" value={agentDir} mono />
+					</div>
+				</div>
+			</section>
+
+			<section className="space-y-4">
+				<SectionHeader title="Configuration Files" />
+				<div className="space-y-2.5">
+					<ConfigFileRow label="Auth" path={`${agentDir}/auth.json`} />
+					<ConfigFileRow label="Settings (global)" path={`${agentDir}/settings.json`} />
+					<ConfigFileRow label="Models" path={`${agentDir}/models.json`} />
+				</div>
+			</section>
+
+			<section className="space-y-3">
+				<SectionHeader title="Links" />
+				<div className="flex flex-wrap gap-2">
+					<ExternalButton label="Pi Documentation" url="https://pi.dev/docs" />
+					<ExternalButton label="GitHub" url="https://github.com/Fim98/deep-code" />
+					<ExternalButton label="Report Issue" url="https://github.com/Fim98/deep-code/issues" />
+				</div>
+			</section>
+		</div>
+	);
+}
+
+// ─── Shared sub-components ───────────────────────────────────────────────────
+
+function SectionHeader({ title, description }: { title: string; description?: string }) {
+	return (
+		<div className="space-y-0.5">
+			<div className="select-none text-[11px] font-semibold uppercase tracking-[0.14em] text-primary/70">
 				{title}
 			</div>
-			<p className="text-[13px] leading-6 text-muted-foreground">{description}</p>
+			{description ? (
+				<p className="text-[13px] leading-relaxed text-muted-foreground">{description}</p>
+			) : null}
+		</div>
+	);
+}
+
+function SettingRow({
+	label,
+	description,
+	children,
+}: {
+	label: string;
+	description?: string;
+	children: React.ReactNode;
+}) {
+	return (
+		<div className="flex items-center justify-between gap-4 rounded-[16px] border border-border/40 bg-card px-4 py-3 shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
+			<div className="min-w-0">
+				<div className="text-[13px] font-medium text-foreground">{label}</div>
+				{description ? (
+					<div className="mt-0.5 text-[11px] text-muted-foreground">{description}</div>
+				) : null}
+			</div>
+			<div className="shrink-0">{children}</div>
+		</div>
+	);
+}
+
+function ToggleSwitch({
+	checked,
+	onChange,
+}: {
+	checked: boolean;
+	onChange: (value: boolean) => void;
+}) {
+	return (
+		<button
+			type="button"
+			role="switch"
+			aria-checked={checked}
+			onClick={() => onChange(!checked)}
+			className={cn(
+				"relative h-6 w-10 shrink-0 cursor-pointer rounded-full transition-colors duration-200",
+				checked ? "bg-primary" : "bg-foreground/[0.15]",
+			)}
+		>
+			<span
+				className={cn(
+					"absolute left-0.5 top-0.5 size-5 rounded-full bg-white shadow-sm transition-transform duration-200",
+					checked && "translate-x-4",
+				)}
+			/>
+		</button>
+	);
+}
+
+function ShortcutRow({ keys, label }: { keys: string[]; label: string }) {
+	return (
+		<div className="flex items-center justify-between">
+			<span className="text-[12px] text-muted-foreground">{label}</span>
+			<div className="flex items-center gap-1">
+				{keys.map((k, i) => (
+					<span key={`${k}-${i}`}>
+						<kbd className="rounded-md border border-border/60 bg-foreground/[0.04] px-1.5 py-0.5 font-mono text-[10px] text-foreground/70">
+							{k}
+						</kbd>
+					</span>
+				))}
+			</div>
 		</div>
 	);
 }
@@ -229,18 +609,16 @@ function ConfiguredRow({
 						{entry.type === "oauth" ? "Managed by /login" : entry.maskedKey}
 					</div>
 				</div>
-				<div className="flex items-center gap-1">
-					<Button
-						type="button"
-						size="icon-sm"
-						variant="ghost"
-						onClick={onRemove}
-						aria-label="Remove"
-						className="size-8 rounded-[14px] hover:text-destructive"
-					>
-						<Trash2 className="size-3.5" />
-					</Button>
-				</div>
+				<Button
+					type="button"
+					size="icon-sm"
+					variant="ghost"
+					onClick={onRemove}
+					aria-label="Remove"
+					className="size-8 rounded-[14px] hover:text-destructive"
+				>
+					<Trash2 className="size-3.5" />
+				</Button>
 			</div>
 		</div>
 	);
@@ -282,7 +660,7 @@ function PresetProviderForm({
 
 	return (
 		<section className="space-y-4">
-			<SettingsSectionHeader
+			<SectionHeader
 				title="Add Provider"
 				description="Choose a preset provider. Use /login in chat for OAuth providers, or store an API key here."
 			/>
@@ -335,7 +713,7 @@ function PresetProviderForm({
 										type="button"
 										size="icon"
 										variant="ghost"
-										onClick={() => setReveal((value) => !value)}
+										onClick={() => setReveal((v) => !v)}
 										aria-label={reveal ? "Hide API key" : "Show API key"}
 									>
 										{reveal ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
@@ -398,6 +776,52 @@ function CustomModelsHint() {
 				Docs
 			</Button>
 		</div>
+	);
+}
+
+function InfoRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+	return (
+		<div className="flex items-center justify-between gap-3">
+			<span className="text-[12px] text-muted-foreground">{label}</span>
+			<span className={cn("text-[13px] text-foreground", mono && "font-mono text-[12px]")}>
+				{value}
+			</span>
+		</div>
+	);
+}
+
+function ConfigFileRow({ label, path }: { label: string; path: string }) {
+	return (
+		<div className="flex items-center justify-between gap-3 rounded-[14px] border border-border/40 bg-card px-4 py-2.5 shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
+			<div className="min-w-0">
+				<div className="text-[12px] font-medium text-foreground">{label}</div>
+				<div className="truncate font-mono text-[11px] text-muted-foreground">{path}</div>
+			</div>
+			<Button
+				type="button"
+				size="icon-sm"
+				variant="ghost"
+				aria-label="Open folder"
+				className="size-7 text-muted-foreground"
+			>
+				<FolderOpen className="size-3.5" />
+			</Button>
+		</div>
+	);
+}
+
+function ExternalButton({ label, url }: { label: string; url: string }) {
+	return (
+		<Button
+			type="button"
+			variant="secondary"
+			size="sm"
+			className="rounded-full"
+			onClick={() => window.open(url, "_blank")}
+		>
+			<ExternalLink className="size-3.5" />
+			{label}
+		</Button>
 	);
 }
 

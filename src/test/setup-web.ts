@@ -48,6 +48,29 @@ const mockPi = {
 		setKey: vi.fn().mockResolvedValue(undefined),
 		remove: vi.fn().mockResolvedValue(undefined),
 	},
+	settings: {
+		get: vi.fn().mockResolvedValue({
+			defaultProvider: undefined,
+			defaultModel: undefined,
+			defaultThinkingLevel: "off",
+			transport: "sse",
+			steeringMode: "all",
+			followUpMode: "all",
+			theme: undefined,
+			compactionEnabled: true,
+			retryEnabled: true,
+			hideThinkingBlock: false,
+			showImages: true,
+			imageAutoResize: true,
+			blockImages: false,
+			enabledModels: undefined,
+		}),
+		set: vi.fn().mockResolvedValue(undefined),
+		agentDir: vi.fn().mockResolvedValue("/tmp/test-agent"),
+	},
+	appInfo: {
+		version: vi.fn().mockResolvedValue("0.0.0-test"),
+	},
 };
 
 Object.defineProperty(window, "pi", {

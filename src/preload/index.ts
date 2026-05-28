@@ -57,6 +57,16 @@ const theme = {
 	},
 };
 
+const settings = {
+	get: () => ipcRenderer.invoke("pi:settings:get"),
+	set: (key: string, value: unknown) => ipcRenderer.invoke("pi:settings:set", key, value),
+	agentDir: () => ipcRenderer.invoke("pi:settings:agent-dir"),
+};
+
+const appInfo = {
+	version: () => ipcRenderer.invoke("pi:app:version"),
+};
+
 const api = {
 	ping: (): Promise<string> => ipcRenderer.invoke("pi:ping"),
 	workspaces,
@@ -64,6 +74,8 @@ const api = {
 	rpc,
 	theme,
 	auth,
+	settings,
+	appInfo,
 } as const;
 
 contextBridge.exposeInMainWorld("pi", api);
