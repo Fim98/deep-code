@@ -17,6 +17,9 @@
 		"package:win": "npm run build && electron-builder --win --config electron-builder.config.ts",
 		"package:win:x64": "npm run build && electron-builder --win --x64 --config electron-builder.config.ts",
 		"package:win:arm64": "npm run build && electron-builder --win --arm64 --config electron-builder.config.ts",
+		"package:linux": "npm run build && electron-builder --linux --config electron-builder.config.ts",
+		"package:linux:x64": "npm run build && electron-builder --linux --x64 --config electron-builder.config.ts",
+		"package:linux:arm64": "npm run build && electron-builder --linux --arm64 --config electron-builder.config.ts",
 		"preview": "electron-vite preview",
 		"typecheck": "tsc -b",
 		"test": "npm run test:node && npm run test:web",
@@ -43,7 +46,6 @@
 		"@radix-ui/react-select": "^2.2.6",
 		"@radix-ui/react-separator": "^1.1.8",
 		"@radix-ui/react-slot": "^1.2.4",
-		"@tailwindcss/postcss": "^4.3.0",
 		"ai": "6.0.191",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "2.1.1",
@@ -62,6 +64,7 @@
 		"zustand": "5.0.13"
 	},
 	"devDependencies": {
+		"@tailwindcss/postcss": "^4.3.0",
 		"@biomejs/biome": "^2.4.16",
 		"@commitlint/cli": "^21.0.1",
 		"@commitlint/config-conventional": "^21.0.1",

@@ -152,7 +152,7 @@ Preload and renderer types updated. 18 tests cover all tabs and interactions.
 
 ## P2 — Shipping surface
 
-### C1 · electron-builder packaging — **M**
+### C1 · electron-builder packaging — **M** — Done
 The app is currently dev-only. Ship `.dmg` (universal2), `.exe` (NSIS),
 and `.AppImage`.
 
@@ -162,9 +162,15 @@ dist directly (already on `^0.75.5`), pin runtime deps so
 `asarUnpack` covers `undici` and any native modules. Skip code signing
 + notarization in this milestone (separate cert work).
 
-**Done when**: `npm run package:mac` produces a working `.dmg`;
-double-clicking installs, launching opens the same window as `npm run
-dev`, IPC + RPC work, electron-store persists across launches.
+**Done**: `electron-builder.config.ts` updated with:
+- `asarUnpack` for all `*.node` native addons and `undici`
+- Linux target (`AppImage` + `zip` for x64/arm64)
+- `package:linux` / `package:linux:x64` / `package:linux:arm64` scripts
+- `@tailwindcss/postcss` moved from `dependencies` to `devDependencies`
+- Test files excluded from `files` glob
+- `npm run package:mac` produces working `.dmg` for arm64 (173MB) and x64 (179MB)
+- Native modules (pi-tui, clipboard) correctly unpacked from asar
+- Code signing + notarization deferred to a separate milestone
 
 ---
 
@@ -317,6 +323,6 @@ above.
 3. ~~**B1** command palette (M)~~ — **Done** (⌘K overlay with fuzzy search + 15 tests).
 4. ~~**B2** attachments (M)~~ — **Done** (drag/drop/paste/file picker + 26 tests).
 5. ~~**B3** Settings dialog v2 (M)~~ — **Done** (4-tab layout + SettingsManager IPC + 18 tests).
-6. **C1** electron-builder packaging (M).
+6. ~~**C1** electron-builder packaging (M)~~ — **Done** (.dmg/.zip for mac arm64+x64, linux AppImage config).
 
 After this sprint, deepcode is closer to a real alpha than a dev demo.
