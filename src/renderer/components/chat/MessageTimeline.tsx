@@ -323,7 +323,6 @@ function AssistantRow({
 					elapsed={elapsed}
 					isStreaming={isStreaming}
 					hasFinalText={hasFinalText}
-					stopReason={stopReason}
 				/>
 				{hasFinalText ? <MessageResponse>{text}</MessageResponse> : null}
 				{model || stopReason ? (
@@ -344,20 +343,15 @@ function ActivityPanel({
 	elapsed,
 	isStreaming,
 	hasFinalText,
-	stopReason,
 }: {
 	activities: ActivityItem[];
 	elapsed: string;
 	isStreaming: boolean;
 	hasFinalText: boolean;
-	stopReason?: string;
 }) {
 	const [manualOpen, setManualOpen] = useState<boolean | null>(null);
 	const groups = useMemo(() => groupActivities(activities), [activities]);
-	const hasError =
-		stopReason === "error" || activities.some((item) => item.status === "error");
-	const isAborted = stopReason === "aborted";
-	const autoOpen = isStreaming || hasError || isAborted || !hasFinalText;
+	const autoOpen = isStreaming || !hasFinalText;
 	const open = manualOpen ?? autoOpen;
 
 	useEffect(() => {
@@ -366,13 +360,7 @@ function ActivityPanel({
 
 	if (activities.length === 0 && !isStreaming) return null;
 
-	const label = isStreaming
-		? `正在处理 ${elapsed}`
-		: isAborted
-			? `已中断 ${elapsed}`
-			: hasError
-				? `处理失败 ${elapsed}`
-				: `已处理 ${elapsed}`;
+	const label = isStreaming ? `正在处理 ${elapsed}` : `已处理 ${elapsed}`;
 
 	return (
 		<div className="w-full text-muted-foreground">
