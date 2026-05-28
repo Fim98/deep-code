@@ -388,5 +388,6 @@ above.
 13. ~~**D3** i18n zh-CN + en (M)~~ — **Done** (function-based i18n + 150+ keys + 9 tests).
 14. ~~**E3** Crash/error log viewer (S)~~ — **Done** (ring buffer + LogViewerDialog + 8 tests).
 15. ~~**C4** File tree sidebar (L)~~ — **Done** (lazy-loaded directory walker + collapsible tree + 6 tests).
+16. ~~**E2** Multi-window (M)~~ — **Done** (multi-BrowserWindow + ⌘⇧N shortcut).
 
 After this sprint, deepcode is closer to a real alpha than a dev demo.
