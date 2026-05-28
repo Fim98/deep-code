@@ -86,6 +86,9 @@ export interface PiBridge {
 	fileTree: {
 		list: (dirPath: string) => Promise<FileTreeNode[]>;
 	};
+	window: {
+		new: () => Promise<void>;
+	};
 	rpc: {
 		send: <C extends RpcCommand>(sessionId: string, command: C) => Promise<RpcResponse>;
 		subscribe: (sessionId: string, cb: (event: AgentSessionEvent) => void) => () => void;

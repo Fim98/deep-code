@@ -10,7 +10,7 @@ const defaultAppIcon = "app-icon-apple.png";
 const windowIconByPlatform: Partial<Record<NodeJS.Platform, string>> = {
 	win32: "app-icon-apple.ico",
 };
-let mainWindow: BrowserWindow | undefined;
+const windows = new Set<BrowserWindow>();
 
 function findResourcePath(fileName: string) {
 	const basePaths = isDev
@@ -34,7 +34,7 @@ function getWindowIconPath() {
 	return findResourcePath(windowIconByPlatform[process.platform] ?? defaultAppIcon);
 }
 
-async function createWindow(): Promise<BrowserWindow> {
+export async function createWindow(): Promise<BrowserWindow> {
 	const icon = getWindowIconPath();
 
 	const win = new BrowserWindow({
@@ -61,7 +61,10 @@ async function createWindow(): Promise<BrowserWindow> {
 
 	if (isDev && process.env.ELECTRON_RENDERER_URL) {
 		await win.loadURL(process.env.ELECTRON_RENDERER_URL);
-		win.webContents.openDevTools({ mode: "detach" });
+		// Only open DevTools for the first window
+		if (windows.size === 0) {
+			win.webContents.openDevTools({ mode: "detach" });
+		}
 	} else {
 		await win.loadFile(join(__dirname, "../renderer/index.html"));
 	}
@@ -72,17 +75,21 @@ async function createWindow(): Promise<BrowserWindow> {
 	};
 	nativeTheme.on("updated", refreshBg);
 
-	mainWindow = win;
+	windows.add(win);
 	win.on("closed", () => {
 		nativeTheme.off("updated", refreshBg);
-		if (mainWindow === win) mainWindow = undefined;
+		windows.delete(win);
 	});
 	return win;
 }
 
+function getAnyWindow(): BrowserWindow | undefined {
+	return BrowserWindow.getFocusedWindow() ?? windows.values().next().value ?? undefined;
+}
+
 app.whenReady().then(async () => {
 	installErrorHandlers();
-	registerIpcHandlers(() => mainWindow);
+	registerIpcHandlers(getAnyWindow);
 	initAutoUpdater();
 	const icon = getNativeIcon();
 	if (process.platform === "darwin" && icon) app.dock?.setIcon(icon);

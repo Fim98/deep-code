@@ -311,11 +311,17 @@ added to preload bridge and renderer types.
 Embed `node-pty` (already in opencode's deps) and an xterm.js viewport
 to give a real shell inside the bash panel.
 
-### E2 · Multi-window — **M**
+### E2 · Multi-window — **M** — Done
 Each `BrowserWindow` keeps its own `activeWorkspaceId` + `activeSessionId`
 in window state. Useful when comparing two sessions side-by-side.
 Requires moving renderer global state out of localStorage into
 per-window IPC.
+
+**Done**: Refactored `src/main/index.ts` from single `mainWindow` to
+a `Set<BrowserWindow>` tracking all open windows. `createWindow()`
+exported for multi-window creation. DevTools only opens for first
+window. `pi:window:new` IPC handler + `⌘⇧N` keyboard shortcut.
+Renderer zustand stores naturally isolate state per-window.
 
 ### E3 · Crash / error log viewer — **S** — Done
 `drainErrors()` on settings/auth + main process uncaught errors collected

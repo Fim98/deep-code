@@ -4,6 +4,7 @@ import { listConfiguredProviders, listKnownProviders, removeProvider, setApiKey 
 import { dispatchRpc } from "./dispatch-rpc.js";
 import { clearLogs, getLogs } from "./error-log.js";
 import { listDirectory } from "./file-tree.js";
+import { createWindow } from "./index.js";
 import { deleteSessionFile, listSessionsForCwd } from "./session-fs.js";
 import { sessionRegistry } from "./session-registry.js";
 import { getAgentDirPath, getDesktopSettings, setDesktopSetting } from "./settings.js";
@@ -167,6 +168,11 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 	ipcMain.handle("pi:app:version", () => {
 		const { app } = require("electron");
 		return app.getVersion();
+	});
+
+	// Window management
+	ipcMain.handle("pi:window:new", () => {
+		void createWindow();
 	});
 
 	// Auto-updater

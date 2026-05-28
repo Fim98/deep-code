@@ -46,6 +46,10 @@ const fileTree = {
 		>,
 };
 
+const windowManagement = {
+	new: () => ipcRenderer.invoke("pi:window:new") as Promise<void>,
+};
+
 const rpc = {
 	send: (sessionId: string, command: unknown) => ipcRenderer.invoke("pi:rpc", sessionId, command),
 	subscribe: (sessionId: string, cb: (event: unknown) => void) => {
@@ -114,6 +118,7 @@ const api = {
 	shell: shellApi,
 	logs,
 	fileTree,
+	window: windowManagement,
 } as const;
 
 contextBridge.exposeInMainWorld("pi", api);

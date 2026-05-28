@@ -45,6 +45,9 @@ const mockPi = {
 	fileTree: {
 		list: vi.fn().mockResolvedValue([]),
 	},
+	window: {
+		new: vi.fn().mockResolvedValue(undefined),
+	},
 	rpc: {
 		send: vi.fn().mockResolvedValue({ success: true }),
 		subscribe: vi.fn().mockReturnValue(() => {}),

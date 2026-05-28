@@ -89,6 +89,14 @@ export function App() {
 				},
 			},
 			{
+				key: "n",
+				meta: true,
+				shift: true,
+				handler: () => {
+					void pi.window.new();
+				},
+			},
+			{
 				key: "b",
 				meta: true,
 				handler: () => {
