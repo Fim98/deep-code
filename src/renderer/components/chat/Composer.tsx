@@ -1,10 +1,12 @@
-import { ImagePlus, Send, Square, X } from "lucide-react";
+import { Code, ImagePlus, Send, Square, X } from "lucide-react";
 import {
 	type ClipboardEvent,
 	type DragEvent,
 	type KeyboardEvent,
 	type RefObject,
 	useCallback,
+	useEffect,
+	useMemo,
 	useRef,
 	useState,
 } from "react";
@@ -32,6 +34,12 @@ interface Attachment {
 	id: string;
 	file: File;
 	preview: string; // data URL for thumbnail
+}
+
+interface SlashCommand {
+	name: string;
+	description?: string;
+	source: string;
 }
 
 interface Props {
@@ -70,8 +78,48 @@ export function Composer({ sessionId, isStreaming }: Props) {
 	const [attachments, setAttachments] = useState<Attachment[]>([]);
 	const [dragOver, setDragOver] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null) as RefObject<HTMLInputElement>;
+	const [commands, setCommands] = useState<SlashCommand[]>([]);
+	const [slashIndex, setSlashIndex] = useState(0);
+	const [slashOpen, setSlashOpen] = useState(false);
+	const slashRef = useRef<HTMLDivElement>(null);
 	const addPendingSubmission = useSessions((s) => s.addPendingSubmission);
 	const removePendingSubmission = useSessions((s) => s.removePendingSubmission);
+
+	// Fetch available commands when session changes
+	useEffect(() => {
+		pi.rpc.send(sessionId, { type: "get_commands" }).then((r) => {
+			if (r.success && r.command === "get_commands") {
+				setCommands(r.data.commands as SlashCommand[]);
+			}
+		});
+	}, [sessionId]);
+
+	// Determine slash query: text must start with "/" and cursor must be in the first token
+	const slashQuery = useMemo(() => {
+		if (!text.startsWith("/")) return null;
+		const spaceIdx = text.indexOf(" ");
+		if (spaceIdx !== -1) return null; // already typed a space → not a slash command
+		return text.slice(1); // everything after the "/"
+	}, [text]);
+
+	const filteredCommands = useMemo(() => {
+		if (slashQuery === null) return [];
+		const q = slashQuery.toLowerCase();
+		if (!q) return commands.slice(0, 12);
+		return commands
+			.filter((c) => c.name.toLowerCase().includes(q) || c.description?.toLowerCase().includes(q))
+			.slice(0, 12);
+	}, [slashQuery, commands]);
+
+	useEffect(() => {
+		setSlashOpen(filteredCommands.length > 0);
+		setSlashIndex(0);
+	}, [filteredCommands.length]);
+
+	const selectSlashCommand = useCallback((cmd: SlashCommand) => {
+		setText(`/${cmd.name} `);
+		setSlashOpen(false);
+	}, []);
 
 	const addFiles = useCallback(async (files: FileList | File[]) => {
 		const newAttachments: Attachment[] = [];
@@ -143,6 +191,32 @@ export function Composer({ sessionId, isStreaming }: Props) {
 	function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
 		const nativeEvent = e.nativeEvent;
 		if (nativeEvent.isComposing || nativeEvent.keyCode === 229) return;
+
+		// Slash command navigation
+		if (slashOpen) {
+			if (e.key === "ArrowDown") {
+				e.preventDefault();
+				setSlashIndex((i) => Math.min(i + 1, filteredCommands.length - 1));
+				return;
+			}
+			if (e.key === "ArrowUp") {
+				e.preventDefault();
+				setSlashIndex((i) => Math.max(i - 1, 0));
+				return;
+			}
+			if (e.key === "Enter" || e.key === "Tab") {
+				e.preventDefault();
+				const cmd = filteredCommands[slashIndex];
+				if (cmd) selectSlashCommand(cmd);
+				return;
+			}
+			if (e.key === "Escape") {
+				e.preventDefault();
+				setSlashOpen(false);
+				return;
+			}
+		}
+
 		if (e.key === "Enter" && !e.shiftKey) {
 			e.preventDefault();
 			void submit();
@@ -197,6 +271,54 @@ export function Composer({ sessionId, isStreaming }: Props) {
 					<div className="flex flex-col items-center gap-2 text-primary">
 						<ImagePlus className="size-6" />
 						<span className="text-[13px] font-medium">Drop images here</span>
+					</div>
+				</div>
+			)}
+
+			{/* Slash command popup */}
+			{slashOpen && (
+				<div
+					ref={slashRef}
+					className="absolute bottom-full left-4 right-4 z-20 mb-2 max-h-[280px] overflow-y-auto rounded-[18px] border border-border/60 bg-card shadow-[0_10px_30px_rgba(0,0,0,0.08)]"
+				>
+					<div className="px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/60">
+						Slash commands
+					</div>
+					{filteredCommands.map((cmd, idx) => (
+						<button
+							key={cmd.name}
+							type="button"
+							onMouseDown={(e) => {
+								e.preventDefault();
+								selectSlashCommand(cmd);
+							}}
+							onMouseEnter={() => setSlashIndex(idx)}
+							className={cn(
+								"flex w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left transition-colors duration-75",
+								idx === slashIndex
+									? "bg-foreground/[0.05] text-foreground"
+									: "text-foreground/70 hover:bg-foreground/[0.03]",
+							)}
+						>
+							<Code className="size-3.5 shrink-0 text-muted-foreground" />
+							<div className="min-w-0 flex-1">
+								<div className="truncate text-[13px] font-medium">
+									<span className="text-primary">/</span>
+									{cmd.name}
+								</div>
+								{cmd.description ? (
+									<div className="truncate text-[11px] text-muted-foreground">
+										{cmd.description}
+									</div>
+								) : null}
+							</div>
+							<span className="shrink-0 rounded-full bg-foreground/[0.06] px-2 py-0.5 text-[10px] font-medium capitalize text-muted-foreground">
+								{cmd.source}
+							</span>
+						</button>
+					))}
+					<div className="border-t border-border/40 px-4 py-1.5 text-[10px] text-muted-foreground/50">
+						↑↓ navigate · ↵ select · esc close
 					</div>
 				</div>
 			)}

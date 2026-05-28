@@ -33,6 +33,18 @@ describe("Composer", () => {
 			},
 		});
 
+		// Default mock: get_commands returns empty, other calls succeed
+		mockPi.rpc.send.mockImplementation((_sid: string, cmd: { type: string }) => {
+			if (cmd.type === "get_commands") {
+				return Promise.resolve({
+					success: true,
+					command: "get_commands",
+					data: { commands: [] },
+				});
+			}
+			return Promise.resolve({ success: true, command: cmd.type });
+		});
+
 		// Mock FileReader for attachment previews
 		class MockFileReader {
 			onload: (() => void) | null = null;
@@ -131,6 +143,7 @@ describe("Composer", () => {
 	it("does not send on Shift+Enter (newline)", async () => {
 		const user = userEvent.setup();
 		render(<Composer sessionId="test-session" isStreaming={false} />);
+		mockPi.rpc.send.mockClear(); // clear mount-time get_commands call
 
 		const textarea = screen.getByLabelText("Message");
 		await user.type(textarea, "Hello");
@@ -306,9 +319,10 @@ describe("Composer", () => {
 
 	it("sends images in RPC call when attachments present", async () => {
 		const user = userEvent.setup();
+		const { container } = render(<Composer sessionId="test-session" isStreaming={false} />);
+		mockPi.rpc.send.mockClear(); // clear mount-time get_commands call
 		mockPi.rpc.send.mockResolvedValue({ success: true, command: "prompt" });
 
-		const { container } = render(<Composer sessionId="test-session" isStreaming={false} />);
 		const input = container.querySelector('input[type="file"]') as HTMLInputElement;
 
 		const file = createMockImageFile("photo.png", 2048);
@@ -391,9 +405,10 @@ describe("Composer", () => {
 
 	it("can submit with only attachments and no text", async () => {
 		const user = userEvent.setup();
+		const { container } = render(<Composer sessionId="test-session" isStreaming={false} />);
+		mockPi.rpc.send.mockClear(); // clear mount-time get_commands call
 		mockPi.rpc.send.mockResolvedValue({ success: true, command: "prompt" });
 
-		const { container } = render(<Composer sessionId="test-session" isStreaming={false} />);
 		const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
 
 		await act(async () => {
@@ -428,5 +443,146 @@ describe("Composer", () => {
 
 		expect(screen.getByText("a.png")).toBeInTheDocument();
 		expect(screen.getByText("b.jpg")).toBeInTheDocument();
+	});
+
+	// ── Slash commands ───────────────────────────────────────────────────
+
+	it("fetches slash commands on mount", async () => {
+		await act(async () => {
+			render(<Composer sessionId="test-session" isStreaming={false} />);
+			await new Promise((r) => setTimeout(r, 10));
+		});
+
+		const getCommandsCalls = mockPi.rpc.send.mock.calls.filter(
+			(c: any[]) => c[1]?.type === "get_commands",
+		);
+		expect(getCommandsCalls.length).toBeGreaterThanOrEqual(1);
+	});
+
+	it("shows slash command popup when typing /", async () => {
+		// Provide commands
+		mockPi.rpc.send.mockImplementation((_sid: string, cmd: { type: string }) => {
+			if (cmd.type === "get_commands") {
+				return Promise.resolve({
+					success: true,
+					command: "get_commands",
+					data: {
+						commands: [
+							{ name: "help", description: "Show help", source: "extension" },
+							{ name: "compact", description: "Compact context", source: "extension" },
+							{ name: "review", description: "Code review", source: "prompt" },
+						],
+					},
+				});
+			}
+			return Promise.resolve({ success: true, command: cmd.type });
+		});
+
+		const user = userEvent.setup();
+		render(<Composer sessionId="test-session" isStreaming={false} />);
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 10));
+		});
+
+		const textarea = screen.getByLabelText("Message");
+		await user.type(textarea, "/");
+
+		// Slash command popup should be visible
+		expect(screen.getByText("Slash commands")).toBeInTheDocument();
+		expect(screen.getByText("help")).toBeInTheDocument();
+		expect(screen.getByText("compact")).toBeInTheDocument();
+		expect(screen.getByText("review")).toBeInTheDocument();
+	});
+
+	it("filters slash commands by query", async () => {
+		mockPi.rpc.send.mockImplementation((_sid: string, cmd: { type: string }) => {
+			if (cmd.type === "get_commands") {
+				return Promise.resolve({
+					success: true,
+					command: "get_commands",
+					data: {
+						commands: [
+							{ name: "help", description: "Show help", source: "extension" },
+							{ name: "compact", description: "Compact context", source: "extension" },
+							{ name: "review", description: "Code review", source: "prompt" },
+						],
+					},
+				});
+			}
+			return Promise.resolve({ success: true, command: cmd.type });
+		});
+
+		const user = userEvent.setup();
+		render(<Composer sessionId="test-session" isStreaming={false} />);
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 10));
+		});
+
+		const textarea = screen.getByLabelText("Message");
+		await user.type(textarea, "/com");
+
+		// Only "compact" should match
+		expect(screen.getByText("compact")).toBeInTheDocument();
+		expect(screen.queryByText("help")).not.toBeInTheDocument();
+	});
+
+	it("selects slash command with Enter", async () => {
+		mockPi.rpc.send.mockImplementation((_sid: string, cmd: { type: string }) => {
+			if (cmd.type === "get_commands") {
+				return Promise.resolve({
+					success: true,
+					command: "get_commands",
+					data: {
+						commands: [
+							{ name: "help", description: "Show help", source: "extension" },
+							{ name: "compact", description: "Compact context", source: "extension" },
+						],
+					},
+				});
+			}
+			return Promise.resolve({ success: true, command: cmd.type });
+		});
+
+		const user = userEvent.setup();
+		render(<Composer sessionId="test-session" isStreaming={false} />);
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 10));
+		});
+
+		const textarea = screen.getByLabelText("Message") as HTMLTextAreaElement;
+		await user.type(textarea, "/");
+		await user.keyboard("{Enter}");
+
+		// Should have replaced text with "/help " (first command)
+		expect(textarea.value).toBe("/help ");
+		// Popup should be closed
+		expect(screen.queryByText("Slash commands")).not.toBeInTheDocument();
+	});
+
+	it("hides slash popup when typing space after command", async () => {
+		mockPi.rpc.send.mockImplementation((_sid: string, cmd: { type: string }) => {
+			if (cmd.type === "get_commands") {
+				return Promise.resolve({
+					success: true,
+					command: "get_commands",
+					data: {
+						commands: [{ name: "help", description: "Show help", source: "extension" }],
+					},
+				});
+			}
+			return Promise.resolve({ success: true, command: cmd.type });
+		});
+
+		const user = userEvent.setup();
+		render(<Composer sessionId="test-session" isStreaming={false} />);
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 10));
+		});
+
+		const textarea = screen.getByLabelText("Message");
+		await user.type(textarea, "/help something");
+
+		// Popup should not be visible (space means it's no longer a slash command)
+		expect(screen.queryByText("Slash commands")).not.toBeInTheDocument();
 	});
 });

@@ -5,6 +5,7 @@ import {
 	MessageSquarePlus,
 	Search,
 	Settings as SettingsIcon,
+	Share2,
 	Sparkles,
 	Terminal,
 	Trash2,
@@ -184,6 +185,20 @@ export function App() {
 		}
 	}
 
+	async function exportSession() {
+		if (!activeSid) return;
+		try {
+			const path = await pi.sessions.exportHtml(activeSid);
+			if (path) {
+				emitToast(`Session exported to ${path}`, {
+					action: { label: "Show in Finder", onClick: () => void pi.shell.showItemInFolder(path) },
+				});
+			}
+		} catch (e) {
+			emitToast(`Export failed: ${e instanceof Error ? e.message : String(e)}`);
+		}
+	}
+
 	async function renameSession(s: SessionInfo, newName: string) {
 		const name = newName.trim();
 		if (!name || name === s.name) return;
@@ -311,6 +326,18 @@ export function App() {
 							</div>
 						</div>
 						<div className="ml-auto flex items-center gap-1">
+							{activeSid ? (
+								<Button
+									size="sm"
+									variant="ghost"
+									aria-label="Export session"
+									onClick={exportSession}
+									className="h-9 rounded-full px-3 text-[13px] font-medium"
+								>
+									<Share2 className="size-3.5" />
+									Share
+								</Button>
+							) : null}
 							<Button
 								size="sm"
 								variant="secondary"

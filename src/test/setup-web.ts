@@ -33,6 +33,10 @@ const mockPi = {
 		close: vi.fn().mockResolvedValue(undefined),
 		delete: vi.fn().mockResolvedValue(undefined),
 		tree: vi.fn().mockResolvedValue({ tree: [], leafId: null }),
+		exportHtml: vi.fn().mockResolvedValue(null),
+	},
+	shell: {
+		showItemInFolder: vi.fn().mockResolvedValue(undefined),
 	},
 	rpc: {
 		send: vi.fn().mockResolvedValue({ success: true }),

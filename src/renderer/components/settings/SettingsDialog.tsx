@@ -6,7 +6,6 @@ import {
 	FolderOpen,
 	Info,
 	Key,
-	Keyboard,
 	LayoutGrid,
 	Monitor,
 	Moon,

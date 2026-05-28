@@ -229,9 +229,13 @@ work as described; large repos (10k files) don't freeze the UI.
 
 ## P3 — Quality-of-life
 
-### D1 · Bash panel polish — **S**
+### D1 · Bash panel polish — **S** — Done
 Add ANSI color support and a more terminal-like look to the existing
 BashPanel. We're still running one-shot commands, not pty.
+
+**Done**: `src/renderer/lib/ansi.tsx` — lightweight ANSI parser supporting
+SGR codes (bold/dim/italic/underline), 256-color, and true-color modes.
+Integrated into BashPanel via `<AnsiText>` component.
 
 ---
 
@@ -259,17 +263,27 @@ extension that intercepts edit/write.
 
 ---
 
-### D5 · Slash command palette — **S**
+### D5 · Slash command palette — **S** — Done
 Surfacing `get_commands` (RPC already exists). In the composer, typing
 `/` shows registered extension commands + skills + prompt templates,
 similar to Cursor. Reuses N1's command palette infrastructure.
 
+**Done**: Composer detects `/` prefix and shows a floating popup with
+fuzzy-filtered commands from `get_commands` RPC. Supports ↑↓ navigation,
+Tab/Enter to select, Esc to dismiss. 5 new tests cover popup, filtering,
+selection, and dismissal.
+
 ---
 
-### D6 · Session sharing — **S**
+### D6 · Session sharing — **S** — Done
 RPC `export_html` already returns a self-contained HTML transcript. Add
 a "Share" menu item with two options: save as `.html` (system save
 dialog) or upload to a gist (uses pi's `getShareViewerUrl`).
+
+**Done**: Share button in session header calls `pi.sessions.exportHtml()`
+which opens a native save dialog via `pi:session:export-html` IPC.
+Toast shows exported path with "Show in Finder" action. `pi.shell.showItemInFolder()`
+added to preload bridge and renderer types.
 
 ---
 

@@ -24,6 +24,11 @@ const sessions = {
 	delete: (args: { workspaceId: string; sessionPath: string }) =>
 		ipcRenderer.invoke("pi:session:delete", args),
 	tree: (sessionId: string) => ipcRenderer.invoke("pi:session:tree", sessionId),
+	exportHtml: (sessionId: string) => ipcRenderer.invoke("pi:session:export-html", sessionId),
+};
+
+const shellApi = {
+	showItemInFolder: (path: string) => ipcRenderer.invoke("pi:shell:show-item", path),
 };
 
 const rpc = {
@@ -91,6 +96,7 @@ const api = {
 	settings,
 	appInfo,
 	updater,
+	shell: shellApi,
 } as const;
 
 contextBridge.exposeInMainWorld("pi", api);

@@ -1,5 +1,5 @@
 import type { RpcCommand } from "@earendil-works/pi-coding-agent";
-import { type BrowserWindow, dialog, ipcMain, nativeTheme } from "electron";
+import { type BrowserWindow, dialog, ipcMain, nativeTheme, shell } from "electron";
 import { listConfiguredProviders, listKnownProviders, removeProvider, setApiKey } from "./auth.js";
 import { dispatchRpc } from "./dispatch-rpc.js";
 import { deleteSessionFile, listSessionsForCwd } from "./session-fs.js";
@@ -127,6 +127,34 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 	});
 
 	ipcMain.handle("pi:ping", () => "pong");
+
+	// Session export
+	ipcMain.handle(
+		"pi:session:export-html",
+		async (_e, sessionId: string): Promise<string | null> => {
+			const win = getWindow();
+			if (!win) return null;
+			const result = await dialog.showSaveDialog(win, {
+				title: "Export Session as HTML",
+				defaultPath: "session-export.html",
+				filters: [{ name: "HTML", extensions: ["html"] }],
+			});
+			if (result.canceled || !result.filePath) return null;
+			const session = sessionRegistry.get(sessionId);
+			const resp = await dispatchRpc(session, {
+				type: "export_html",
+				outputPath: result.filePath,
+			});
+			if (resp.success && resp.command === "export_html") {
+				return resp.data.path;
+			}
+			throw new Error(resp.success ? "Export failed" : resp.error);
+		},
+	);
+
+	ipcMain.handle("pi:shell:show-item", (_e, path: string) => {
+		shell.showItemInFolder(path);
+	});
 
 	// Settings
 	ipcMain.handle("pi:settings:get", () => getDesktopSettings());

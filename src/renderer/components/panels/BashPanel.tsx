@@ -2,6 +2,7 @@ import { Square, X } from "lucide-react";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { AnsiText } from "@/lib/ansi";
 import { pi } from "@/lib/rpc";
 import { cn } from "@/lib/utils";
 
@@ -147,7 +148,7 @@ function BashRow({ entry }: { entry: BashEntry }) {
 			</div>
 			{entry.output ? (
 				<pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap text-[11px] text-muted-foreground">
-					{entry.output}
+					<AnsiText text={entry.output} />
 				</pre>
 			) : null}
 			{entry.error ? <div className="mt-1 text-[11px] text-destructive">{entry.error}</div> : null}

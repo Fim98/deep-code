@@ -74,6 +74,10 @@ export interface PiBridge {
 		close: (sessionId: string) => Promise<void>;
 		delete: (args: { workspaceId: string; sessionPath: string }) => Promise<void>;
 		tree: (sessionId: string) => Promise<SessionTreeData>;
+		exportHtml: (sessionId: string) => Promise<string | null>;
+	};
+	shell: {
+		showItemInFolder: (path: string) => Promise<void>;
 	};
 	rpc: {
 		send: <C extends RpcCommand>(sessionId: string, command: C) => Promise<RpcResponse>;
