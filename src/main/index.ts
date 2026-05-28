@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { app, BrowserWindow, nativeImage, nativeTheme } from "electron";
 import { installErrorHandlers } from "./error-log.js";
 import { registerIpcHandlers } from "./ipc.js";
+import { ptyManager } from "./pty-manager.js";
 import { initTelemetry } from "./telemetry.js";
 import { destroyUpdater, initAutoUpdater } from "./updater.js";
 
@@ -104,5 +105,6 @@ app.whenReady().then(async () => {
 
 app.on("window-all-closed", () => {
 	destroyUpdater();
+	ptyManager.killAll();
 	if (process.platform !== "darwin") app.quit();
 });

@@ -413,3 +413,88 @@ above.
 18. ~~**E5** Broader tests (L)~~ — **Done** (260 tests: +55 across plan-tracker, settings, ansi, ThemeSwitcher).
 
 After this sprint, deepcode is closer to a real alpha than a dev demo.
+
+---
+
+## Post-alpha additions
+
+### F1 · Usage statistics dashboard — **M** — Done
+Scan all pi session JSONL files under `~/.pi/agent/sessions/` and aggregate
+token / cost / usage statistics per day and per model. Display as a dedicated
+Dashboard page accessible from the sidebar.
+
+**Done**: `src/main/session-stats.ts` walks session directories, parses each
+JSONL entry, extracts `usage` from assistant messages, and aggregates by day
+and model. Workspace cwd extracted from session header. IPC `pi:stats:get`
+exposed via preload bridge. `Dashboard.tsx` renderer component shows:
+- Summary cards: total cost, total tokens, requests, models used
+- Time range filter (7d / 30d / all)
+- Daily usage bar chart with cost + token + request count
+- Model breakdown with cost proportion bars
+- Token breakdown (input/output/cache read/cache write) with stacked bar
+- 36 new i18n keys (en + zh-CN)
+- 4 unit tests for session-stats module
+
+### F2 · Copy last agent reply — **S** — Done
+Header button copies the last assistant text response to clipboard.
+
+**Done**: "Copy" button in session header calls `get_last_assistant_text` RPC.
+Shows toast on success or if no message to copy.
+
+### F3 · Queue mode UI — **S** — Done
+Settings toggles for steering mode and follow-up mode.
+
+**Done**: Two Select dropdowns in Settings → General → AI Behavior for
+"Steering mode" and "Follow-up mode" (All at once / One at a time).
+Reads/writes existing `steeringMode`/`followUpMode` settings keys.
+
+### F4 · Session cwd fallback — **S** — Done
+Graceful handling when workspace path no longer exists.
+
+**Done**: `session-registry.ts` checks `existsSync(cwd)` before opening.
+Falls back to `process.cwd()` and returns `cwdFallback: true` in result.
+Renderer shows informational toast.
+
+### F5 · Session search filter — **S** — Done
+Filter sessions in sidebar by name or first message text.
+
+**Done**: Search input above workspace list in sidebar. Filters sessions
+by name/firstMessage match (case-insensitive).
+
+### F6 · In-session message search — **M** — Done
+Search within the current session's messages.
+
+**Done**: Expandable search bar in `MessageTimeline`. Matches user,
+assistant text, and tool result text. Shows match count and filters
+timeline to matching items only. Escape to close.
+
+### F7 · PTY Interactive Terminal — **L** — Done
+Real interactive terminal with full TTY support (vim, less, top, etc.).
+
+**Done**: `src/main/pty-manager.ts` manages pseudo-terminal instances
+using `node-pty`. `TerminalPanel` component renders terminals using
+`@xterm/xterm` with multiple tabs, resize support, and web links.
+Replaces the one-shot BashPanel with a full interactive terminal.
+- IPC handlers: `pi:pty:spawn`, `pi:pty:write`, `pi:pty:resize`, `pi:pty:kill`, `pi:pty:list`
+- Event forwarding: `pi:pty:data`, `pi:pty:exit`
+- Native module rebuilt with `@electron/rebuild`
+- Dependencies: `node-pty`, `@xterm/xterm`, `@xterm/addon-fit`, `@xterm/addon-web-links`
+- VS Code-style layout: docked at bottom, tab bar, full-width
+- Apple design integration: light/dark theme colors, smooth animations
+- Persistent terminals: collapse/expand without losing content
+
+## P0 — Critical Missing Features
+
+### G1 · MCP (Model Context Protocol) Client — **XL** — TODO
+Connect to external tool servers via MCP protocol.
+
+**Tech**: Implement MCP client using `@modelcontextprotocol/sdk`.
+Support stdio, SSE, and HTTP transports. OAuth authentication for
+remote servers. Status indicators for connection state.
+
+### G2 · Permission System — **L** — TODO
+Tool execution approval and permission rules.
+
+**Tech**: Permission request/reply system. Pattern-based rules
+(allow/deny/ask). Always-allow lists. Per-session and global rules.
+UI for permission dialogs and rule configuration.

@@ -69,7 +69,7 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="flex max-h-[84vh] max-w-3xl flex-col gap-0 overflow-hidden p-0">
+			<DialogContent className="flex h-[520px] max-w-3xl flex-col gap-0 overflow-hidden p-0">
 				<DialogHeader className="shrink-0 border-b border-border/40 px-7 py-5">
 					<div className="flex items-center gap-3">
 						<div className="flex size-10 shrink-0 items-center justify-center rounded-[16px] bg-primary-soft text-primary">
@@ -197,6 +197,40 @@ function GeneralTab() {
 						checked={settings?.retryEnabled ?? true}
 						onChange={(v) => update("retryEnabled", v)}
 					/>
+				</SettingRow>
+				<SettingRow
+					label={t("settings.steeringMode")}
+					description={t("settings.steeringModeDescription")}
+				>
+					<Select
+						value={settings?.steeringMode ?? "all"}
+						onValueChange={(v) => update("steeringMode", v)}
+					>
+						<SelectTrigger className="w-[160px] text-[13px]">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="all">{t("settings.queueMode.all")}</SelectItem>
+							<SelectItem value="one-at-a-time">{t("settings.queueMode.oneAtATime")}</SelectItem>
+						</SelectContent>
+					</Select>
+				</SettingRow>
+				<SettingRow
+					label={t("settings.followUpMode")}
+					description={t("settings.followUpModeDescription")}
+				>
+					<Select
+						value={settings?.followUpMode ?? "all"}
+						onValueChange={(v) => update("followUpMode", v)}
+					>
+						<SelectTrigger className="w-[160px] text-[13px]">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="all">{t("settings.queueMode.all")}</SelectItem>
+							<SelectItem value="one-at-a-time">{t("settings.queueMode.oneAtATime")}</SelectItem>
+						</SelectContent>
+					</Select>
 				</SettingRow>
 			</section>
 

@@ -46,6 +46,41 @@ const fileTree = {
 		>,
 };
 
+const stats = {
+	get: () => ipcRenderer.invoke("pi:stats:get"),
+};
+
+const pty = {
+	spawn: (opts?: { cwd?: string; cols?: number; rows?: number }) =>
+		ipcRenderer.invoke("pi:pty:spawn", opts) as Promise<{
+			id: string;
+			shell: string;
+			cwd: string;
+		}>,
+	write: (id: string, data: string) => ipcRenderer.invoke("pi:pty:write", id, data),
+	resize: (id: string, cols: number, rows: number) =>
+		ipcRenderer.invoke("pi:pty:resize", id, cols, rows),
+	kill: (id: string) => ipcRenderer.invoke("pi:pty:kill", id),
+	list: () =>
+		ipcRenderer.invoke("pi:pty:list") as Promise<
+			Array<{ id: string; cwd: string; shell: string; title: string }>
+		>,
+	onData: (cb: (payload: { id: string; data: string }) => void) => {
+		const handler = (_e: Electron.IpcRendererEvent, payload: { id: string; data: string }) =>
+			cb(payload);
+		ipcRenderer.on("pi:pty:data", handler);
+		return () => ipcRenderer.off("pi:pty:data", handler);
+	},
+	onExit: (cb: (payload: { id: string; exitCode: number; signal?: number }) => void) => {
+		const handler = (
+			_e: Electron.IpcRendererEvent,
+			payload: { id: string; exitCode: number; signal?: number },
+		) => cb(payload);
+		ipcRenderer.on("pi:pty:exit", handler);
+		return () => ipcRenderer.off("pi:pty:exit", handler);
+	},
+};
+
 const windowManagement = {
 	new: () => ipcRenderer.invoke("pi:window:new") as Promise<void>,
 };
@@ -136,6 +171,8 @@ const api = {
 	shell: shellApi,
 	logs,
 	fileTree,
+	stats,
+	pty,
 	window: windowManagement,
 	telemetry,
 } as const;

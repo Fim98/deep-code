@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
 import {
 	type AgentSession,
 	type AgentSessionEvent,
@@ -26,6 +27,8 @@ export interface OpenSessionResult {
 	workspaceId: string;
 	sessionFile: string | undefined;
 	piSessionId: string;
+	/** True when the workspace path did not exist and we fell back to process.cwd(). */
+	cwdFallback?: boolean;
 }
 
 type Listener = (event: AgentSessionEvent) => void;
@@ -45,11 +48,19 @@ class SessionRegistryImpl {
 	async open(opts: OpenSessionOptions): Promise<OpenSessionResult> {
 		const ws = getWorkspace(opts.workspaceId);
 		if (!ws) throw new Error(`Unknown workspaceId: ${opts.workspaceId}`);
+
+		// If the workspace path no longer exists, fall back to process.cwd()
+		// rather than letting tool calls fail silently later.
+		let cwd = ws.path;
+		if (!existsSync(cwd)) {
+			cwd = process.cwd();
+		}
+
 		const { authStorage, modelRegistry, agentDir } = getSharedServices();
 
 		const sessionManager = opts.sessionFile
-			? SessionManager.open(opts.sessionFile, undefined, ws.path)
-			: SessionManager.create(ws.path);
+			? SessionManager.open(opts.sessionFile, undefined, cwd)
+			: SessionManager.create(cwd);
 
 		const createRuntime: CreateAgentSessionRuntimeFactory = async (
 			options,
@@ -70,7 +81,7 @@ class SessionRegistryImpl {
 		};
 
 		const runtime = await createAgentSessionRuntime(createRuntime, {
-			cwd: ws.path,
+			cwd,
 			agentDir,
 			sessionManager,
 		});
@@ -116,6 +127,7 @@ class SessionRegistryImpl {
 			workspaceId: opts.workspaceId,
 			sessionFile: runtime.session.sessionFile,
 			piSessionId: runtime.session.sessionId,
+			cwdFallback: cwd !== ws.path ? true : undefined,
 		};
 	}
 

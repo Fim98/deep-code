@@ -6,8 +6,10 @@ import { clearLogs, getLogs } from "./error-log.js";
 import type { ExtensionUIResponse } from "./extension-ui-bridge.js";
 import { listDirectory } from "./file-tree.js";
 import { createWindow } from "./index.js";
+import { ptyManager } from "./pty-manager.js";
 import { deleteSessionFile, listSessionsForCwd } from "./session-fs.js";
 import { sessionRegistry } from "./session-registry.js";
+import { getSessionStats } from "./session-stats.js";
 import { getAgentDirPath, getDesktopSettings, setDesktopSetting } from "./settings.js";
 import { isTelemetryEnabled, setTelemetryEnabled } from "./telemetry.js";
 import { quitAndInstall, scheduleCheck } from "./updater.js";
@@ -216,6 +218,9 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 		return listDirectory(dirPath);
 	});
 
+	// Session statistics
+	ipcMain.handle("pi:stats:get", () => getSessionStats());
+
 	ipcMain.handle("pi:auth:list", () => listConfiguredProviders());
 	ipcMain.handle("pi:auth:known-providers", () => listKnownProviders());
 	ipcMain.handle("pi:auth:set-key", (_e, provider: string, key: string) => {
@@ -244,5 +249,44 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 			source: nativeTheme.themeSource,
 			shouldUseDark: nativeTheme.shouldUseDarkColors,
 		});
+	});
+
+	// ── PTY Terminal ────────────────────────────────────────────────────────
+	ipcMain.handle("pi:pty:spawn", (_e, opts?: { cwd?: string; cols?: number; rows?: number }) => {
+		const instance = ptyManager.spawn(opts);
+		return { id: instance.id, shell: instance.shell, cwd: instance.cwd };
+	});
+
+	ipcMain.handle("pi:pty:write", (_e, id: string, data: string) => {
+		ptyManager.write(id, data);
+	});
+
+	ipcMain.handle("pi:pty:resize", (_e, id: string, cols: number, rows: number) => {
+		ptyManager.resize(id, cols, rows);
+	});
+
+	ipcMain.handle("pi:pty:kill", (_e, id: string) => {
+		ptyManager.kill(id);
+	});
+
+	ipcMain.handle("pi:pty:list", () => {
+		return ptyManager.list();
+	});
+
+	// Forward PTY events to all windows
+	ptyManager.on("data", ({ id, data }) => {
+		for (const win of BrowserWindow.getAllWindows()) {
+			if (!win.isDestroyed()) {
+				win.webContents.send("pi:pty:data", { id, data });
+			}
+		}
+	});
+
+	ptyManager.on("exit", ({ id, exitCode, signal }) => {
+		for (const win of BrowserWindow.getAllWindows()) {
+			if (!win.isDestroyed()) {
+				win.webContents.send("pi:pty:exit", { id, exitCode, signal });
+			}
+		}
 	});
 }

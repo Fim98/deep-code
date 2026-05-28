@@ -8,6 +8,7 @@ import {
 	Sparkles,
 	Terminal,
 	Wrench,
+	X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -190,8 +191,89 @@ export function MessageTimeline({ sessionId }: Props) {
 	}, [messages]);
 	const timelineItems = useMemo(() => buildTimelineItems(messages, claimed), [messages, claimed]);
 
+	// ── Search ──────────────────────────────────────────────────────────
+	const [searchQuery, setSearchQuery] = useState("");
+	const [searchOpen, setSearchOpen] = useState(false);
+
+	const searchMatches = useMemo(() => {
+		if (!searchQuery.trim()) return new Set<string>();
+		const q = searchQuery.toLowerCase();
+		const matched = new Set<string>();
+		for (const item of timelineItems) {
+			if (item.type === "user") {
+				const text = extractTextFromContent(item.message.content);
+				if (text.toLowerCase().includes(q)) matched.add(item.key);
+			} else if (item.type === "assistantTurn") {
+				const text = item.messages
+					.flatMap((m) => (m.content ?? []) as Part[])
+					.filter((p): p is Part & { type: "text" } => p.type === "text" && !!p.text)
+					.map((p) => p.text)
+					.join(" ");
+				if (text.toLowerCase().includes(q)) matched.add(item.key);
+			} else if (item.type === "toolResult") {
+				const text = (item.message.content as Part[])
+					.filter((p): p is Part & { type: "text" } => p?.type === "text")
+					.map((p) => p.text)
+					.join(" ");
+				if (text.toLowerCase().includes(q)) matched.add(item.key);
+			}
+		}
+		return matched;
+	}, [searchQuery, timelineItems]);
+
+	const hasSearch = searchQuery.trim().length > 0;
+	const visibleItems = hasSearch
+		? timelineItems.filter((item) => searchMatches.has(item.key))
+		: timelineItems;
+
 	return (
 		<Conversation>
+			{/* Search bar */}
+			{messages.length > 0 ? (
+				<div className="relative px-4 pt-3">
+					{searchOpen ? (
+						<div className="flex items-center gap-2 rounded-[12px] border border-border/50 bg-card px-3 py-1.5 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+							<Search className="size-3.5 shrink-0 text-muted-foreground" />
+							<input
+								value={searchQuery}
+								onChange={(e) => setSearchQuery(e.target.value)}
+								placeholder={t("timeline.searchPlaceholder")}
+								onKeyDown={(e) => {
+									if (e.key === "Escape") {
+										setSearchOpen(false);
+										setSearchQuery("");
+									}
+								}}
+								className="min-w-0 flex-1 bg-transparent text-[12px] text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
+							/>
+							{searchQuery ? (
+								<span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
+									{searchMatches.size} {t("timeline.matches")}
+								</span>
+							) : null}
+							<button
+								type="button"
+								onClick={() => {
+									setSearchOpen(false);
+									setSearchQuery("");
+								}}
+								className="flex size-5 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground"
+							>
+								<X className="size-3" />
+							</button>
+						</div>
+					) : (
+						<button
+							type="button"
+							onClick={() => setSearchOpen(true)}
+							className="flex items-center gap-1.5 rounded-[10px] px-2 py-1 text-[11px] font-medium text-muted-foreground/60 transition-colors hover:bg-foreground/[0.04] hover:text-muted-foreground"
+						>
+							<Search className="size-3" />
+							{t("timeline.search")}
+						</button>
+					)}
+				</div>
+			) : null}
 			<ConversationContent>
 				{messages.length === 0 && queuedMessages.length === 0 && pendingSubmissions.length === 0 ? (
 					<ConversationEmptyState
@@ -201,7 +283,7 @@ export function MessageTimeline({ sessionId }: Props) {
 					/>
 				) : (
 					<>
-						{timelineItems.map((item) => (
+						{visibleItems.map((item) => (
 							<TimelineRow
 								key={item.key}
 								item={item}
@@ -1006,4 +1088,12 @@ function summarize(v: unknown): string {
 	} catch {
 		return String(v);
 	}
+}
+
+function extractTextFromContent(content: string | unknown[]): string {
+	if (typeof content === "string") return content;
+	return (content as Part[])
+		.filter((p): p is Part & { type: "text" } => p?.type === "text")
+		.map((p) => p.text)
+		.join("\n");
 }

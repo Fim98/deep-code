@@ -24,6 +24,7 @@ export interface OpenSessionResult {
 	workspaceId: string;
 	sessionFile: string | undefined;
 	piSessionId: string;
+	cwdFallback?: boolean;
 }
 
 export interface SessionTreeNode {
@@ -161,6 +162,24 @@ export interface PiBridge {
 	fileTree: {
 		list: (dirPath: string) => Promise<FileTreeNode[]>;
 	};
+	stats: {
+		get: () => Promise<StatsResult>;
+	};
+	pty: {
+		spawn: (opts?: { cwd?: string; cols?: number; rows?: number }) => Promise<{
+			id: string;
+			shell: string;
+			cwd: string;
+		}>;
+		write: (id: string, data: string) => Promise<void>;
+		resize: (id: string, cols: number, rows: number) => Promise<void>;
+		kill: (id: string) => Promise<void>;
+		list: () => Promise<Array<{ id: string; cwd: string; shell: string; title: string }>>;
+		onData: (cb: (payload: { id: string; data: string }) => void) => () => void;
+		onExit: (
+			cb: (payload: { id: string; exitCode: number; signal?: number }) => void,
+		) => () => void;
+	};
 	window: {
 		new: () => Promise<void>;
 	};
@@ -232,6 +251,44 @@ export interface ProviderEntry {
 	provider: string;
 	type: "api_key" | "oauth";
 	maskedKey?: string;
+}
+
+// ─── Stats types ─────────────────────────────────────────────────────────────
+
+export interface ModelStat {
+	cost: number;
+	tokens: number;
+	inputTokens: number;
+	outputTokens: number;
+	cacheReadTokens: number;
+	cacheWriteTokens: number;
+	requests: number;
+}
+
+export interface DailyStat {
+	date: string;
+	totalCost: number;
+	totalTokens: number;
+	inputTokens: number;
+	outputTokens: number;
+	cacheReadTokens: number;
+	cacheWriteTokens: number;
+	requests: number;
+	models: Record<string, ModelStat>;
+}
+
+export interface StatsResult {
+	days: DailyStat[];
+	totalCost: number;
+	totalTokens: number;
+	totalRequests: number;
+	totalInputTokens: number;
+	totalOutputTokens: number;
+	totalCacheReadTokens: number;
+	totalCacheWriteTokens: number;
+	models: Record<string, ModelStat>;
+	workspaces: string[];
+	sessionCount: number;
 }
 
 declare global {

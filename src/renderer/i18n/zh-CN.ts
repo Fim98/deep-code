@@ -10,6 +10,7 @@ export const zhCN: Record<string, string> = {
 	"sidebar.newSession": "新建会话",
 	"sidebar.untitled": "未命名",
 	"sidebar.sessionName": "会话名称",
+	"sidebar.filterSessions": "筛选会话…",
 	"sidebar.deleteConfirm": "删除会话「{{name}}」？\n\n这将永久删除磁盘上的会话文件，无法撤销。",
 	"sidebar.deleteLabel": "删除会话",
 	"sidebar.cancel": "取消",
@@ -20,6 +21,7 @@ export const zhCN: Record<string, string> = {
 	"header.searchChats": "搜索聊天",
 	"header.settings": "设置",
 	"header.share": "分享",
+	"header.copy": "复制",
 	"header.thinking": "思考中",
 	"header.messages": "{{count}} 条消息",
 	"header.message": "{{count}} 条消息",
@@ -58,6 +60,9 @@ export const zhCN: Record<string, string> = {
 	"bash.closeLabel": "关闭",
 	"bash.empty": "暂无命令。",
 	"bash.emptyHint": "试试 ls 或 git status。",
+	"terminal.noSessions": "暂无终端会话",
+	"terminal.minimize": "最小化",
+	"terminal.newTab": "新建终端",
 
 	// ─── Branches ───────────────────────────────────────────────────────────
 	"branches.title": "分支",
@@ -130,6 +135,12 @@ export const zhCN: Record<string, string> = {
 	"settings.autoCompactionDescription": "上下文过长时自动压缩",
 	"settings.autoRetry": "自动重试",
 	"settings.autoRetryDescription": "自动重试失败的请求",
+	"settings.steeringMode": "引导模式",
+	"settings.steeringModeDescription": "排队的引导消息如何处理",
+	"settings.followUpMode": "跟进模式",
+	"settings.followUpModeDescription": "排队的跟进消息如何处理",
+	"settings.queueMode.all": "全部一起",
+	"settings.queueMode.oneAtATime": "逐个处理",
 	"settings.images": "图片",
 	"settings.showImages": "在结果中显示图片",
 	"settings.showImagesDescription": "显示工具调用返回的图片",
@@ -231,6 +242,10 @@ export const zhCN: Record<string, string> = {
 	"toast.renameFailed": "重命名失败：{{error}}",
 	"toast.forkFailed": "分叉失败：{{error}}",
 	"toast.copied": "已复制 {{path}}",
+	"toast.messageCopied": "消息已复制到剪贴板",
+	"toast.noMessageToCopy": "暂无可复制的消息",
+	"toast.copyFailed": "复制失败：{{error}}",
+	"toast.workspaceMissing": "未找到工作区文件夹，使用当前目录",
 
 	// ─── Timeline ───────────────────────────────────────────────────────────
 	"timeline.emptyTitle": "发送消息以开始",
@@ -244,6 +259,9 @@ export const zhCN: Record<string, string> = {
 	"timeline.noOutput": "（无输出）",
 	"timeline.toolFailed": "工具失败",
 	"timeline.diff": "差异",
+	"timeline.search": "搜索",
+	"timeline.searchPlaceholder": "搜索消息…",
+	"timeline.matches": "个匹配",
 
 	// Activity labels
 	"activity.processing": "正在处理 {{elapsed}}",
@@ -333,6 +351,33 @@ export const zhCN: Record<string, string> = {
 
 	// ─── Telemetry ──────────────────────────────────────────────────────────
 	"telemetry.privacy": "隐私",
+	// ─── Dashboard ────────────────────────────────────────────────────────────
+	"dashboard.title": "使用统计",
+	"dashboard.subtitle": "{{sessions}} 个会话，跨 {{workspaces}} 个工作区",
+	"dashboard.loading": "正在加载统计数据…",
+	"dashboard.empty": "暂无使用数据",
+	"dashboard.emptyDescription": "开始聊天后，你的 token 和费用统计将显示在这里。",
+	"dashboard.last7Days": "近 7 天",
+	"dashboard.last30Days": "近 30 天",
+	"dashboard.allTime": "全部时间",
+	"dashboard.allTimeLabel": " 全部",
+	"dashboard.totalCost": "总费用",
+	"dashboard.totalTokens": "总 Token",
+	"dashboard.totalRequests": "请求数",
+	"dashboard.modelsUsed": "模型数",
+	"dashboard.avgPerDay": "日均 ",
+	"dashboard.dailyUsage": "每日用量",
+	"dashboard.modelBreakdown": "模型明细",
+	"dashboard.tokenBreakdown": "Token 明细",
+	"dashboard.input": "输入",
+	"dashboard.output": "输出",
+	"dashboard.cacheRead": "缓存读取",
+	"dashboard.cacheWrite": "缓存写入",
+	"dashboard.in": "输入 ",
+	"dashboard.out": "输出 ",
+	"dashboard.noDataForRange": "该时间段暂无数据",
+	"dashboard.openDashboard": "统计面板",
+
 	"telemetry.crashReports": "发送匿名崩溃报告",
 	"telemetry.crashReportsDescription": "通过发送错误数据帮助改进 deepcode。不会收集个人信息。",
 };

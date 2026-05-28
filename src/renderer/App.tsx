@@ -1,9 +1,14 @@
 import {
 	AlertTriangle,
+	BarChart3,
+	Copy,
 	Folder,
 	FolderOpen,
 	FolderPlus,
 	MessageSquarePlus,
+	PanelRightClose,
+	PanelRightOpen,
+	Search,
 	Settings as SettingsIcon,
 	Share2,
 	Sparkles,
@@ -16,11 +21,12 @@ import { Composer } from "@/components/chat/Composer";
 import { MessageTimeline } from "@/components/chat/MessageTimeline";
 import { PlanTrackerWidget } from "@/components/chat/PlanTrackerWidget";
 import { CommandPalette } from "@/components/command-palette/CommandPalette";
+import { Dashboard } from "@/components/dashboard/Dashboard";
 import { ExtensionUIHost } from "@/components/extension-ui/ExtensionUIHost";
 import { FileTree } from "@/components/file-tree/FileTree";
 import { MainArea } from "@/components/layout/MainArea";
 import { Sidebar, SidebarItem, SidebarSection } from "@/components/layout/Sidebar";
-import { BashPanel } from "@/components/panels/BashPanel";
+import { TerminalPanel } from "@/components/panels/TerminalPanel";
 import { ContextBar } from "@/components/settings/ContextBar";
 import { ModelPicker } from "@/components/settings/ModelPicker";
 import { SettingsDialog } from "@/components/settings/SettingsDialog";
@@ -56,6 +62,9 @@ export function App() {
 	const [renamingId, setRenamingId] = useState<string | null>(null);
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const [paletteOpen, setPaletteOpen] = useState(false);
+	const [dashboardOpen, setDashboardOpen] = useState(false);
+	const [fileTreeOpen, setFileTreeOpen] = useState(false);
+	const [sessionFilter, setSessionFilter] = useState("");
 	const [deleteTarget, setDeleteTarget] = useState<{
 		workspaceId: string;
 		session: SessionInfo;
@@ -151,12 +160,17 @@ export function App() {
 
 	async function openSession(sessionFile?: string) {
 		if (!activeWs) return;
+		// Close dashboard when opening a session (mutually exclusive views)
+		setDashboardOpen(false);
 		try {
 			const result = await pi.sessions.open({
 				workspaceId: activeWs,
 				sessionFile,
 			});
 			const { sessionId, piSessionId } = result;
+			if (result.cwdFallback) {
+				emitToast(t("toast.workspaceMissing"), "info");
+			}
 			setActiveSid(sessionId);
 			setActivePiSid(piSessionId);
 			if (!sessionFile) {
@@ -204,6 +218,24 @@ export function App() {
 			await refreshSessions(workspaceId);
 		} catch (e) {
 			emitToast(t("toast.deleteFailed", { error: e instanceof Error ? e.message : String(e) }));
+		}
+	}
+
+	async function copyLastMessage() {
+		if (!activeSid) return;
+		try {
+			const resp = await pi.rpc.send(activeSid, { type: "get_last_assistant_text" });
+			if (resp.success && resp.command === "get_last_assistant_text") {
+				const text = (resp.data as { text: string | null }).text;
+				if (text) {
+					await navigator.clipboard.writeText(text);
+					emitToast(t("toast.messageCopied"), "info");
+				} else {
+					emitToast(t("toast.noMessageToCopy"), "info");
+				}
+			}
+		} catch (e) {
+			emitToast(t("toast.copyFailed", { error: e instanceof Error ? e.message : String(e) }));
 		}
 	}
 
@@ -325,6 +357,23 @@ export function App() {
 				onToggleSettings={() => setSettingsOpen((o) => !o)}
 			/>
 			<Sidebar>
+				{/* Dashboard toggle */}
+				<div className="px-1 pt-4 pb-2">
+					<button
+						type="button"
+						onClick={() => setDashboardOpen(true)}
+						className={cn(
+							"flex w-full cursor-pointer items-center gap-2.5 rounded-[14px] px-3 py-2.5 text-left text-[13px] font-medium transition-colors duration-150",
+							dashboardOpen
+								? "bg-primary/10 text-primary"
+								: "text-foreground/70 hover:bg-foreground/[0.04] hover:text-foreground",
+						)}
+					>
+						<BarChart3 className="size-4" />
+						{t("dashboard.openDashboard")}
+					</button>
+				</div>
+
 				<SidebarSection
 					title={t("sidebar.workspaces")}
 					action={
@@ -338,6 +387,17 @@ export function App() {
 						</Button>
 					}
 				>
+					{workspaces.length > 0 ? (
+						<div className="relative px-1">
+							<Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/50" />
+							<input
+								value={sessionFilter}
+								onChange={(e) => setSessionFilter(e.target.value)}
+								placeholder={t("sidebar.filterSessions")}
+								className="h-8 w-full rounded-[10px] border border-border/40 bg-foreground/[0.03] pl-8 pr-3 text-[12px] text-foreground placeholder:text-muted-foreground/40 focus:border-primary/30 focus:outline-none"
+							/>
+						</div>
+					) : null}
 					{workspaces.length === 0 ? (
 						<div className="rounded-[14px] px-4 py-3 text-[11px] font-medium text-muted-foreground/50">
 							{t("sidebar.noWorkspaces")}
@@ -348,7 +408,7 @@ export function App() {
 								key={w.id}
 								workspace={w}
 								active={w.id === activeWs}
-								sessions={sessionsByWs[w.id] ?? []}
+								sessions={filterSessions(sessionsByWs[w.id] ?? [], sessionFilter)}
 								activePiSid={activePiSid}
 								activeSessionRunning={!!slice?.isStreaming}
 								renamingId={renamingId}
@@ -364,120 +424,177 @@ export function App() {
 				</SidebarSection>
 			</Sidebar>
 
-			<MainArea
-				header={
-					<>
-						<div className="min-w-0">
-							{activeSid && slice?.state?.sessionName ? (
-								<div className="truncate text-[20px] font-semibold leading-tight tracking-tight text-foreground">
-									{slice.state.sessionName}
+			<div className="flex min-w-0 flex-1 flex-col">
+				<div className="flex min-h-0 flex-1">
+					{dashboardOpen ? (
+						<MainArea
+							header={
+								<div className="text-[20px] font-semibold tracking-tight text-foreground">
+									{t("dashboard.title")}
 								</div>
-							) : null}
-							<div className="mt-1 flex items-center gap-2 text-[12px] text-muted-foreground">
-								<span>{headerSubtitle}</span>
+							}
+							footer={null}
+						>
+							<Dashboard />
+						</MainArea>
+					) : (
+						<MainArea
+							header={
+								<>
+									<div className="min-w-0">
+										{activeSid && slice?.state?.sessionName ? (
+											<div className="truncate text-[20px] font-semibold leading-tight tracking-tight text-foreground">
+												{slice.state.sessionName}
+											</div>
+										) : null}
+										<div className="mt-1 flex items-center gap-2 text-[12px] text-muted-foreground">
+											<span>{headerSubtitle}</span>
+											{activeSid ? (
+												<>
+													<span className="text-muted-foreground/40">·</span>
+													<ModelPicker
+														sessionId={activeSid}
+														model={slice?.state?.model as any}
+														thinkingLevel={slice?.state?.thinkingLevel as any}
+													/>
+													<ContextBar
+														sessionId={activeSid}
+														modelId={
+															slice?.state?.model
+																? `${(slice.state.model as any).provider}/${(slice.state.model as any).id}`
+																: undefined
+														}
+														modelContextWindow={(slice?.state?.model as any)?.contextWindow}
+													/>
+													<span className="text-muted-foreground/40">·</span>
+													<BranchesPanel
+														sessionId={activeSid}
+														onForked={() => refreshSessions(activeWs!)}
+													/>
+												</>
+											) : null}
+										</div>
+									</div>
+									<div className="ml-auto flex items-center gap-1">
+										{activeSid ? (
+											<>
+												<Button
+													size="sm"
+													variant="ghost"
+													aria-label={t("header.copy")}
+													onClick={copyLastMessage}
+													className="h-9 rounded-full px-3 text-[13px] font-medium"
+												>
+													<Copy className="size-3.5" />
+													{t("header.copy")}
+												</Button>
+												<Button
+													size="sm"
+													variant="ghost"
+													aria-label={t("header.share")}
+													onClick={exportSession}
+													className="h-9 rounded-full px-3 text-[13px] font-medium"
+												>
+													<Share2 className="size-3.5" />
+													{t("header.share")}
+												</Button>
+											</>
+										) : null}
+										<Button
+											size="sm"
+											variant="primary"
+											onClick={() => setSettingsOpen(true)}
+											aria-label={t("header.settings")}
+											className="h-9 rounded-full px-4 text-[13px] font-medium"
+										>
+											<SettingsIcon className="size-3.5" />
+											{t("header.settings")}
+										</Button>
+									</div>
+								</>
+							}
+							footer={
+								activeSid ? (
+									<div className="flex flex-col gap-2">
+										<PlanTrackerWidget sessionId={activeSid} />
+										<Composer sessionId={activeSid} isStreaming={slice?.isStreaming ?? false} />
+									</div>
+								) : null
+							}
+						>
+							{activeSid ? (
+								<div className="flex h-full flex-col">
+									<div className="min-h-0 flex-1">
+										<MessageTimeline sessionId={activeSid} />
+									</div>
+								</div>
+							) : (
+								<NoSessionState
+									hasWorkspace={!!activeWorkspace}
+									onAddWorkspace={addWorkspace}
+									onNewSession={() => openSession()}
+								/>
+							)}
+						</MainArea>
+					)}
+					{activeWorkspace ? (
+						<div className="flex h-full shrink-0 flex-col">
+							{/* Right rail header — both toggle buttons */}
+							<div className="flex h-11 shrink-0 items-center justify-end gap-0.5 px-1">
 								{activeSid ? (
-									<>
-										<span className="text-muted-foreground/40">·</span>
-										<ModelPicker
-											sessionId={activeSid}
-											model={slice?.state?.model as any}
-											thinkingLevel={slice?.state?.thinkingLevel as any}
-										/>
-										<ContextBar
-											sessionId={activeSid}
-											modelId={
-												slice?.state?.model
-													? `${(slice.state.model as any).provider}/${(slice.state.model as any).id}`
-													: undefined
-											}
-											modelContextWindow={(slice?.state?.model as any)?.contextWindow}
-										/>
-										<span className="text-muted-foreground/40">·</span>
-										<BranchesPanel
-											sessionId={activeSid}
-											onForked={() => refreshSessions(activeWs!)}
-										/>
-									</>
+									<Button
+										size="icon"
+										variant={bashOpen ? "secondary" : "ghost"}
+										onClick={() => setBashOpen((o) => !o)}
+										aria-label={t("settings.toggleBash")}
+										title={t("bash.title")}
+									>
+										<Terminal className="size-4" />
+									</Button>
 								) : null}
-							</div>
-						</div>
-						<div className="ml-auto flex items-center gap-1">
-							{activeSid ? (
-								<Button
-									size="sm"
-									variant="ghost"
-									aria-label={t("header.share")}
-									onClick={exportSession}
-									className="h-9 rounded-full px-3 text-[13px] font-medium"
-								>
-									<Share2 className="size-3.5" />
-									{t("header.share")}
-								</Button>
-							) : null}
-							<Button
-								size="sm"
-								variant="primary"
-								onClick={() => setSettingsOpen(true)}
-								aria-label={t("header.settings")}
-								className="h-9 rounded-full px-4 text-[13px] font-medium"
-							>
-								<SettingsIcon className="size-3.5" />
-								{t("header.settings")}
-							</Button>
-							{activeSid ? (
 								<Button
 									size="icon"
-									variant={bashOpen ? "secondary" : "ghost"}
-									onClick={() => setBashOpen((o) => !o)}
-									aria-label={t("settings.toggleBash")}
+									variant={fileTreeOpen ? "secondary" : "ghost"}
+									onClick={() => setFileTreeOpen((o) => !o)}
+									aria-label={t("fileTree.toggle")}
+									title={t("fileTree.title")}
 								>
-									<Terminal className="size-3.5" />
+									{fileTreeOpen ? (
+										<PanelRightClose className="size-4" />
+									) : (
+										<PanelRightOpen className="size-4" />
+									)}
 								</Button>
+							</div>
+							{/* File tree panel */}
+							{fileTreeOpen ? (
+								<div className="min-h-0 flex-1 overflow-hidden">
+									<FileTree
+										rootPath={activeWorkspace.path}
+										open={fileTreeOpen}
+										onOpenChange={setFileTreeOpen}
+										onFileClick={(path) => {
+											const relative = path.startsWith(activeWorkspace.path)
+												? path.slice(activeWorkspace.path.length + 1)
+												: path;
+											void navigator.clipboard.writeText(relative);
+											emitToast(t("toast.copied", { path: relative }), "info");
+										}}
+									/>
+								</div>
 							) : null}
 						</div>
-					</>
-				}
-				footer={
-					activeSid ? (
-						<div className="flex flex-col gap-2">
-							<PlanTrackerWidget sessionId={activeSid} />
-							<Composer sessionId={activeSid} isStreaming={slice?.isStreaming ?? false} />
-						</div>
-					) : null
-				}
-			>
+					) : null}
+				</div>
 				{activeSid ? (
-					<div className="flex h-full flex-col">
-						<div className="min-h-0 flex-1">
-							<MessageTimeline sessionId={activeSid} />
-						</div>
-						{bashOpen ? (
-							<div className="shrink-0 px-4 pb-3 pt-1">
-								<BashPanel sessionId={activeSid} onClose={() => setBashOpen(false)} />
-							</div>
-						) : null}
-					</div>
-				) : (
-					<NoSessionState
-						hasWorkspace={!!activeWorkspace}
-						onAddWorkspace={addWorkspace}
-						onNewSession={() => openSession()}
+					<TerminalPanel
+						cwd={activeWorkspace?.path}
+						expanded={bashOpen}
+						onToggle={() => setBashOpen((o) => !o)}
+						onClose={() => setBashOpen(false)}
 					/>
-				)}
-			</MainArea>
-			{activeWorkspace ? (
-				<FileTree
-					rootPath={activeWorkspace.path}
-					onFileClick={(path) => {
-						// Copy the relative path for easy pasting into composer
-						const relative = path.startsWith(activeWorkspace.path)
-							? path.slice(activeWorkspace.path.length + 1)
-							: path;
-						void navigator.clipboard.writeText(relative);
-						emitToast(t("toast.copied", { path: relative }), "info");
-					}}
-				/>
-			) : null}
+				) : null}
+			</div>
 		</div>
 	);
 }
@@ -751,4 +868,14 @@ function SessionRow({
 function truncate(text: string, n: number): string {
 	const trimmed = text.replace(/\s+/g, " ").trim();
 	return trimmed.length > n ? `${trimmed.slice(0, n - 1)}…` : trimmed;
+}
+
+function filterSessions(sessions: SessionInfo[], query: string): SessionInfo[] {
+	if (!query.trim()) return sessions;
+	const q = query.toLowerCase();
+	return sessions.filter((s) => {
+		const name = (s.name ?? "").toLowerCase();
+		const first = (s.firstMessage ?? "").toLowerCase();
+		return name.includes(q) || first.includes(q);
+	});
 }

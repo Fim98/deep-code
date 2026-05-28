@@ -10,6 +10,7 @@ export const en: Record<string, string> = {
 	"sidebar.newSession": "New session",
 	"sidebar.untitled": "Untitled",
 	"sidebar.sessionName": "Session name",
+	"sidebar.filterSessions": "Filter sessions…",
 	"sidebar.deleteConfirm":
 		'Delete session "{{name}}"?\n\nThis removes the session file from disk and cannot be undone.',
 	"sidebar.deleteLabel": "Delete session",
@@ -21,6 +22,7 @@ export const en: Record<string, string> = {
 	"header.searchChats": "Search chats",
 	"header.settings": "Settings",
 	"header.share": "Share",
+	"header.copy": "Copy",
 	"header.thinking": "Thinking",
 	"header.messages": "{{count}} messages",
 	"header.message": "{{count}} message",
@@ -60,6 +62,9 @@ export const en: Record<string, string> = {
 	"bash.closeLabel": "Close",
 	"bash.empty": "No commands yet.",
 	"bash.emptyHint": "Try ls or git status.",
+	"terminal.noSessions": "No terminal sessions",
+	"terminal.minimize": "Minimize",
+	"terminal.newTab": "New terminal",
 
 	// ─── Branches ───────────────────────────────────────────────────────────
 	"branches.title": "Branches",
@@ -132,6 +137,12 @@ export const en: Record<string, string> = {
 	"settings.autoCompactionDescription": "Automatically compact context when it gets too long",
 	"settings.autoRetry": "Auto-retry",
 	"settings.autoRetryDescription": "Automatically retry failed requests",
+	"settings.steeringMode": "Steering mode",
+	"settings.steeringModeDescription": "How queued steering messages are processed",
+	"settings.followUpMode": "Follow-up mode",
+	"settings.followUpModeDescription": "How queued follow-up messages are processed",
+	"settings.queueMode.all": "All at once",
+	"settings.queueMode.oneAtATime": "One at a time",
 	"settings.images": "Images",
 	"settings.showImages": "Show images in results",
 	"settings.showImagesDescription": "Display images returned by tool calls",
@@ -235,6 +246,10 @@ export const en: Record<string, string> = {
 	"toast.renameFailed": "Rename failed: {{error}}",
 	"toast.forkFailed": "Fork failed: {{error}}",
 	"toast.copied": "Copied {{path}}",
+	"toast.messageCopied": "Message copied to clipboard",
+	"toast.noMessageToCopy": "No message to copy",
+	"toast.copyFailed": "Copy failed: {{error}}",
+	"toast.workspaceMissing": "Workspace folder not found, using current directory",
 
 	// ─── Timeline ───────────────────────────────────────────────────────────
 	"timeline.emptyTitle": "Send a message to begin",
@@ -248,6 +263,9 @@ export const en: Record<string, string> = {
 	"timeline.noOutput": "(no output)",
 	"timeline.toolFailed": "Tool failed",
 	"timeline.diff": "Diff",
+	"timeline.search": "Search",
+	"timeline.searchPlaceholder": "Search messages…",
+	"timeline.matches": "matches",
 
 	// Activity labels
 	"activity.processing": "Processing {{elapsed}}",
@@ -337,6 +355,33 @@ export const en: Record<string, string> = {
 
 	// ─── Telemetry ──────────────────────────────────────────────────────────
 	"telemetry.privacy": "Privacy",
+	// ─── Dashboard ────────────────────────────────────────────────────────────
+	"dashboard.title": "Usage Statistics",
+	"dashboard.subtitle": "{{sessions}} sessions across {{workspaces}} workspaces",
+	"dashboard.loading": "Loading statistics…",
+	"dashboard.empty": "No usage data yet",
+	"dashboard.emptyDescription": "Start chatting to see your token and cost statistics here.",
+	"dashboard.last7Days": "Last 7 days",
+	"dashboard.last30Days": "Last 30 days",
+	"dashboard.allTime": "All time",
+	"dashboard.allTimeLabel": " all time",
+	"dashboard.totalCost": "Total Cost",
+	"dashboard.totalTokens": "Total Tokens",
+	"dashboard.totalRequests": "Requests",
+	"dashboard.modelsUsed": "Models",
+	"dashboard.avgPerDay": "Avg ",
+	"dashboard.dailyUsage": "Daily Usage",
+	"dashboard.modelBreakdown": "Model Breakdown",
+	"dashboard.tokenBreakdown": "Token Breakdown",
+	"dashboard.input": "Input",
+	"dashboard.output": "Output",
+	"dashboard.cacheRead": "Cache Read",
+	"dashboard.cacheWrite": "Cache Write",
+	"dashboard.in": "in ",
+	"dashboard.out": "out ",
+	"dashboard.noDataForRange": "No data for this time range",
+	"dashboard.openDashboard": "Dashboard",
+
 	"telemetry.crashReports": "Send anonymous crash reports",
 	"telemetry.crashReportsDescription":
 		"Help improve deepcode by sending error data. No personal information is collected.",

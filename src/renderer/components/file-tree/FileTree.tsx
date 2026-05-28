@@ -20,6 +20,8 @@ import { cn } from "@/lib/utils";
 interface FileTreeProps {
 	rootPath: string;
 	onFileClick?: (path: string) => void;
+	open?: boolean;
+	onOpenChange?: (open: boolean) => void;
 }
 
 interface DirState {
@@ -153,12 +155,24 @@ function TreeNode({
 	);
 }
 
-export function FileTree({ rootPath, onFileClick }: FileTreeProps) {
+export function FileTree({
+	rootPath,
+	onFileClick,
+	open: controlledOpen,
+	onOpenChange,
+}: FileTreeProps) {
 	const { t } = useI18n();
 	const [rootChildren, setRootChildren] = useState<FileTreeNodeData[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [dirStates, setDirStates] = useState<Record<string, DirState>>({});
-	const [open, setOpen] = useState(false);
+	const [internalOpen, setInternalOpen] = useState(false);
+
+	const isControlled = controlledOpen !== undefined;
+	const open = isControlled ? controlledOpen : internalOpen;
+	const setOpen = (v: boolean) => {
+		if (isControlled) onOpenChange?.(v);
+		else setInternalOpen(v);
+	};
 
 	const loadDir = useCallback(async (path: string): Promise<FileTreeNodeData[]> => {
 		try {
@@ -232,7 +246,7 @@ export function FileTree({ rootPath, onFileClick }: FileTreeProps) {
 	}
 
 	return (
-		<div className="flex h-full w-[240px] shrink-0 flex-col border-l border-border/30 bg-card/50">
+		<div className="flex h-full w-[240px] flex-col border-l border-border/30 bg-card/50">
 			{/* Header */}
 			<div className="flex shrink-0 items-center justify-between border-b border-border/30 px-3 py-2">
 				<span className="select-none text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
