@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { useI18n } from "@/lib/i18n";
 import { pi } from "@/lib/rpc";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/stores/theme";
@@ -109,6 +110,7 @@ export function CommandPalette({
 	onToggleBash,
 	onToggleSettings,
 }: CommandPaletteProps) {
+	const { t } = useI18n();
 	const [query, setQuery] = useState("");
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const [models, setModels] = useState<Array<{ id: string; name: string; provider: string }>>([]);
@@ -153,9 +155,9 @@ export function CommandPalette({
 		// Workspace actions
 		items.push({
 			id: "ws:add",
-			group: "Workspace",
-			label: "Add workspace…",
-			description: "Open a project folder",
+			group: t("palette.group.workspace"),
+			label: t("palette.addWorkspace"),
+			description: t("palette.addWorkspaceDesc"),
 			icon: <FolderPlus className="size-4" />,
 			action: () => {
 				onOpenChange(false);
@@ -167,11 +169,11 @@ export function CommandPalette({
 			const isActive = ws.id === activeWorkspaceId;
 			items.push({
 				id: `ws:switch:${ws.id}`,
-				group: "Workspace",
+				group: t("palette.group.workspace"),
 				label: ws.name,
 				description: ws.path.replace(/^\/Users\/[^/]+/, "~"),
 				icon: <Search className="size-4" />,
-				badge: isActive ? "Active" : undefined,
+				badge: isActive ? t("palette.active") : undefined,
 				action: () => {
 					onOpenChange(false);
 					if (!isActive) onSelectWorkspace(ws.id);
@@ -183,8 +185,8 @@ export function CommandPalette({
 		if (activeWorkspaceId) {
 			items.push({
 				id: "session:new",
-				group: "Session",
-				label: "New session",
+				group: t("palette.group.session"),
+				label: t("palette.newSession"),
 				icon: <MessageSquarePlus className="size-4" />,
 				action: () => {
 					onOpenChange(false);
@@ -194,14 +196,14 @@ export function CommandPalette({
 
 			for (const s of sessions) {
 				const isActive = s.id === activePiSessionId;
-				const name = s.name || s.firstMessage.slice(0, 40) || "Untitled";
+				const name = s.name || s.firstMessage.slice(0, 40) || t("sidebar.untitled");
 				items.push({
 					id: `session:open:${s.path}`,
-					group: "Session",
+					group: t("palette.group.session"),
 					label: name,
-					description: isActive ? "Currently open" : undefined,
+					description: isActive ? t("palette.currentlyOpen") : undefined,
 					icon: <Code className="size-4" />,
-					badge: isActive ? "Active" : undefined,
+					badge: isActive ? t("palette.active") : undefined,
 					action: () => {
 						onOpenChange(false);
 						if (!isActive) onOpenSession(s.path);
@@ -213,8 +215,8 @@ export function CommandPalette({
 		// UI toggles
 		items.push({
 			id: "ui:bash",
-			group: "Interface",
-			label: bashOpen ? "Hide bash panel" : "Show bash panel",
+			group: t("palette.group.interface"),
+			label: bashOpen ? t("palette.hideBash") : t("palette.showBash"),
 			icon: <Terminal className="size-4" />,
 			action: () => {
 				onOpenChange(false);
@@ -224,8 +226,8 @@ export function CommandPalette({
 
 		items.push({
 			id: "ui:settings",
-			group: "Interface",
-			label: settingsOpen ? "Close settings" : "Open settings",
+			group: t("palette.group.interface"),
+			label: settingsOpen ? t("palette.closeSettings") : t("palette.openSettings"),
 			icon: <Cog className="size-4" />,
 			action: () => {
 				onOpenChange(false);
@@ -235,17 +237,21 @@ export function CommandPalette({
 
 		// Theme actions
 		const themeOptions = [
-			{ value: "system" as const, label: "Theme: System", icon: <Monitor className="size-4" /> },
-			{ value: "light" as const, label: "Theme: Light", icon: <Sun className="size-4" /> },
-			{ value: "dark" as const, label: "Theme: Dark", icon: <Moon className="size-4" /> },
+			{
+				value: "system" as const,
+				label: t("palette.themeSystem"),
+				icon: <Monitor className="size-4" />,
+			},
+			{ value: "light" as const, label: t("palette.themeLight"), icon: <Sun className="size-4" /> },
+			{ value: "dark" as const, label: t("palette.themeDark"), icon: <Moon className="size-4" /> },
 		];
 		for (const opt of themeOptions) {
 			items.push({
 				id: `theme:${opt.value}`,
-				group: "Interface",
+				group: t("palette.group.interface"),
 				label: opt.label,
 				icon: opt.icon,
-				badge: choice === opt.value ? "Current" : undefined,
+				badge: choice === opt.value ? t("palette.current") : undefined,
 				action: () => {
 					onOpenChange(false);
 					setChoice(opt.value);
@@ -258,7 +264,7 @@ export function CommandPalette({
 			for (const m of models) {
 				items.push({
 					id: `model:${m.provider}/${m.id}`,
-					group: "Model",
+					group: t("palette.group.model"),
 					label: `${m.provider} / ${m.name}`,
 					icon: <ChevronsUpDown className="size-4" />,
 					action: () => {
@@ -277,8 +283,8 @@ export function CommandPalette({
 			for (const level of levels) {
 				items.push({
 					id: `thinking:${level}`,
-					group: "Thinking",
-					label: `Thinking: ${level}`,
+					group: t("palette.group.thinking"),
+					label: t("palette.thinkingLabel", { level }),
 					icon: <Palette className="size-4" />,
 					action: () => {
 						onOpenChange(false);
@@ -294,7 +300,7 @@ export function CommandPalette({
 			for (const cmd of commands) {
 				items.push({
 					id: `cmd:${cmd.source}:${cmd.name}`,
-					group: "Commands",
+					group: t("palette.group.commands"),
 					label: `/${cmd.name}`,
 					description: cmd.description,
 					badge: cmd.source,
@@ -329,6 +335,7 @@ export function CommandPalette({
 		onToggleBash,
 		onToggleSettings,
 		setChoice,
+		t,
 	]);
 
 	// Filter by fuzzy search
@@ -406,7 +413,7 @@ export function CommandPalette({
 				>
 					<DialogPrimitive.Title className="sr-only">Command Palette</DialogPrimitive.Title>
 					<DialogPrimitive.Description className="sr-only">
-						Quick launcher for workspaces, sessions, models, and commands
+						{t("palette.quickLauncher")}
 					</DialogPrimitive.Description>
 
 					{/* Search input */}
@@ -416,7 +423,7 @@ export function CommandPalette({
 							ref={inputRef}
 							value={query}
 							onChange={(e) => setQuery(e.target.value)}
-							placeholder="Type a command or search…"
+							placeholder={t("palette.placeholder")}
 							className="flex-1 bg-transparent text-[15px] text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
 						/>
 						<kbd className="hidden rounded-md border border-border/60 bg-foreground/[0.04] px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:inline-block">
@@ -428,7 +435,7 @@ export function CommandPalette({
 					<div ref={listRef} className="max-h-[380px] overflow-y-auto py-2">
 						{flatItems.length === 0 ? (
 							<div className="px-5 py-10 text-center text-[13px] text-muted-foreground">
-								No results for "{query}"
+								{t("palette.noResults", { query })}
 							</div>
 						) : (
 							grouped.map(([group, items]) => (
@@ -473,7 +480,8 @@ export function CommandPalette({
 												{item.badge ? (
 													<Badge
 														variant={
-															item.badge === "Active" || item.badge === "Current"
+															item.badge === t("palette.active") ||
+															item.badge === t("palette.current")
 																? "primary"
 																: "default"
 														}
@@ -496,19 +504,19 @@ export function CommandPalette({
 							<kbd className="rounded border border-border/60 bg-foreground/[0.04] px-1 py-px font-mono">
 								↑↓
 							</kbd>{" "}
-							Navigate
+							{t("palette.navigate")}
 						</span>
 						<span>
 							<kbd className="rounded border border-border/60 bg-foreground/[0.04] px-1 py-px font-mono">
 								↵
 							</kbd>{" "}
-							Select
+							{t("palette.select")}
 						</span>
 						<span>
 							<kbd className="rounded border border-border/60 bg-foreground/[0.04] px-1 py-px font-mono">
 								Esc
 							</kbd>{" "}
-							Close
+							{t("palette.close")}
 						</span>
 					</div>
 				</DialogPrimitive.Content>

@@ -13,6 +13,8 @@ export const en: Record<string, string> = {
 	"sidebar.deleteConfirm":
 		'Delete session "{{name}}"?\n\nThis removes the session file from disk and cannot be undone.',
 	"sidebar.deleteLabel": "Delete session",
+	"sidebar.cancel": "Cancel",
+	"sidebar.delete": "Delete",
 
 	// ─── Header ─────────────────────────────────────────────────────────────
 	"header.search": "Search",
@@ -23,6 +25,8 @@ export const en: Record<string, string> = {
 	"header.messages": "{{count}} messages",
 	"header.message": "{{count}} message",
 	"header.chooseWorkspace": "Choose a workspace to begin",
+	"header.workspace": "{{workspace}}",
+	"header.subtitleActive": "{{workspace}} · {{info}}",
 
 	// ─── Empty state ────────────────────────────────────────────────────────
 	"empty.title": "Start coding with pi",
@@ -67,6 +71,7 @@ export const en: Record<string, string> = {
 	"branches.nBranches": "{{count}} branches",
 	"branches.loading": "Loading…",
 	"branches.empty": "No messages yet. Send a message to enable forking.",
+	"branches.forkFromHere": "Fork from here",
 
 	// ─── Command palette ────────────────────────────────────────────────────
 	"palette.placeholder": "Type a command or search…",
@@ -81,6 +86,7 @@ export const en: Record<string, string> = {
 	"palette.group.thinking": "Thinking",
 	"palette.group.commands": "Commands",
 	"palette.addWorkspace": "Add workspace…",
+	"palette.addWorkspaceDesc": "Open a project folder",
 	"palette.newSession": "New session",
 	"palette.active": "Active",
 	"palette.current": "Current",
@@ -92,6 +98,8 @@ export const en: Record<string, string> = {
 	"palette.themeSystem": "Theme: System",
 	"palette.themeLight": "Theme: Light",
 	"palette.themeDark": "Theme: Dark",
+	"palette.thinkingLabel": "Thinking: {{level}}",
+	"palette.quickLauncher": "Quick launcher for workspaces, sessions, models, and commands",
 
 	// ─── Model picker ───────────────────────────────────────────────────────
 	"model.selectModel": "Select model",
@@ -157,6 +165,8 @@ export const en: Record<string, string> = {
 	"settings.customModelsHint":
 		"Custom providers, local models, and proxies use models.json. See the Pi models documentation for setup details.",
 	"settings.docs": "Docs",
+	"settings.oauthHint": "Managed by /login",
+	"settings.presetProvider": "Preset provider.",
 
 	// Models
 	"settings.enabledModels": "Enabled Models",
@@ -190,6 +200,29 @@ export const en: Record<string, string> = {
 	"settings.github": "GitHub",
 	"settings.reportIssue": "Report Issue",
 	"settings.openFolder": "Open folder",
+	"settings.diagnostics": "Diagnostics",
+	"settings.viewLogs": "View Logs",
+	"settings.auth": "Auth",
+	"settings.settingsGlobal": "Settings (global)",
+	"settings.models": "Models",
+
+	// ─── Context bar ────────────────────────────────────────────────────────
+	"context.title": "Context",
+	"context.currentSession": "Current session usage",
+	"context.load": "Context load",
+	"context.unknownHint": "Unknown until the next assistant response",
+	"context.branchEstimate": "Current branch estimate",
+	"context.window": "{{count}} window",
+	"context.estimate": "Context Estimate",
+	"context.input": "Input",
+	"context.output": "Output",
+	"context.cacheRead": "Cache Read",
+	"context.cacheWrite": "Cache Write",
+	"context.totalTokens": "Total billed tokens",
+	"context.cost": "Cost",
+	"context.compact": "Compact context",
+	"context.compacted": "Context compacted successfully",
+	"context.compactFailed": "Compact failed",
 
 	// ─── Toasts ─────────────────────────────────────────────────────────────
 	"toast.updateReady": "Update {{version}} ready. Restart to install.",
@@ -201,17 +234,62 @@ export const en: Record<string, string> = {
 	"toast.deleteFailed": "Delete failed: {{error}}",
 	"toast.renameFailed": "Rename failed: {{error}}",
 	"toast.forkFailed": "Fork failed: {{error}}",
+	"toast.copied": "Copied {{path}}",
 
 	// ─── Timeline ───────────────────────────────────────────────────────────
 	"timeline.emptyTitle": "Send a message to begin",
 	"timeline.emptyDescription": "Ask pi to read, edit, search, or run anything in this workspace.",
 	"timeline.forkFromHere": "Fork from here",
+	"timeline.queuedSteer": "Queued steer",
+	"timeline.queuedFollowUp": "Queued follow-up",
+	"timeline.preparingNextStep": "Preparing next step",
+	"timeline.result": "result",
+	"timeline.error": "error",
+	"timeline.noOutput": "(no output)",
+	"timeline.toolFailed": "Tool failed",
+	"timeline.diff": "Diff",
+
+	// Activity labels
+	"activity.processing": "Processing {{elapsed}}",
+	"activity.processed": "Processed {{elapsed}}",
+	"activity.thinkingBlocks": "{{count}} reasoning {{unit}}",
+	"activity.running.thinking": "Thinking",
+	"activity.running.write": "Writing {{label}}",
+	"activity.running.edit": "Editing {{label}}",
+	"activity.running.run": "Running {{label}}",
+	"activity.running.read": "Reading {{label}}",
+	"activity.running.search": "Searching {{label}}",
+	"activity.running.process": "Processing {{label}}",
+	"activity.group.thinking.running": "Steering",
+	"activity.group.command.running": "Running",
+	"activity.group.edit.running": "Editing",
+	"activity.group.write.running": "Writing",
+	"activity.group.read.running": "Reading",
+	"activity.group.search.running": "Searching",
+	"activity.group.other.running": "Processing",
+	"activity.group.thinking.done": "Steered",
+	"activity.group.command.done": "Ran",
+	"activity.group.edit.done": "Edited",
+	"activity.group.write.done": "Wrote",
+	"activity.group.read.done": "Read",
+	"activity.group.search.done": "Searched",
+	"activity.group.other.done": "Processed",
+	"activity.group.etc": "etc. {{count}} items",
+	"activity.group.failed": ", {{count}} {{unit}} failed",
+	"activity.unit.thinking": "blocks",
+	"activity.unit.command": "commands",
+	"activity.unit.file": "files",
+	"activity.unit.search": "searches",
+	"activity.unit.other": "tasks",
 
 	// ─── Plan tracker ───────────────────────────────────────────────────────
 	"planTracker.tasks": "{{complete}} of {{total}} complete",
 	"planTracker.inProgress": "In progress",
 	"planTracker.pending": "Pending",
 	"planTracker.allComplete": "All tasks complete",
+	"planTracker.complete": "Complete",
+	"planTracker.ariaComplete": "Complete",
+	"planTracker.ariaInProgress": "In progress",
 
 	// ─── Theme switcher ─────────────────────────────────────────────────────
 	"theme.system": "System",
@@ -224,6 +302,7 @@ export const en: Record<string, string> = {
 	"logs.viewLogs": "View Logs",
 	"logs.diagnostics": "Diagnostics",
 	"logs.entryCount": "{{count}} entries · last 500 max",
+	"logs.entryCountSingle": "{{count}} entry · last 500 max",
 	"logs.noEntries": "No errors logged",
 	"logs.loading": "Loading…",
 	"logs.refresh": "Refresh",
@@ -236,16 +315,25 @@ export const en: Record<string, string> = {
 	"logs.clearFailed": "Failed to clear logs: {{error}}",
 	"logs.showStack": "show stack",
 	"logs.hideStack": "hide stack",
+	"logs.fatal": "FATAL",
+	"logs.unhandled": "UNHANDLED",
+	"logs.warn": "WARN",
+	"logs.info": "INFO",
 
 	// ─── File tree ────────────────────────────────────────────────────────────
 	"fileTree.title": "Files",
-	"fileTree.loading": "Loading\u2026",
+	"fileTree.loading": "Loading…",
 	"fileTree.empty": "No files found",
 	"fileTree.dirEmpty": "Empty",
 	"fileTree.refresh": "Refresh",
 	"fileTree.close": "Close file tree",
 	"fileTree.toggle": "Toggle file tree",
 	"fileTree.copiedPath": "Copied {{path}}",
+
+	// ─── Tool call card ──────────────────────────────────────────────────────
+	"tool.diff": "Diff",
+	"tool.failed": "Tool failed",
+	"tool.noOutput": "(no output)",
 
 	// ─── Telemetry ──────────────────────────────────────────────────────────
 	"telemetry.privacy": "Privacy",

@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useMemo, useState } from "react";
 import { Progress } from "@/components/ui/progress";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { type PlanTrackerTask, useSessions } from "@/stores/session-state";
 
@@ -144,6 +145,7 @@ export function PlanTrackerWidget({ sessionId }: Props) {
 /* ─── Task Dot ─── */
 
 function TaskDot({ task }: { task: PlanTrackerTask }) {
+	const { t } = useI18n();
 	switch (task.status) {
 		case "complete":
 			return (
@@ -153,7 +155,7 @@ function TaskDot({ task }: { task: PlanTrackerTask }) {
 						viewBox="0 0 10 10"
 						fill="none"
 						role="img"
-						aria-label="Complete"
+						aria-label={t("planTracker.ariaComplete")}
 					>
 						<path
 							d="M2 5.5l2 2 4-4.5"
@@ -187,6 +189,7 @@ function TaskDot({ task }: { task: PlanTrackerTask }) {
 /* ─── Task Row (expanded) ─── */
 
 function TaskRow({ task, index }: { task: PlanTrackerTask; index: number }) {
+	const { t } = useI18n();
 	return (
 		<div
 			className={cn(
@@ -218,7 +221,9 @@ function TaskRow({ task, index }: { task: PlanTrackerTask; index: number }) {
 
 			{/* Status label */}
 			{task.status === "in_progress" ? (
-				<span className="shrink-0 text-[10px] font-medium text-primary/70">in progress</span>
+				<span className="shrink-0 text-[10px] font-medium text-primary/70">
+					{t("planTracker.inProgress")}
+				</span>
 			) : null}
 		</div>
 	);
@@ -227,11 +232,18 @@ function TaskRow({ task, index }: { task: PlanTrackerTask; index: number }) {
 /* ─── Status Icon ─── */
 
 function TaskStatusIcon({ status }: { status: PlanTrackerTask["status"] }) {
+	const { t } = useI18n();
 	switch (status) {
 		case "complete":
 			return (
 				<div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-success">
-					<svg className="size-3" viewBox="0 0 10 10" fill="none" role="img" aria-label="Complete">
+					<svg
+						className="size-3"
+						viewBox="0 0 10 10"
+						fill="none"
+						role="img"
+						aria-label={t("planTracker.ariaComplete")}
+					>
 						<path
 							d="M2 5.5l2 2 4-4.5"
 							stroke="white"
@@ -250,7 +262,7 @@ function TaskStatusIcon({ status }: { status: PlanTrackerTask["status"] }) {
 						viewBox="0 0 10 10"
 						fill="none"
 						role="img"
-						aria-label="In progress"
+						aria-label={t("planTracker.ariaInProgress")}
 					>
 						<path d="M3 5h4" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
 					</svg>

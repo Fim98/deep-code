@@ -20,6 +20,7 @@ import {
 	PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/lib/i18n";
 import { pi } from "@/lib/rpc";
 import { cn } from "@/lib/utils";
 import { useSessions } from "@/stores/session-state";
@@ -74,6 +75,7 @@ function formatFileSize(bytes: number): string {
 }
 
 export function Composer({ sessionId, isStreaming }: Props) {
+	const { t } = useI18n();
 	const [text, setText] = useState("");
 	const [attachments, setAttachments] = useState<Attachment[]>([]);
 	const [dragOver, setDragOver] = useState(false);
@@ -270,7 +272,7 @@ export function Composer({ sessionId, isStreaming }: Props) {
 				<div className="absolute inset-0 z-10 flex items-center justify-center rounded-[32px] border-2 border-dashed border-primary/50 bg-primary/5 backdrop-blur-sm">
 					<div className="flex flex-col items-center gap-2 text-primary">
 						<ImagePlus className="size-6" />
-						<span className="text-[13px] font-medium">Drop images here</span>
+						<span className="text-[13px] font-medium">{t("composer.dropImages")}</span>
 					</div>
 				</div>
 			)}
@@ -282,7 +284,7 @@ export function Composer({ sessionId, isStreaming }: Props) {
 					className="absolute bottom-full left-4 right-4 z-20 mb-2 max-h-[280px] overflow-y-auto rounded-[18px] border border-border/60 bg-card shadow-[0_10px_30px_rgba(0,0,0,0.08)]"
 				>
 					<div className="px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/60">
-						Slash commands
+						{t("composer.slashCommands")}
 					</div>
 					{filteredCommands.map((cmd, idx) => (
 						<button
@@ -318,7 +320,7 @@ export function Composer({ sessionId, isStreaming }: Props) {
 						</button>
 					))}
 					<div className="border-t border-border/40 px-4 py-1.5 text-[10px] text-muted-foreground/50">
-						↑↓ navigate · ↵ select · esc close
+						{t("composer.slashHint")}
 					</div>
 				</div>
 			)}
@@ -353,7 +355,7 @@ export function Composer({ sessionId, isStreaming }: Props) {
 										"text-muted-foreground/60 transition-colors",
 										"hover:bg-foreground/[0.08] hover:text-destructive",
 									)}
-									aria-label="Remove attachment"
+									aria-label={t("composer.removeAttachment")}
 								>
 									<X className="size-3" />
 								</button>
@@ -369,7 +371,7 @@ export function Composer({ sessionId, isStreaming }: Props) {
 						onChange={(e) => setText(e.target.value)}
 						onKeyDown={onKeyDown}
 						onPaste={onPaste}
-						placeholder={isStreaming ? "Steer the agent..." : "Ask pi anything..."}
+						placeholder={isStreaming ? t("composer.steerPlaceholder") : t("composer.placeholder")}
 					/>
 				</PromptInputBody>
 				<PromptInputFooter>
@@ -380,7 +382,7 @@ export function Composer({ sessionId, isStreaming }: Props) {
 							size="icon-sm"
 							variant="ghost"
 							onClick={() => fileInputRef.current?.click()}
-							aria-label="Attach image"
+							aria-label={t("composer.attachImage")}
 							className="size-8 rounded-[12px] text-muted-foreground"
 						>
 							<ImagePlus className="size-3.5" />
@@ -400,9 +402,7 @@ export function Composer({ sessionId, isStreaming }: Props) {
 						/>
 					</div>
 					<div className="flex-1 text-[11px] text-muted-foreground">
-						{isStreaming
-							? "Send to steer · empty submit to abort"
-							: "Enter to send · Shift+Enter for new line"}
+						{isStreaming ? t("composer.steerHint") : t("composer.sendHint")}
 					</div>
 					<PromptInputTools className="flex-none">
 						<PromptInputSubmit
@@ -418,7 +418,11 @@ export function Composer({ sessionId, isStreaming }: Props) {
 							) : (
 								<Send className="size-3.5" />
 							)}
-							{isStreaming && !text.trim() ? "Abort" : isStreaming ? "Steer" : "Send"}
+							{isStreaming && !text.trim()
+								? t("composer.abort")
+								: isStreaming
+									? t("composer.steer")
+									: t("composer.send")}
 						</PromptInputSubmit>
 					</PromptInputTools>
 				</PromptInputFooter>

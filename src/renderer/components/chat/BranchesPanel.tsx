@@ -2,6 +2,7 @@ import { GitBranch, GitFork } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useI18n } from "@/lib/i18n";
 import { pi, type SessionTreeNode } from "@/lib/rpc";
 import { emitToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -71,6 +72,7 @@ function countBranches(nodes: SessionTreeNode[]): number {
 }
 
 export function BranchesPanel({ sessionId, onForked }: Props) {
+	const { t } = useI18n();
 	const [open, setOpen] = useState(false);
 	const [tree, setTree] = useState<SessionTreeNode[]>([]);
 	const [leafId, setLeafId] = useState<string | null>(null);
@@ -92,8 +94,8 @@ export function BranchesPanel({ sessionId, onForked }: Props) {
 			if (forkResp.success && forkResp.command === "get_fork_messages") {
 				setForkMessages(forkResp.data.messages);
 			}
-		} catch (e) {
-			emitToast(`Failed to load branches: ${e instanceof Error ? e.message : String(e)}`);
+		} catch (_e) {
+			emitToast(t("branches.loading"));
 		} finally {
 			setLoading(false);
 		}
@@ -116,7 +118,7 @@ export function BranchesPanel({ sessionId, onForked }: Props) {
 				emitToast(resp.error);
 			}
 		} catch (e) {
-			emitToast(`Fork failed: ${e instanceof Error ? e.message : String(e)}`);
+			emitToast(t("toast.forkFailed", { error: e instanceof Error ? e.message : String(e) }));
 		} finally {
 			setForking(null);
 		}
@@ -133,11 +135,13 @@ export function BranchesPanel({ sessionId, onForked }: Props) {
 					size="sm"
 					variant="ghost"
 					className="h-7 gap-1.5 px-2 text-[11px]"
-					aria-label="Branches"
+					aria-label={t("branches.title")}
 				>
 					<GitBranch className="size-3.5" />
 					<span className="font-medium">
-						{branchCount > 0 ? `${branchCount + 1} branches` : "1 branch"}
+						{branchCount > 0
+							? t("branches.nBranches", { count: branchCount + 1 })
+							: t("branches.oneBranch")}
 					</span>
 				</Button>
 			</PopoverTrigger>
@@ -149,18 +153,18 @@ export function BranchesPanel({ sessionId, onForked }: Props) {
 				<div className="shrink-0 border-b border-border/30 px-4 py-3">
 					<div className="flex items-center gap-2 text-[13px] font-medium text-foreground">
 						<GitBranch className="size-4 text-primary" />
-						Branches
+						{t("branches.title")}
 					</div>
-					<div className="mt-1 text-[11px] text-muted-foreground">
-						Fork from any user message to create an alternative conversation path.
-					</div>
+					<div className="mt-1 text-[11px] text-muted-foreground">{t("branches.description")}</div>
 				</div>
 				<div className="min-h-0 flex-1 overflow-y-auto py-2">
 					{loading ? (
-						<div className="px-4 py-6 text-center text-[11px] text-muted-foreground">Loading…</div>
+						<div className="px-4 py-6 text-center text-[11px] text-muted-foreground">
+							{t("branches.loading")}
+						</div>
 					) : userMessages.length === 0 ? (
 						<div className="px-4 py-6 text-center text-[11px] text-muted-foreground">
-							No messages yet. Send a message to enable forking.
+							{t("branches.empty")}
 						</div>
 					) : (
 						<div className="space-y-0.5 px-2">
@@ -195,7 +199,7 @@ export function BranchesPanel({ sessionId, onForked }: Props) {
 												{truncate(msg.text, 60)}
 											</div>
 											<div className="mt-0.5 text-[10px] text-muted-foreground/60">
-												{isActive ? "Current path" : "Fork point"}
+												{isActive ? t("branches.currentPath") : t("branches.forkPoint")}
 											</div>
 										</div>
 										<Button

@@ -12,6 +12,8 @@ export const zhCN: Record<string, string> = {
 	"sidebar.sessionName": "会话名称",
 	"sidebar.deleteConfirm": "删除会话「{{name}}」？\n\n这将永久删除磁盘上的会话文件，无法撤销。",
 	"sidebar.deleteLabel": "删除会话",
+	"sidebar.cancel": "取消",
+	"sidebar.delete": "删除",
 
 	// ─── Header ─────────────────────────────────────────────────────────────
 	"header.search": "搜索",
@@ -22,6 +24,8 @@ export const zhCN: Record<string, string> = {
 	"header.messages": "{{count}} 条消息",
 	"header.message": "{{count}} 条消息",
 	"header.chooseWorkspace": "选择一个工作区开始",
+	"header.workspace": "{{workspace}}",
+	"header.subtitleActive": "{{workspace}} · {{info}}",
 
 	// ─── Empty state ────────────────────────────────────────────────────────
 	"empty.title": "开始使用 pi 编程",
@@ -65,6 +69,7 @@ export const zhCN: Record<string, string> = {
 	"branches.nBranches": "{{count}} 个分支",
 	"branches.loading": "加载中…",
 	"branches.empty": "暂无消息。发送消息以启用分叉。",
+	"branches.forkFromHere": "从此处分叉",
 
 	// ─── Command palette ────────────────────────────────────────────────────
 	"palette.placeholder": "输入命令或搜索…",
@@ -79,6 +84,7 @@ export const zhCN: Record<string, string> = {
 	"palette.group.thinking": "思考",
 	"palette.group.commands": "命令",
 	"palette.addWorkspace": "添加工作区…",
+	"palette.addWorkspaceDesc": "打开项目文件夹",
 	"palette.newSession": "新建会话",
 	"palette.active": "当前",
 	"palette.current": "当前",
@@ -90,6 +96,8 @@ export const zhCN: Record<string, string> = {
 	"palette.themeSystem": "主题：跟随系统",
 	"palette.themeLight": "主题：浅色",
 	"palette.themeDark": "主题：深色",
+	"palette.thinkingLabel": "思考：{{level}}",
+	"palette.quickLauncher": "快速启动工作区、会话、模型和命令",
 
 	// ─── Model picker ───────────────────────────────────────────────────────
 	"model.selectModel": "选择模型",
@@ -154,6 +162,8 @@ export const zhCN: Record<string, string> = {
 	"settings.customModelsHint":
 		"自定义提供商、本地模型和代理使用 models.json。请参阅 Pi 模型文档了解配置详情。",
 	"settings.docs": "文档",
+	"settings.oauthHint": "由 /login 管理",
+	"settings.presetProvider": "预设提供商。",
 
 	// Models
 	"settings.enabledModels": "启用的模型",
@@ -186,6 +196,29 @@ export const zhCN: Record<string, string> = {
 	"settings.github": "GitHub",
 	"settings.reportIssue": "报告问题",
 	"settings.openFolder": "打开文件夹",
+	"settings.diagnostics": "诊断信息",
+	"settings.viewLogs": "查看日志",
+	"settings.auth": "认证",
+	"settings.settingsGlobal": "设置（全局）",
+	"settings.models": "模型",
+
+	// ─── Context bar ────────────────────────────────────────────────────────
+	"context.title": "上下文",
+	"context.currentSession": "当前会话使用情况",
+	"context.load": "上下文负载",
+	"context.unknownHint": "需要等待下一次助手回复",
+	"context.branchEstimate": "当前分支估算",
+	"context.window": "{{count}} 窗口",
+	"context.estimate": "上下文估算",
+	"context.input": "输入",
+	"context.output": "输出",
+	"context.cacheRead": "缓存读取",
+	"context.cacheWrite": "缓存写入",
+	"context.totalTokens": "总计计费令牌",
+	"context.cost": "费用",
+	"context.compact": "压缩上下文",
+	"context.compacted": "上下文已成功压缩",
+	"context.compactFailed": "压缩失败",
 
 	// ─── Toasts ─────────────────────────────────────────────────────────────
 	"toast.updateReady": "更新 {{version}} 已就绪。重启以安装。",
@@ -197,17 +230,62 @@ export const zhCN: Record<string, string> = {
 	"toast.deleteFailed": "删除失败：{{error}}",
 	"toast.renameFailed": "重命名失败：{{error}}",
 	"toast.forkFailed": "分叉失败：{{error}}",
+	"toast.copied": "已复制 {{path}}",
 
 	// ─── Timeline ───────────────────────────────────────────────────────────
 	"timeline.emptyTitle": "发送消息以开始",
 	"timeline.emptyDescription": "让 pi 在此工作区中读取、编辑、搜索或运行任何内容。",
 	"timeline.forkFromHere": "从此处分叉",
+	"timeline.queuedSteer": "排队引导",
+	"timeline.queuedFollowUp": "排队跟进",
+	"timeline.preparingNextStep": "正在准备下一步",
+	"timeline.result": "结果",
+	"timeline.error": "错误",
+	"timeline.noOutput": "（无输出）",
+	"timeline.toolFailed": "工具失败",
+	"timeline.diff": "差异",
+
+	// Activity labels
+	"activity.processing": "正在处理 {{elapsed}}",
+	"activity.processed": "已处理 {{elapsed}}",
+	"activity.thinkingBlocks": "{{count}} 段推理{{unit}}",
+	"activity.running.thinking": "正在思考",
+	"activity.running.write": "正在写入 {{label}}",
+	"activity.running.edit": "正在编辑 {{label}}",
+	"activity.running.run": "正在运行 {{label}}",
+	"activity.running.read": "正在读取 {{label}}",
+	"activity.running.search": "正在搜索 {{label}}",
+	"activity.running.process": "正在处理 {{label}}",
+	"activity.group.thinking.running": "正在引导",
+	"activity.group.command.running": "正在运行",
+	"activity.group.edit.running": "正在编辑",
+	"activity.group.write.running": "正在写入",
+	"activity.group.read.running": "正在读取",
+	"activity.group.search.running": "正在搜索",
+	"activity.group.other.running": "正在处理",
+	"activity.group.thinking.done": "已引导",
+	"activity.group.command.done": "已运行",
+	"activity.group.edit.done": "已编辑",
+	"activity.group.write.done": "已写入",
+	"activity.group.read.done": "已读取",
+	"activity.group.search.done": "已搜索",
+	"activity.group.other.done": "已处理",
+	"activity.group.etc": "等 {{count}} 项",
+	"activity.group.failed": "，其中 {{count}} {{unit}}失败",
+	"activity.unit.thinking": "段对话",
+	"activity.unit.command": "条命令",
+	"activity.unit.file": "个文件",
+	"activity.unit.search": "次搜索",
+	"activity.unit.other": "项任务",
 
 	// ─── Plan tracker ───────────────────────────────────────────────────────
 	"planTracker.tasks": "{{total}} 个任务中完成 {{complete}} 个",
 	"planTracker.inProgress": "进行中",
 	"planTracker.pending": "待处理",
 	"planTracker.allComplete": "所有任务已完成",
+	"planTracker.complete": "完成",
+	"planTracker.ariaComplete": "已完成",
+	"planTracker.ariaInProgress": "进行中",
 
 	// ─── Theme switcher ─────────────────────────────────────────────────────
 	"theme.system": "跟随系统",
@@ -220,6 +298,7 @@ export const zhCN: Record<string, string> = {
 	"logs.viewLogs": "查看日志",
 	"logs.diagnostics": "诊断信息",
 	"logs.entryCount": "{{count}} 条记录 · 最多保留 500 条",
+	"logs.entryCountSingle": "{{count}} 条记录 · 最多保留 500 条",
 	"logs.noEntries": "暂无错误日志",
 	"logs.loading": "加载中…",
 	"logs.refresh": "刷新",
@@ -232,16 +311,25 @@ export const zhCN: Record<string, string> = {
 	"logs.clearFailed": "清除日志失败：{{error}}",
 	"logs.showStack": "显示堆栈",
 	"logs.hideStack": "隐藏堆栈",
+	"logs.fatal": "严重",
+	"logs.unhandled": "未处理",
+	"logs.warn": "警告",
+	"logs.info": "信息",
 
 	// ─── File tree ────────────────────────────────────────────────────────────
 	"fileTree.title": "文件",
-	"fileTree.loading": "加载中\u2026",
+	"fileTree.loading": "加载中…",
 	"fileTree.empty": "未找到文件",
 	"fileTree.dirEmpty": "空目录",
 	"fileTree.refresh": "刷新",
 	"fileTree.close": "关闭文件树",
 	"fileTree.toggle": "切换文件树",
 	"fileTree.copiedPath": "已复制 {{path}}",
+
+	// ─── Tool call card ──────────────────────────────────────────────────────
+	"tool.diff": "差异",
+	"tool.failed": "工具失败",
+	"tool.noOutput": "（无输出）",
 
 	// ─── Telemetry ──────────────────────────────────────────────────────────
 	"telemetry.privacy": "隐私",

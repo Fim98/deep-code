@@ -58,6 +58,81 @@ export interface DesktopSettings {
 	enabledModels: string[] | undefined;
 }
 
+// ─── Extension UI types ─────────────────────────────────────────────────────
+
+export interface ExtensionUIRequestBase {
+	type: "extension_ui_request";
+	id: string;
+	sessionId: string;
+}
+
+export interface ExtensionUISelectRequest extends ExtensionUIRequestBase {
+	method: "select";
+	title: string;
+	options: string[];
+	timeout?: number;
+}
+
+export interface ExtensionUIConfirmRequest extends ExtensionUIRequestBase {
+	method: "confirm";
+	title: string;
+	message: string;
+	timeout?: number;
+}
+
+export interface ExtensionUIInputRequest extends ExtensionUIRequestBase {
+	method: "input";
+	title: string;
+	placeholder?: string;
+	timeout?: number;
+}
+
+export interface ExtensionUIEditorRequest extends ExtensionUIRequestBase {
+	method: "editor";
+	title: string;
+	prefill?: string;
+}
+
+export interface ExtensionUINotifyRequest extends ExtensionUIRequestBase {
+	method: "notify";
+	message: string;
+	notifyType?: "info" | "warning" | "error";
+}
+
+export interface ExtensionUISetStatusRequest extends ExtensionUIRequestBase {
+	method: "setStatus";
+	statusKey: string;
+	statusText: string | undefined;
+}
+
+export interface ExtensionUISetWidgetRequest extends ExtensionUIRequestBase {
+	method: "setWidget";
+	widgetKey: string;
+	widgetLines: string[] | undefined;
+	widgetPlacement?: "aboveEditor" | "belowEditor";
+}
+
+export interface ExtensionUISetTitleRequest extends ExtensionUIRequestBase {
+	method: "setTitle";
+	title: string;
+}
+
+export interface ExtensionUISetEditorTextRequest extends ExtensionUIRequestBase {
+	method: "set_editor_text";
+	text: string;
+}
+
+export type ExtensionUIRequest =
+	| ExtensionUISelectRequest
+	| ExtensionUIConfirmRequest
+	| ExtensionUIInputRequest
+	| ExtensionUIEditorRequest
+	| ExtensionUINotifyRequest
+	| ExtensionUISetStatusRequest
+	| ExtensionUISetWidgetRequest
+	| ExtensionUISetTitleRequest
+	| ExtensionUISetEditorTextRequest;
+
 export interface PiBridge {
 	ping: () => Promise<string>;
 	workspaces: {
@@ -96,6 +171,10 @@ export interface PiBridge {
 	rpc: {
 		send: <C extends RpcCommand>(sessionId: string, command: C) => Promise<RpcResponse>;
 		subscribe: (sessionId: string, cb: (event: AgentSessionEvent) => void) => () => void;
+	};
+	extensionUI: {
+		onRequest: (cb: (request: ExtensionUIRequest) => void) => () => void;
+		respond: (sessionId: string, response: unknown) => Promise<void>;
 	};
 	theme: {
 		setSource: (source: "system" | "light" | "dark") => Promise<"light" | "dark">;

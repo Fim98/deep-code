@@ -16,6 +16,7 @@ import { Composer } from "@/components/chat/Composer";
 import { MessageTimeline } from "@/components/chat/MessageTimeline";
 import { PlanTrackerWidget } from "@/components/chat/PlanTrackerWidget";
 import { CommandPalette } from "@/components/command-palette/CommandPalette";
+import { ExtensionUIHost } from "@/components/extension-ui/ExtensionUIHost";
 import { FileTree } from "@/components/file-tree/FileTree";
 import { MainArea } from "@/components/layout/MainArea";
 import { Sidebar, SidebarItem, SidebarSection } from "@/components/layout/Sidebar";
@@ -34,6 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import { useI18n } from "@/lib/i18n";
 import { useKeyboardShortcuts } from "@/lib/keyboard";
 import { pi, type UpdateState } from "@/lib/rpc";
 import { emitToast, installGlobalErrorToasts, ToastHost } from "@/lib/toast";
@@ -44,6 +46,7 @@ type Workspace = Awaited<ReturnType<typeof pi.workspaces.list>>[number];
 type SessionInfo = Awaited<ReturnType<typeof pi.sessions.list>>[number];
 
 export function App() {
+	const { t } = useI18n();
 	const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
 	const [activeWs, setActiveWs] = useState<string | null>(null);
 	const [sessionsByWs, setSessionsByWs] = useState<Record<string, SessionInfo[]>>({});
@@ -71,15 +74,15 @@ export function App() {
 	useEffect(() => {
 		const unsub = pi.updater.onState((state: UpdateState) => {
 			if (state.status === "downloaded") {
-				emitToast(`Update ${state.version ?? ""} ready. Restart to install.`, {
-					action: { label: "Restart", onClick: () => void pi.updater.install() },
+				emitToast(t("toast.updateReady", { version: state.version ?? "" }), {
+					action: { label: t("toast.restart"), onClick: () => void pi.updater.install() },
 				});
 			} else if (state.status === "error") {
 				// Silently ignore — updates are non-critical
 			}
 		});
 		return unsub;
-	}, []);
+	}, [t]);
 
 	useEffect(() => {
 		setCurrent(activeSid);
@@ -180,7 +183,7 @@ export function App() {
 			}
 			await refreshSessions(activeWs);
 		} catch (e) {
-			emitToast(`Failed to open session: ${e instanceof Error ? e.message : String(e)}`);
+			emitToast(t("toast.failedToOpen", { error: e instanceof Error ? e.message : String(e) }));
 		}
 	}
 
@@ -200,7 +203,7 @@ export function App() {
 			}
 			await refreshSessions(workspaceId);
 		} catch (e) {
-			emitToast(`Delete failed: ${e instanceof Error ? e.message : String(e)}`);
+			emitToast(t("toast.deleteFailed", { error: e instanceof Error ? e.message : String(e) }));
 		}
 	}
 
@@ -209,12 +212,15 @@ export function App() {
 		try {
 			const path = await pi.sessions.exportHtml(activeSid);
 			if (path) {
-				emitToast(`Session exported to ${path}`, {
-					action: { label: "Show in Finder", onClick: () => void pi.shell.showItemInFolder(path) },
+				emitToast(t("toast.sessionExported", { path }), {
+					action: {
+						label: t("toast.showInFinder"),
+						onClick: () => void pi.shell.showItemInFolder(path),
+					},
 				});
 			}
 		} catch (e) {
-			emitToast(`Export failed: ${e instanceof Error ? e.message : String(e)}`);
+			emitToast(t("toast.exportFailed", { error: e instanceof Error ? e.message : String(e) }));
 		}
 	}
 
@@ -233,23 +239,31 @@ export function App() {
 			if (!resp.success) emitToast(resp.error);
 			await refreshSessions(activeWs!);
 		} catch (e) {
-			emitToast(`Rename failed: ${e instanceof Error ? e.message : String(e)}`);
+			emitToast(t("toast.renameFailed", { error: e instanceof Error ? e.message : String(e) }));
 		}
 	}
 
 	const activeWorkspace = workspaces.find((w) => w.id === activeWs);
 	const activeMessageCount = slice?.messages.length ?? 0;
 	const headerSubtitle = activeSid
-		? `${activeWorkspace?.name ?? "Workspace"} · ${
+		? `${activeWorkspace?.name ?? ""} · ${
 				slice?.isStreaming
-					? "Thinking"
-					: `${activeMessageCount} ${activeMessageCount === 1 ? "message" : "messages"}`
+					? t("header.thinking")
+					: t(activeMessageCount === 1 ? "header.message" : "header.messages", {
+							count: activeMessageCount,
+						})
 			}`
-		: "Choose a workspace to begin";
+		: t("header.chooseWorkspace");
+
+	const deleteSessionName = deleteTarget
+		? (deleteTarget.session.name ?? truncate(deleteTarget.session.firstMessage ?? "", 40)) ||
+			t("sidebar.untitled")
+		: "";
 
 	return (
 		<div className="flex h-full w-full bg-background">
 			<ToastHost />
+			<ExtensionUIHost />
 
 			{/* Delete session confirmation dialog */}
 			<Dialog
@@ -265,17 +279,10 @@ export function App() {
 						</div>
 						<DialogHeader className="text-center">
 							<DialogTitle className="text-[18px] font-semibold tracking-tight">
-								Delete session
+								{t("sidebar.deleteLabel")}
 							</DialogTitle>
 							<DialogDescription className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
-								Are you sure you want to delete{" "}
-								<span className="font-medium text-foreground/80">
-									"
-									{deleteTarget?.session.name ??
-										(truncate(deleteTarget?.session.firstMessage ?? "", 40) || "Untitled")}
-									"
-								</span>
-								? This action cannot be undone.
+								{t("sidebar.deleteConfirm", { name: deleteSessionName })}
 							</DialogDescription>
 						</DialogHeader>
 					</div>
@@ -286,7 +293,7 @@ export function App() {
 							className="flex-1 rounded-full text-[14px]"
 							onClick={() => setDeleteTarget(null)}
 						>
-							Cancel
+							{t("sidebar.cancel")}
 						</Button>
 						<Button
 							variant="destructive"
@@ -294,7 +301,7 @@ export function App() {
 							className="flex-1 rounded-full text-[14px]"
 							onClick={confirmDeleteSession}
 						>
-							Delete
+							{t("sidebar.delete")}
 						</Button>
 					</DialogFooter>
 				</DialogContent>
@@ -319,13 +326,13 @@ export function App() {
 			/>
 			<Sidebar>
 				<SidebarSection
-					title="Workspaces"
+					title={t("sidebar.workspaces")}
 					action={
 						<Button
 							size="icon-sm"
 							variant="ghost"
 							onClick={addWorkspace}
-							aria-label="Add workspace"
+							aria-label={t("sidebar.addWorkspace")}
 						>
 							<FolderPlus className="size-3.5" />
 						</Button>
@@ -333,7 +340,7 @@ export function App() {
 				>
 					{workspaces.length === 0 ? (
 						<div className="rounded-[14px] px-4 py-3 text-[11px] font-medium text-muted-foreground/50">
-							No workspaces yet
+							{t("sidebar.noWorkspaces")}
 						</div>
 					) : (
 						workspaces.map((w) => (
@@ -399,30 +406,30 @@ export function App() {
 								<Button
 									size="sm"
 									variant="ghost"
-									aria-label="Export session"
+									aria-label={t("header.share")}
 									onClick={exportSession}
 									className="h-9 rounded-full px-3 text-[13px] font-medium"
 								>
 									<Share2 className="size-3.5" />
-									Share
+									{t("header.share")}
 								</Button>
 							) : null}
 							<Button
 								size="sm"
 								variant="primary"
 								onClick={() => setSettingsOpen(true)}
-								aria-label="Settings"
+								aria-label={t("header.settings")}
 								className="h-9 rounded-full px-4 text-[13px] font-medium"
 							>
 								<SettingsIcon className="size-3.5" />
-								Settings
+								{t("header.settings")}
 							</Button>
 							{activeSid ? (
 								<Button
 									size="icon"
 									variant={bashOpen ? "secondary" : "ghost"}
 									onClick={() => setBashOpen((o) => !o)}
-									aria-label="Toggle bash panel"
+									aria-label={t("settings.toggleBash")}
 								>
 									<Terminal className="size-3.5" />
 								</Button>
@@ -467,7 +474,7 @@ export function App() {
 							? path.slice(activeWorkspace.path.length + 1)
 							: path;
 						void navigator.clipboard.writeText(relative);
-						emitToast(`Copied ${relative}`, "info");
+						emitToast(t("toast.copied", { path: relative }), "info");
 					}}
 				/>
 			) : null}
@@ -502,6 +509,7 @@ function WorkspaceWithSessions({
 	onCancelRename: () => void;
 	onDeleteSession: (session: SessionInfo) => void;
 }) {
+	const { t } = useI18n();
 	const [expanded, setExpanded] = useState(active);
 
 	useEffect(() => {
@@ -540,7 +548,7 @@ function WorkspaceWithSessions({
 							size="icon-sm"
 							variant="ghost"
 							onClick={() => onOpenSession()}
-							aria-label="New session"
+							aria-label={t("sidebar.newSession")}
 							className="size-6 text-primary opacity-0 group-hover/sidebar-item:opacity-100"
 						>
 							<MessageSquarePlus className="size-3.5" />
@@ -570,7 +578,7 @@ function WorkspaceWithSessions({
 						))
 					) : active ? (
 						<div className="rounded-[14px] px-3 py-2 text-[10.5px] font-medium text-muted-foreground/40">
-							No sessions yet
+							{t("sidebar.noSessions")}
 						</div>
 					) : null}
 				</div>
@@ -588,22 +596,21 @@ function NoSessionState({
 	onAddWorkspace: () => void;
 	onNewSession: () => void;
 }) {
+	const { t } = useI18n();
 	return (
 		<div className="flex h-full flex-col items-center justify-center px-8 text-center">
 			<div className="mb-5 flex size-14 items-center justify-center rounded-[18px] bg-gradient-to-br from-primary/20 to-primary/10 text-primary shadow-md shadow-primary/10">
 				<Sparkles className="size-7" />
 			</div>
-			<h1 className="text-2xl font-semibold tracking-tight">Start coding with pi</h1>
+			<h1 className="text-2xl font-semibold tracking-tight">{t("empty.title")}</h1>
 			<p className="mt-2 max-w-md text-sm text-muted-foreground">
-				{hasWorkspace
-					? "Open an existing session from the sidebar, or start a fresh one in this workspace."
-					: "Add a workspace folder to get started. Each workspace is a project directory where pi can read, edit, and run code."}
+				{hasWorkspace ? t("empty.description.hasWorkspace") : t("empty.description.noWorkspace")}
 			</p>
 			<div className="mt-6 flex gap-3">
 				{hasWorkspace ? (
 					<Button onClick={onNewSession} size="lg">
 						<MessageSquarePlus className="size-4" />
-						New session
+						{t("empty.newSession")}
 						<kbd className="ml-1 rounded-md bg-primary-foreground/20 px-1.5 py-0.5 text-[10px] font-mono">
 							⌘N
 						</kbd>
@@ -611,7 +618,7 @@ function NoSessionState({
 				) : (
 					<Button onClick={onAddWorkspace} size="lg">
 						<FolderPlus className="size-4" />
-						Add workspace
+						{t("empty.addWorkspace")}
 					</Button>
 				)}
 			</div>
@@ -640,6 +647,7 @@ function SessionRow({
 	onCancelRename: () => void;
 	onDelete: () => void;
 }) {
+	const { t } = useI18n();
 	const [draft, setDraft] = useState(session.name ?? "");
 	useEffect(() => {
 		if (renaming) setDraft(session.name ?? "");
@@ -665,14 +673,15 @@ function SessionRow({
 							onCancelRename();
 						}
 					}}
-					placeholder={truncate(session.firstMessage, 36) || "Session name"}
+					placeholder={truncate(session.firstMessage, 36) || t("sidebar.sessionName")}
 					className="w-full text-[13px] h-8"
 				/>
 			</form>
 		);
 	}
 
-	const sessionTitle = session.name ?? (truncate(session.firstMessage, 36) || "Untitled");
+	const sessionTitle =
+		session.name ?? (truncate(session.firstMessage, 36) || t("sidebar.untitled"));
 
 	return (
 		<div
@@ -725,7 +734,7 @@ function SessionRow({
 							e.stopPropagation();
 							onDelete();
 						}}
-						aria-label="Delete session"
+						aria-label={t("sidebar.deleteLabel")}
 						className={cn(
 							"flex size-5 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-destructive",
 							active && "text-primary/50",

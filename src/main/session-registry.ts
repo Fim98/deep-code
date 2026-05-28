@@ -10,6 +10,7 @@ import {
 	createAgentSessionServices,
 	SessionManager,
 } from "@earendil-works/pi-coding-agent";
+import { ExtensionUIBridge } from "./extension-ui-bridge.js";
 import { createPlanTrackerTool } from "./plan-tracker-tool.js";
 import { getSharedServices } from "./shared-services.js";
 import { getWorkspace } from "./workspace-store.js";
@@ -35,6 +36,7 @@ interface Entry {
 	/** Mutable ref — updated on each rebind after session replacement. */
 	unsubRef: { current: () => void };
 	listeners: Set<Listener>;
+	extensionBridge: ExtensionUIBridge;
 }
 
 class SessionRegistryImpl {
@@ -76,6 +78,12 @@ class SessionRegistryImpl {
 		const sessionId = randomUUID();
 		const listeners = new Set<Listener>();
 
+		// Create extension UI bridge for this session
+		const extensionBridge = new ExtensionUIBridge();
+		await runtime.session.bindExtensions({
+			uiContext: extensionBridge.createUIContext(),
+		});
+
 		// Subscribe to the current session's events
 		const unsubRef: { current: () => void } = {
 			current: runtime.session.subscribe((event) => {
@@ -89,6 +97,10 @@ class SessionRegistryImpl {
 			unsubRef.current = runtime.session.subscribe((event) => {
 				for (const l of listeners) l(event);
 			});
+			// Rebind extension UI context to the new session
+			await runtime.session.bindExtensions({
+				uiContext: extensionBridge.createUIContext(),
+			});
 		});
 
 		this.entries.set(sessionId, {
@@ -96,6 +108,7 @@ class SessionRegistryImpl {
 			workspaceId: opts.workspaceId,
 			unsubRef,
 			listeners,
+			extensionBridge,
 		});
 
 		return {
@@ -120,6 +133,13 @@ class SessionRegistryImpl {
 		return entry.runtime;
 	}
 
+	/** Get the ExtensionUIBridge for a session. */
+	getBridge(sessionId: string): ExtensionUIBridge {
+		const entry = this.entries.get(sessionId);
+		if (!entry) throw new Error(`Unknown session: ${sessionId}`);
+		return entry.extensionBridge;
+	}
+
 	tryGet(sessionId: string): AgentSession | undefined {
 		return this.entries.get(sessionId)?.runtime.session;
 	}
@@ -136,6 +156,7 @@ class SessionRegistryImpl {
 		if (!entry) return;
 		entry.unsubRef.current();
 		entry.listeners.clear();
+		entry.extensionBridge.dispose();
 		await entry.runtime.dispose();
 		this.entries.delete(sessionId);
 	}
@@ -145,6 +166,19 @@ class SessionRegistryImpl {
 			sessionId: id,
 			workspaceId: e.workspaceId,
 		}));
+	}
+
+	/** Bind all bridges to a window (for sending IPC to renderer). */
+	bindWindowToAllBridges(win: import("electron").BrowserWindow): void {
+		for (const [sid, entry] of this.entries) {
+			entry.extensionBridge.bindWindow(win, sid);
+		}
+	}
+
+	/** Bind a single bridge to a window. */
+	bindWindowToBridge(sessionId: string, win: import("electron").BrowserWindow): void {
+		const entry = this.entries.get(sessionId);
+		if (entry) entry.extensionBridge.bindWindow(win, sessionId);
 	}
 }
 

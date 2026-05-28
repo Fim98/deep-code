@@ -56,6 +56,10 @@ const mockPi = {
 		send: vi.fn().mockResolvedValue({ success: true }),
 		subscribe: vi.fn().mockReturnValue(() => {}),
 	},
+	extensionUI: {
+		onRequest: vi.fn().mockReturnValue(() => {}),
+		respond: vi.fn().mockResolvedValue(undefined),
+	},
 	theme: {
 		setSource: vi.fn().mockResolvedValue("light"),
 		get: vi.fn().mockResolvedValue({ source: "system", shouldUseDark: false }),

@@ -3,6 +3,7 @@ import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AnsiText } from "@/lib/ansi";
+import { useI18n } from "@/lib/i18n";
 import { pi } from "@/lib/rpc";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export function BashPanel({ sessionId, onClose }: Props) {
+	const { t } = useI18n();
 	const [history, setHistory] = useState<BashEntry[]>([]);
 	const [input, setInput] = useState("");
 	const [running, setRunning] = useState(false);
@@ -94,7 +96,12 @@ export function BashPanel({ sessionId, onClose }: Props) {
 							<Square className="size-3 fill-current text-destructive" />
 						</Button>
 					) : null}
-					<Button size="icon-sm" variant="ghost" onClick={onClose} aria-label="Close">
+					<Button
+						size="icon-sm"
+						variant="ghost"
+						onClick={onClose}
+						aria-label={t("bash.closeLabel")}
+					>
 						<X className="size-3.5" />
 					</Button>
 				</div>

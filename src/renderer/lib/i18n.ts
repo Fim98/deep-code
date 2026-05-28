@@ -73,6 +73,27 @@ function getSnapshot(): Locale {
 	return currentLocale;
 }
 
+// ─── Translation ────────────────────────────────────────────────────────────
+
+function _translate(locale: Locale, key: string, params?: Record<string, string | number>): string {
+	const dict = DICTS[locale] ?? DICTS.en;
+	let text = dict[key] ?? DICTS.en[key] ?? key;
+	if (params) {
+		for (const [k, v] of Object.entries(params)) {
+			text = text.replace(new RegExp(`\\{\\{${k}\\}\\}`, "g"), String(v));
+		}
+	}
+	return text;
+}
+
+/**
+ * Standalone translate function — uses the current locale at call time.
+ * Use this outside React components (e.g. in callbacks, event handlers).
+ */
+export function t(key: string, params?: Record<string, string | number>): string {
+	return _translate(currentLocale, key, params);
+}
+
 // ─── React hook ─────────────────────────────────────────────────────────────
 
 /**
@@ -86,21 +107,14 @@ function getSnapshot(): Locale {
 export function useI18n() {
 	const locale = useSyncExternalStore(subscribe, getSnapshot);
 
-	const t = useCallback(
+	const translate = useCallback(
 		(key: string, params?: Record<string, string | number>): string => {
-			const dict = DICTS[locale] ?? DICTS.en;
-			let text = dict[key] ?? DICTS.en[key] ?? key;
-			if (params) {
-				for (const [k, v] of Object.entries(params)) {
-					text = text.replace(new RegExp(`\\{\\{${k}\\}\\}`, "g"), String(v));
-				}
-			}
-			return text;
+			return _translate(locale, key, params);
 		},
 		[locale],
 	);
 
-	return { locale, setLocale, t };
+	return { locale, setLocale, t: translate };
 }
 
 // ─── Labels ─────────────────────────────────────────────────────────────────

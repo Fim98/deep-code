@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useI18n } from "@/lib/i18n";
 import { pi } from "@/lib/rpc";
 import { cn } from "@/lib/utils";
 import { useSessions } from "@/stores/session-state";
@@ -27,6 +28,7 @@ interface Props {
 }
 
 export function ModelPicker({ sessionId, model, thinkingLevel }: Props) {
+	const { t } = useI18n();
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
 	const [models, setModels] = useState<ModelRef[]>([]);
@@ -93,7 +95,7 @@ export function ModelPicker({ sessionId, model, thinkingLevel }: Props) {
 			<PopoverTrigger asChild>
 				<Button size="sm" variant="ghost" className="h-7 gap-1.5 px-2 text-[11px]">
 					<span className="font-medium">
-						{model ? `${model.provider}/${model.id}` : "Select model"}
+						{model ? `${model.provider}/${model.id}` : t("model.selectModel")}
 					</span>
 					{thinkingLevel && thinkingLevel !== "off" ? (
 						<Badge variant="primary" size="sm">
@@ -114,16 +116,18 @@ export function ModelPicker({ sessionId, model, thinkingLevel }: Props) {
 						aria-label="Search models"
 						value={query}
 						onChange={(e) => setQuery(e.target.value)}
-						placeholder="Search models..."
+						placeholder={t("model.searchPlaceholder")}
 						className="w-full text-[12px] h-8"
 					/>
 				</div>
 				<div className="model-picker-scroll min-h-0 flex-1 overflow-y-auto py-1">
 					{loading ? (
-						<div className="px-3 py-6 text-center text-[11px] text-muted-foreground">Loading…</div>
+						<div className="px-3 py-6 text-center text-[11px] text-muted-foreground">
+							{t("model.loading")}
+						</div>
 					) : grouped.length === 0 ? (
 						<div className="px-3 py-6 text-center text-[11px] text-muted-foreground">
-							No models. Configure auth in <span className="font-mono">~/.pi/agent/auth.json</span>.
+							{t("model.noModels")}
 						</div>
 					) : (
 						grouped.map(([provider, list]) => (
@@ -169,7 +173,7 @@ export function ModelPicker({ sessionId, model, thinkingLevel }: Props) {
 				</div>
 				<div className="shrink-0 border-t border-border/30 p-2">
 					<div className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">
-						Thinking
+						{t("model.thinking")}
 					</div>
 					<div className="flex flex-wrap gap-1">
 						{THINKING_LEVELS.map((lv) => (

@@ -13,6 +13,7 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useI18n } from "@/lib/i18n";
 import { type FileTreeNode as FileTreeNodeData, pi } from "@/lib/rpc";
 import { cn } from "@/lib/utils";
 
@@ -153,6 +154,7 @@ function TreeNode({
 }
 
 export function FileTree({ rootPath, onFileClick }: FileTreeProps) {
+	const { t } = useI18n();
 	const [rootChildren, setRootChildren] = useState<FileTreeNodeData[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [dirStates, setDirStates] = useState<Record<string, DirState>>({});
@@ -221,8 +223,8 @@ export function FileTree({ rootPath, onFileClick }: FileTreeProps) {
 				size="icon"
 				variant="ghost"
 				onClick={() => setOpen(true)}
-				aria-label="Toggle file tree"
-				title="File tree"
+				aria-label={t("fileTree.toggle")}
+				title={t("fileTree.title")}
 			>
 				<PanelRightOpen className="size-4" />
 			</Button>
@@ -234,7 +236,7 @@ export function FileTree({ rootPath, onFileClick }: FileTreeProps) {
 			{/* Header */}
 			<div className="flex shrink-0 items-center justify-between border-b border-border/30 px-3 py-2">
 				<span className="select-none text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-					Files
+					{t("fileTree.title")}
 				</span>
 				<div className="flex items-center gap-0.5">
 					<Button

@@ -49,13 +49,6 @@ const AUTH_CONFIG_PATH = "~/.pi/agent/auth.json";
 
 type TabId = "general" | "providers" | "models" | "about";
 
-const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
-	{ id: "general", label: "General", icon: <Cog className="size-4" /> },
-	{ id: "providers", label: "Providers", icon: <Key className="size-4" /> },
-	{ id: "models", label: "Models", icon: <LayoutGrid className="size-4" /> },
-	{ id: "about", label: "About", icon: <Info className="size-4" /> },
-];
-
 // ─── Main Dialog ─────────────────────────────────────────────────────────────
 
 interface Props {
@@ -64,7 +57,15 @@ interface Props {
 }
 
 export function SettingsDialog({ open, onOpenChange }: Props) {
+	const { t } = useI18n();
 	const [tab, setTab] = useState<TabId>("general");
+
+	const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
+		{ id: "general", label: t("settings.tab.general"), icon: <Cog className="size-4" /> },
+		{ id: "providers", label: t("settings.tab.providers"), icon: <Key className="size-4" /> },
+		{ id: "models", label: t("settings.tab.models"), icon: <LayoutGrid className="size-4" /> },
+		{ id: "about", label: t("settings.tab.about"), icon: <Info className="size-4" /> },
+	];
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -75,9 +76,11 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
 							<Cog className="size-5" />
 						</div>
 						<div>
-							<DialogTitle className="text-[22px] font-medium tracking-tight">Settings</DialogTitle>
+							<DialogTitle className="text-[22px] font-medium tracking-tight">
+								{t("settings.title")}
+							</DialogTitle>
 							<DialogDescription className="text-[13px] text-muted-foreground">
-								Configure your deepcode experience
+								{t("settings.description")}
 							</DialogDescription>
 						</div>
 					</div>
@@ -119,6 +122,7 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
 // ─── General Tab ─────────────────────────────────────────────────────────────
 
 function GeneralTab() {
+	const { t } = useI18n();
 	const [settings, setSettings] = useState<DesktopSettings | null>(null);
 
 	useEffect(() => {
@@ -141,27 +145,24 @@ function GeneralTab() {
 		<div className="space-y-8">
 			{/* Theme */}
 			<section className="space-y-3">
-				<SectionHeader title="Appearance" />
-				<SettingRow
-					label="Theme"
-					description="Choose light, dark, or follow your system preference"
-				>
+				<SectionHeader title={t("settings.appearance")} />
+				<SettingRow label={t("settings.theme")} description={t("settings.themeDescription")}>
 					<ThemeButtonGroup />
 				</SettingRow>
-				<SettingRow label="Accent color" description="Choose a primary color for the interface">
+				<SettingRow label={t("settings.accentColor")} description={t("settings.accentDescription")}>
 					<AccentPicker />
 				</SettingRow>
-				<SettingRow label="Language" description="Choose your preferred language">
+				<SettingRow label={t("settings.language")} description={t("settings.languageDescription")}>
 					<LanguagePicker />
 				</SettingRow>
 			</section>
 
 			{/* AI Behavior */}
 			<section className="space-y-3">
-				<SectionHeader title="AI Behavior" />
+				<SectionHeader title={t("settings.aiBehavior")} />
 				<SettingRow
-					label="Default thinking level"
-					description="Controls how much reasoning the model does before responding"
+					label={t("settings.thinkingLevel")}
+					description={t("settings.thinkingDescription")}
 				>
 					<Select
 						value={settings?.defaultThinkingLevel ?? "off"}
@@ -180,15 +181,18 @@ function GeneralTab() {
 					</Select>
 				</SettingRow>
 				<SettingRow
-					label="Auto-compaction"
-					description="Automatically compact context when it gets too long"
+					label={t("settings.autoCompaction")}
+					description={t("settings.autoCompactionDescription")}
 				>
 					<ToggleSwitch
 						checked={settings?.compactionEnabled ?? true}
 						onChange={(v) => update("compactionEnabled", v)}
 					/>
 				</SettingRow>
-				<SettingRow label="Auto-retry" description="Automatically retry failed requests">
+				<SettingRow
+					label={t("settings.autoRetry")}
+					description={t("settings.autoRetryDescription")}
+				>
 					<ToggleSwitch
 						checked={settings?.retryEnabled ?? true}
 						onChange={(v) => update("retryEnabled", v)}
@@ -198,10 +202,10 @@ function GeneralTab() {
 
 			{/* Images */}
 			<section className="space-y-3">
-				<SectionHeader title="Images" />
+				<SectionHeader title={t("settings.images")} />
 				<SettingRow
-					label="Show images in results"
-					description="Display images returned by tool calls"
+					label={t("settings.showImages")}
+					description={t("settings.showImagesDescription")}
 				>
 					<ToggleSwitch
 						checked={settings?.showImages ?? true}
@@ -209,8 +213,8 @@ function GeneralTab() {
 					/>
 				</SettingRow>
 				<SettingRow
-					label="Auto-resize images"
-					description="Resize large images before sending to the model"
+					label={t("settings.autoResize")}
+					description={t("settings.autoResizeDescription")}
 				>
 					<ToggleSwitch
 						checked={settings?.imageAutoResize ?? true}
@@ -221,20 +225,20 @@ function GeneralTab() {
 
 			{/* Telemetry */}
 			<section className="space-y-3">
-				<SectionHeader title="Privacy" />
+				<SectionHeader title={t("telemetry.privacy")} />
 				<TelemetryToggle />
 			</section>
 
 			{/* Keyboard shortcuts */}
 			<section className="space-y-3">
-				<SectionHeader title="Keyboard Shortcuts" />
+				<SectionHeader title={t("settings.shortcuts")} />
 				<div className="rounded-[18px] border border-border/60 bg-card p-4 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
 					<div className="space-y-2.5">
-						<ShortcutRow keys={["⌘", "K"]} label="Command palette" />
-						<ShortcutRow keys={["⌘", "N"]} label="New session" />
-						<ShortcutRow keys={["⌘", "B"]} label="Toggle bash panel" />
-						<ShortcutRow keys={["Enter"]} label="Send message" />
-						<ShortcutRow keys={["Shift", "Enter"]} label="New line" />
+						<ShortcutRow keys={["⌘", "K"]} label={t("settings.commandPalette")} />
+						<ShortcutRow keys={["⌘", "N"]} label={t("settings.newSession")} />
+						<ShortcutRow keys={["⌘", "B"]} label={t("settings.toggleBash")} />
+						<ShortcutRow keys={["Enter"]} label={t("settings.sendMessage")} />
+						<ShortcutRow keys={["Shift", "Enter"]} label={t("settings.newLine")} />
 					</div>
 				</div>
 			</section>
@@ -287,6 +291,7 @@ const providerHints: Record<string, { label: string; hint: string; env?: string 
 };
 
 function ProvidersTab() {
+	const { t } = useI18n();
 	const [configured, setConfigured] = useState<ProviderEntry[]>([]);
 	const [known, setKnown] = useState<string[]>([]);
 	const [loading, setLoading] = useState(false);
@@ -337,14 +342,14 @@ function ProvidersTab() {
 		<div className="space-y-6">
 			<section className="space-y-4">
 				<SectionHeader
-					title="Configured Providers"
-					description={`Credentials are stored in ${AUTH_CONFIG_PATH}. Use /login to add supported providers.`}
+					title={t("settings.configuredProviders")}
+					description={t("settings.providersDescription", { path: AUTH_CONFIG_PATH })}
 				/>
 				<div className="grid gap-3">
 					{loading && configured.length === 0 ? (
-						<EmptyHint text="Loading providers..." />
+						<EmptyHint text={t("settings.loadingProviders")} />
 					) : configured.length === 0 ? (
-						<EmptyHint text="No credentials configured yet." />
+						<EmptyHint text={t("settings.noProviders")} />
 					) : (
 						configured.map((entry) => (
 							<ConfiguredRow
@@ -364,6 +369,7 @@ function ProvidersTab() {
 // ─── Models Tab ──────────────────────────────────────────────────────────────
 
 function ModelsTab() {
+	const { t } = useI18n();
 	const [settings, setSettings] = useState<DesktopSettings | null>(null);
 	const [editText, setEditText] = useState("");
 
@@ -383,7 +389,7 @@ function ModelsTab() {
 			await pi.settings.set("enabledModels", patterns.length > 0 ? patterns : undefined);
 			const next = await pi.settings.get();
 			setSettings(next);
-			emitToast("Model filters saved");
+			emitToast(t("settings.modelFiltersSaved"), "info");
 		} catch (e) {
 			emitToast(formatError(e));
 		}
@@ -393,8 +399,8 @@ function ModelsTab() {
 		<div className="space-y-8">
 			<section className="space-y-3">
 				<SectionHeader
-					title="Enabled Models"
-					description="Filter which models are available. One pattern per line (e.g. provider/model-id). Leave empty to show all."
+					title={t("settings.enabledModels")}
+					description={t("settings.enabledModelsDescription")}
 				/>
 				<div className="rounded-[18px] border border-border/60 bg-card p-4 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
 					<textarea
@@ -410,7 +416,7 @@ function ModelsTab() {
 							onClick={saveEnabledModels}
 							className="rounded-full"
 						>
-							Save
+							{t("settings.save")}
 						</Button>
 					</div>
 				</div>
@@ -419,10 +425,10 @@ function ModelsTab() {
 			<CustomModelsHint />
 
 			<section className="space-y-3">
-				<SectionHeader title="Image Handling" />
+				<SectionHeader title={t("settings.imageHandling")} />
 				<SettingRow
-					label="Block images"
-					description="Prevent images from being sent to the model (text placeholder instead)"
+					label={t("settings.blockImages")}
+					description={t("settings.blockImagesDescription")}
 				>
 					<ToggleSwitch
 						checked={settings?.blockImages ?? false}
@@ -441,6 +447,7 @@ function ModelsTab() {
 // ─── About Tab ───────────────────────────────────────────────────────────────
 
 function AboutTab() {
+	const { t } = useI18n();
 	const [version, setVersion] = useState("…");
 	const [agentDir, setAgentDir] = useState("…");
 	const [updateStatus, setUpdateStatus] = useState<string>("idle");
@@ -506,7 +513,7 @@ function AboutTab() {
 						</div>
 						{updateStatus === "downloaded" ? (
 							<div className="mt-0.5 text-[11px] text-muted-foreground">
-								Click restart to apply the latest version.
+								{t("settings.restartToApply")}
 							</div>
 						) : null}
 					</div>
@@ -519,7 +526,7 @@ function AboutTab() {
 								className="rounded-full"
 								onClick={() => void pi.updater.install()}
 							>
-								Restart
+								{t("settings.restart")}
 							</Button>
 						) : (
 							<Button
@@ -530,7 +537,7 @@ function AboutTab() {
 								disabled={checking}
 								onClick={handleCheck}
 							>
-								{checking ? "Checking…" : "Check for Updates"}
+								{checking ? t("settings.checking") : t("settings.checkForUpdates")}
 							</Button>
 						)}
 					</div>
@@ -538,7 +545,7 @@ function AboutTab() {
 			</section>
 
 			<section className="space-y-4">
-				<SectionHeader title="Configuration Files" />
+				<SectionHeader title={t("settings.configurationFiles")} />
 				<div className="space-y-2.5">
 					<ConfigFileRow label="Auth" path={`${agentDir}/auth.json`} />
 					<ConfigFileRow label="Settings (global)" path={`${agentDir}/settings.json`} />
@@ -547,7 +554,7 @@ function AboutTab() {
 			</section>
 
 			<section className="space-y-3">
-				<SectionHeader title="Diagnostics" />
+				<SectionHeader title={t("settings.diagnostics")} />
 				<div className="flex flex-wrap gap-2">
 					<Button
 						type="button"
@@ -557,17 +564,20 @@ function AboutTab() {
 						onClick={() => setLogsOpen(true)}
 					>
 						<FileText className="size-3.5" />
-						View Logs
+						{t("settings.viewLogs")}
 					</Button>
 				</div>
 			</section>
 
 			<section className="space-y-3">
-				<SectionHeader title="Links" />
+				<SectionHeader title={t("settings.links")} />
 				<div className="flex flex-wrap gap-2">
-					<ExternalButton label="Pi Documentation" url="https://pi.dev/docs" />
-					<ExternalButton label="GitHub" url="https://github.com/Fim98/deep-code" />
-					<ExternalButton label="Report Issue" url="https://github.com/Fim98/deep-code/issues" />
+					<ExternalButton label={t("settings.piDocs")} url="https://pi.dev/docs" />
+					<ExternalButton label={t("settings.github")} url="https://github.com/Fim98/deep-code" />
+					<ExternalButton
+						label={t("settings.reportIssue")}
+						url="https://github.com/Fim98/deep-code/issues"
+					/>
 				</div>
 			</section>
 			<LogViewerDialog open={logsOpen} onOpenChange={setLogsOpen} />
@@ -578,11 +588,12 @@ function AboutTab() {
 // ─── Shared sub-components ───────────────────────────────────────────────────
 
 function ThemeButtonGroup() {
+	const { t } = useI18n();
 	const { choice, setChoice } = useTheme();
 	const options: { value: ThemeChoice; label: string; icon: typeof Monitor }[] = [
-		{ value: "system", label: "System", icon: Monitor },
-		{ value: "light", label: "Light", icon: Sun },
-		{ value: "dark", label: "Dark", icon: Moon },
+		{ value: "system", label: t("theme.system"), icon: Monitor },
+		{ value: "light", label: t("theme.light"), icon: Sun },
+		{ value: "dark", label: t("theme.dark"), icon: Moon },
 	];
 	return (
 		<div className="flex gap-1.5">
@@ -648,6 +659,7 @@ function LanguagePicker() {
 }
 
 function TelemetryToggle() {
+	const { t } = useI18n();
 	const [telemetryEnabled, setTelemetryEnabled] = useState(false);
 	const [loading, setLoading] = useState(true);
 
@@ -667,8 +679,8 @@ function TelemetryToggle() {
 
 	return (
 		<SettingRow
-			label="Send anonymous crash reports"
-			description="Help improve deepcode by sending error data. No personal information is collected."
+			label={t("telemetry.crashReports")}
+			description={t("telemetry.crashReportsDescription")}
 		>
 			<ToggleSwitch checked={telemetryEnabled} onChange={handleToggle} />
 		</SettingRow>
@@ -770,6 +782,7 @@ function ConfiguredRow({
 	entry: ProviderEntry;
 	onRemove: () => Promise<void>;
 }) {
+	const { t } = useI18n();
 	return (
 		<div className="rounded-[24px] border border-border/60 bg-card px-5 py-4 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
 			<div className="flex items-center gap-4">
@@ -788,7 +801,7 @@ function ConfiguredRow({
 					<div className="mt-1 truncate text-[12px] text-muted-foreground">
 						<span className="font-mono">{entry.provider}</span>
 						<span className="px-1.5 text-muted-foreground/50">·</span>
-						{entry.type === "oauth" ? "Managed by /login" : entry.maskedKey}
+						{entry.type === "oauth" ? t("settings.oauthHint") : entry.maskedKey}
 					</div>
 				</div>
 				<Button
@@ -796,7 +809,7 @@ function ConfiguredRow({
 					size="icon-sm"
 					variant="ghost"
 					onClick={onRemove}
-					aria-label="Remove"
+					aria-label={t("settings.removeProvider")}
 					className="size-8 rounded-[14px] hover:text-destructive"
 				>
 					<Trash2 className="size-3.5" />
@@ -813,6 +826,7 @@ function PresetProviderForm({
 	providers: string[];
 	onSave: (provider: string, key: string) => Promise<void>;
 }) {
+	const { t } = useI18n();
 	const [provider, setProvider] = useState(providers[0] ?? "");
 	const [key, setKey] = useState("");
 	const [reveal, setReveal] = useState(false);
@@ -849,7 +863,7 @@ function PresetProviderForm({
 			<div className="rounded-[24px] border border-border/60 bg-card p-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
 				{providers.length === 0 ? (
 					<div className="text-[13px] leading-6 text-muted-foreground">
-						All preset providers are already configured.
+						{t("settings.allConfigured")}
 					</div>
 				) : (
 					<form
@@ -929,7 +943,7 @@ function PresetProviderForm({
 								className={cn("rounded-[18px]", saving && "opacity-60")}
 							>
 								<Plus className="size-4" />
-								Save API key
+								{t("settings.saveApiKey")}
 							</Button>
 						</div>
 					</form>
@@ -940,13 +954,10 @@ function PresetProviderForm({
 }
 
 function CustomModelsHint() {
+	const { t } = useI18n();
 	return (
 		<div className="flex items-center justify-between gap-4 rounded-[24px] border border-border/60 bg-card px-5 py-4 text-[13px] leading-6 text-muted-foreground shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
-			<div className="min-w-0">
-				Custom providers, local models, and proxies use{" "}
-				<span className="font-mono text-foreground/80">models.json</span>. See the Pi models
-				documentation for setup details.
-			</div>
+			<div className="min-w-0">{t("settings.customModelsHint")}</div>
 			<Button
 				type="button"
 				variant="secondary"
@@ -955,7 +966,7 @@ function CustomModelsHint() {
 				onClick={() => window.open(MODELS_DOCS_URL, "_blank")}
 			>
 				<ExternalLink className="size-3.5" />
-				Docs
+				{t("settings.docs")}
 			</Button>
 		</div>
 	);
@@ -973,6 +984,7 @@ function InfoRow({ label, value, mono }: { label: string; value: string; mono?: 
 }
 
 function ConfigFileRow({ label, path }: { label: string; path: string }) {
+	const { t } = useI18n();
 	return (
 		<div className="flex items-center justify-between gap-3 rounded-[14px] border border-border/40 bg-card px-4 py-2.5 shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
 			<div className="min-w-0">
@@ -983,7 +995,7 @@ function ConfigFileRow({ label, path }: { label: string; path: string }) {
 				type="button"
 				size="icon-sm"
 				variant="ghost"
-				aria-label="Open folder"
+				aria-label={t("settings.openFolder")}
 				className="size-7 text-muted-foreground"
 			>
 				<FolderOpen className="size-3.5" />

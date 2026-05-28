@@ -66,6 +66,18 @@ const rpc = {
 	},
 };
 
+const EXTENSION_UI_REQUEST_CHANNEL = "pi:extension-ui:request";
+
+const extensionUI = {
+	onRequest: (cb: (request: unknown) => void) => {
+		const handler = (_e: Electron.IpcRendererEvent, request: unknown) => cb(request);
+		ipcRenderer.on(EXTENSION_UI_REQUEST_CHANNEL, handler);
+		return () => ipcRenderer.off(EXTENSION_UI_REQUEST_CHANNEL, handler);
+	},
+	respond: (sessionId: string, response: unknown) =>
+		ipcRenderer.invoke("pi:extension-ui:respond", sessionId, response),
+};
+
 const auth = {
 	list: () => ipcRenderer.invoke("pi:auth:list"),
 	knownProviders: () => ipcRenderer.invoke("pi:auth:known-providers"),
@@ -115,6 +127,7 @@ const api = {
 	workspaces,
 	sessions,
 	rpc,
+	extensionUI,
 	theme,
 	auth,
 	settings,

@@ -9,6 +9,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useI18n } from "@/lib/i18n";
 import { type LogEntry, pi } from "@/lib/rpc";
 import { emitToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -32,22 +33,26 @@ function formatTimestamp(ts: number): string {
 	);
 }
 
-function sourceBadge(source: string): { label: string; className: string } {
+function sourceBadge(
+	source: string,
+	t: (k: string) => string,
+): { label: string; className: string } {
 	if (source.includes("uncaughtException")) {
-		return { label: "FATAL", className: "bg-destructive/10 text-destructive" };
+		return { label: t("logs.fatal"), className: "bg-destructive/10 text-destructive" };
 	}
 	if (source.includes("unhandledRejection")) {
-		return { label: "UNHANDLED", className: "bg-warning/10 text-warning" };
+		return { label: t("logs.unhandled"), className: "bg-warning/10 text-warning" };
 	}
 	if (source.includes("settings") || source.includes("auth")) {
-		return { label: "WARN", className: "bg-warning/10 text-warning" };
+		return { label: t("logs.warn"), className: "bg-warning/10 text-warning" };
 	}
-	return { label: "INFO", className: "bg-foreground/[0.06] text-foreground/60" };
+	return { label: t("logs.info"), className: "bg-foreground/[0.06] text-foreground/60" };
 }
 
 function EntryRow({ entry }: { entry: LogEntry }) {
+	const { t } = useI18n();
 	const [expanded, setExpanded] = useState(false);
-	const badge = sourceBadge(entry.source);
+	const badge = sourceBadge(entry.source, t);
 
 	return (
 		<div className="border-b border-border/20 px-4 py-2.5 last:border-0">
@@ -74,7 +79,7 @@ function EntryRow({ entry }: { entry: LogEntry }) {
 						onClick={() => setExpanded((v) => !v)}
 						className="font-mono text-[10px] text-primary/60 hover:text-primary"
 					>
-						{expanded ? "hide stack" : "show stack"}
+						{expanded ? t("logs.hideStack") : t("logs.showStack")}
 					</button>
 					{expanded ? (
 						<pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap font-mono text-[10px] text-muted-foreground/60">
@@ -91,6 +96,7 @@ function EntryRow({ entry }: { entry: LogEntry }) {
 }
 
 export function LogViewerDialog({ open, onOpenChange }: Props) {
+	const { t } = useI18n();
 	const [entries, setEntries] = useState<LogEntry[]>([]);
 	const [loading, setLoading] = useState(false);
 	const scrollRef = useRef<HTMLDivElement>(null);
@@ -131,7 +137,7 @@ export function LogViewerDialog({ open, onOpenChange }: Props) {
 		const text = entries
 			.map(
 				(e) =>
-					`[${formatTimestamp(e.timestamp)}] [${e.source}] ${e.message}${e.stack ? "\n" + e.stack : ""}`,
+					`[${formatTimestamp(e.timestamp)}] [${e.source}] ${e.message}${e.stack ? `\n${e.stack}` : ""}`,
 			)
 			.join("\n\n");
 		try {
@@ -153,10 +159,12 @@ export function LogViewerDialog({ open, onOpenChange }: Props) {
 							</div>
 							<div>
 								<DialogTitle className="text-[18px] font-medium tracking-tight">
-									Error Logs
+									{t("logs.title")}
 								</DialogTitle>
 								<DialogDescription className="text-[12px] text-muted-foreground">
-									{entries.length} {entries.length === 1 ? "entry" : "entries"} · last {500} max
+									{t(entries.length === 1 ? "logs.entryCountSingle" : "logs.entryCount", {
+										count: entries.length,
+									})}
 								</DialogDescription>
 							</div>
 						</div>
@@ -166,7 +174,7 @@ export function LogViewerDialog({ open, onOpenChange }: Props) {
 								size="icon-sm"
 								variant="ghost"
 								onClick={refresh}
-								aria-label="Refresh"
+								aria-label={t("logs.refresh")}
 								className="size-8 rounded-[12px]"
 							>
 								<RefreshCw className={cn("size-3.5", loading && "animate-spin")} />
@@ -176,7 +184,7 @@ export function LogViewerDialog({ open, onOpenChange }: Props) {
 								size="icon-sm"
 								variant="ghost"
 								onClick={handleCopy}
-								aria-label="Copy logs"
+								aria-label={t("logs.copyLogs")}
 								disabled={entries.length === 0}
 								className="size-8 rounded-[12px]"
 							>
@@ -187,7 +195,7 @@ export function LogViewerDialog({ open, onOpenChange }: Props) {
 								size="icon-sm"
 								variant="ghost"
 								onClick={handleClear}
-								aria-label="Clear logs"
+								aria-label={t("logs.clearLogs")}
 								disabled={entries.length === 0}
 								className="size-8 rounded-[12px] hover:text-destructive"
 							>
@@ -202,7 +210,7 @@ export function LogViewerDialog({ open, onOpenChange }: Props) {
 							<div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
 								<FileText className="size-8 text-muted-foreground/30" />
 								<div className="text-[13px] text-muted-foreground">
-									{loading ? "Loading…" : "No errors logged"}
+									{loading ? t("logs.loading") : t("logs.noEntries")}
 								</div>
 							</div>
 						) : (

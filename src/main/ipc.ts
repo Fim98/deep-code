@@ -1,8 +1,9 @@
 import type { RpcCommand } from "@earendil-works/pi-coding-agent";
-import { type BrowserWindow, dialog, ipcMain, nativeTheme, shell } from "electron";
+import { BrowserWindow, dialog, ipcMain, nativeTheme, shell } from "electron";
 import { listConfiguredProviders, listKnownProviders, removeProvider, setApiKey } from "./auth.js";
 import { dispatchRpc } from "./dispatch-rpc.js";
 import { clearLogs, getLogs } from "./error-log.js";
+import type { ExtensionUIResponse } from "./extension-ui-bridge.js";
 import { listDirectory } from "./file-tree.js";
 import { createWindow } from "./index.js";
 import { deleteSessionFile, listSessionsForCwd } from "./session-fs.js";
@@ -87,6 +88,11 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 		"pi:session:open",
 		async (event, opts: { workspaceId: string; sessionFile?: string }) => {
 			const result = await sessionRegistry.open(opts);
+			// Bind the extension UI bridge to this window
+			const win = BrowserWindow.fromWebContents(event.sender);
+			if (win) {
+				sessionRegistry.bindWindowToBridge(result.sessionId, win);
+			}
 			sessionRegistry.addListener(result.sessionId, (ev) => {
 				if (event.sender.isDestroyed()) return;
 				event.sender.send(RPC_EVENT_CHANNEL, {
@@ -129,6 +135,15 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 		// Serialize SessionTreeNode[] to a JSON-safe format
 		return { tree: serializeTree(tree), leafId };
 	});
+
+	// Extension UI response: renderer → main process bridge
+	ipcMain.handle(
+		"pi:extension-ui:respond",
+		(_e, sessionId: string, response: ExtensionUIResponse) => {
+			const bridge = sessionRegistry.getBridge(sessionId);
+			bridge.handleResponse(response);
+		},
+	);
 
 	ipcMain.handle("pi:ping", () => "pong");
 

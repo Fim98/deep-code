@@ -3,10 +3,12 @@ import ReactDOM from "react-dom/client";
 import { App } from "./App";
 import { initI18n } from "./lib/i18n";
 import { initAccent } from "./stores/accent";
+import { installExtensionUIWatcher } from "./stores/extension-ui";
 import { installThemeWatcher } from "./stores/theme";
 import "./styles/globals.css";
 
 installThemeWatcher();
+installExtensionUIWatcher();
 initAccent();
 initI18n();
 

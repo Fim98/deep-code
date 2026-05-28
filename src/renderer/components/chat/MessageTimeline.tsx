@@ -18,6 +18,7 @@ import {
 } from "@/components/ai-elements/conversation";
 import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
 import { Shimmer } from "@/components/ai-elements/shimmer";
+import { t as translate, useI18n } from "@/lib/i18n";
 import { pi } from "@/lib/rpc";
 import { emitToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -93,6 +94,7 @@ type TimelineItem =
 	| { type: "custom"; key: string; message: Extract<ChatMessage, { role: "custom" }> };
 
 export function MessageTimeline({ sessionId }: Props) {
+	const { t } = useI18n();
 	const slice = useSessions((s) => s.bySession[sessionId]);
 	const messages = slice?.messages ?? [];
 	const isStreaming = slice?.isStreaming ?? false;
@@ -135,7 +137,9 @@ export function MessageTimeline({ sessionId }: Props) {
 					emitToast(resp.error);
 				}
 			} catch (e) {
-				emitToast(`Fork failed: ${e instanceof Error ? e.message : String(e)}`);
+				emitToast(
+					translate("toast.forkFailed", { error: e instanceof Error ? e.message : String(e) }),
+				);
 			}
 		},
 		[sessionId, hydrate],
@@ -192,8 +196,8 @@ export function MessageTimeline({ sessionId }: Props) {
 				{messages.length === 0 && queuedMessages.length === 0 && pendingSubmissions.length === 0 ? (
 					<ConversationEmptyState
 						icon={<Sparkles className="size-7" />}
-						title="Send a message to begin"
-						description="Ask pi to read, edit, search, or run anything in this workspace."
+						title={t("timeline.emptyTitle")}
+						description={t("timeline.emptyDescription")}
 					/>
 				) : (
 					<>
@@ -286,12 +290,13 @@ function PendingSubmissionTurn({ submission }: { submission: PendingSubmission }
 }
 
 function QueuedMessageRow({ content, type }: { content: string; type: "steering" | "followUp" }) {
+	const { t } = useI18n();
 	return (
 		<Message from="user">
 			<div className="flex min-w-0 w-fit max-w-[76%] flex-col gap-2 rounded-[22px] rounded-br-[10px] border border-primary/15 bg-card/90 px-4 py-3 text-[14px] leading-6 text-foreground shadow-[0_10px_30px_rgba(0,0,0,0.04)] backdrop-blur-xl">
 				<div className="flex items-center gap-2 text-[11px] font-medium text-primary/70">
 					<span className="size-1.5 rounded-full bg-primary/50" />
-					{type === "steering" ? "Queued steer" : "Queued follow-up"}
+					{type === "steering" ? t("timeline.queuedSteer") : t("timeline.queuedFollowUp")}
 				</div>
 				<div className="min-w-0 whitespace-pre-wrap break-words text-foreground/85 [overflow-wrap:anywhere]">
 					{content}
@@ -310,6 +315,7 @@ function UserRow({
 	forkEntryId?: string;
 	onFork?: (entryId: string) => void;
 }) {
+	const { t } = useI18n();
 	const text =
 		typeof content === "string"
 			? content
@@ -351,10 +357,10 @@ function UserRow({
 							"group-hover/user:opacity-100 hover:text-primary",
 							"focus:opacity-100 focus:outline-none",
 						)}
-						title="Fork from here"
+						title={t("timeline.forkFromHere")}
 					>
 						<GitFork className="size-3" />
-						Fork
+						{t("branches.forkLabel")}
 					</button>
 				) : null}
 			</div>
@@ -481,6 +487,7 @@ function ActivityPanel({
 	isStreaming: boolean;
 	hasFinalText: boolean;
 }) {
+	const { t } = useI18n();
 	const [manualOpen, setManualOpen] = useState<boolean | null>(null);
 	const groups = useMemo(() => groupActivities(activities), [activities]);
 	const autoOpen = isStreaming || !hasFinalText;
@@ -492,7 +499,9 @@ function ActivityPanel({
 
 	if (activities.length === 0 && !isStreaming) return null;
 
-	const label = isStreaming ? `正在处理 ${elapsed}` : `已处理 ${elapsed}`;
+	const label = isStreaming
+		? t("activity.processing", { elapsed })
+		: t("activity.processed", { elapsed });
 
 	return (
 		<div className="w-full text-muted-foreground">
@@ -517,7 +526,7 @@ function ActivityPanel({
 									{
 										id: "working",
 										kind: "thinking",
-										label: "Preparing next step",
+										label: translate("timeline.preparingNextStep"),
 										status: "running",
 									},
 								],
@@ -610,6 +619,7 @@ function OrphanToolResult({
 	content: unknown[];
 	isError: boolean;
 }) {
+	const { t } = useI18n();
 	const text = (content as Part[])
 		.filter((p): p is Part & { type: "text" } => p?.type === "text")
 		.map((p) => p.text)
@@ -628,10 +638,10 @@ function OrphanToolResult({
 				<div className="mb-2 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.08em]">
 					<span>{toolName}</span>
 					<span className="opacity-50">·</span>
-					<span>{isError ? "error" : "result"}</span>
+					<span>{isError ? t("timeline.error") : t("timeline.result")}</span>
 				</div>
 				<pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-5 [overflow-wrap:anywhere]">
-					{text || "(no output)"}
+					{text || t("timeline.noOutput")}
 				</pre>
 			</MessageContent>
 		</Message>
@@ -720,24 +730,24 @@ function aggregateStatus(items: ActivityItem[]): ActivityStatus {
 	return "done";
 }
 
-function groupTitle(group: ActivityGroup) {
+function groupTitle(group: ActivityGroup): string {
 	const count = group.items.length;
 	const failed = group.items.filter((item) => item.status === "error").length;
 	const running = group.status === "running" || group.status === "pending";
-	const prefix = running ? runningPrefix(group.kind) : donePrefix(group.kind);
+	const prefix = running ? runningGroupTitle(group) : donePrefix(group.kind);
 	const unit = unitForKind(group.kind);
-	const failureText = failed > 0 ? `，其中 ${failed} ${unit}失败` : "";
+	const failureText = failed > 0 ? translate("activity.group.failed", { count: failed, unit }) : "";
 	return `${prefix} ${count} ${unit}${failureText}`;
 }
 
-function runningGroupTitle(group: ActivityGroup) {
+function runningGroupTitle(group: ActivityGroup): string {
 	const current =
 		group.items.find((item) => item.status === "running") ??
 		group.items.find((item) => item.status === "pending") ??
 		group.items[0];
 	if (!current) return groupTitle(group);
 	if (group.items.length === 1) return formatItemLabel(current, true);
-	return `${formatItemLabel(current, true)} 等 ${group.items.length} 项`;
+	return `${formatItemLabel(current, true)} ${translate("activity.group.etc", { count: group.items.length })}`;
 }
 
 function formatItemLabel(item: ActivityItem, withAction = false) {
@@ -746,76 +756,60 @@ function formatItemLabel(item: ActivityItem, withAction = false) {
 	switch (item.action ?? item.kind) {
 		case "think":
 		case "thinking":
-			return "正在思考";
+			return translate("activity.running.thinking");
 		case "write":
-			return `正在写入 ${label}`;
+			return translate("activity.running.write", { label });
 		case "edit":
-			return `正在编辑 ${label}`;
+			return translate("activity.running.edit", { label });
 		case "run":
 		case "command":
-			return `正在运行 ${label}`;
+			return translate("activity.running.run", { label });
 		case "read":
-			return `正在读取 ${label}`;
+			return translate("activity.running.read", { label });
 		case "search":
-			return `正在搜索 ${label}`;
+			return translate("activity.running.search", { label });
 		default:
-			return `正在处理 ${label}`;
+			return translate("activity.running.process", { label });
 	}
 }
 
-function runningPrefix(kind: ActivityKind) {
-	switch (kind) {
-		case "thinking":
-			return "正在引导";
-		case "command":
-			return "正在运行";
-		case "edit":
-			return "正在编辑";
-		case "write":
-			return "正在写入";
-		case "read":
-			return "正在读取";
-		case "search":
-			return "正在搜索";
-		default:
-			return "正在处理";
-	}
+function _runningPrefix(kind: ActivityKind) {
+	const keyMap: Record<ActivityKind, string> = {
+		thinking: "activity.group.thinking.running",
+		command: "activity.group.command.running",
+		edit: "activity.group.edit.running",
+		write: "activity.group.write.running",
+		read: "activity.group.read.running",
+		search: "activity.group.search.running",
+		other: "activity.group.other.running",
+	};
+	return translate(keyMap[kind]);
 }
 
 function donePrefix(kind: ActivityKind) {
-	switch (kind) {
-		case "thinking":
-			return "已引导";
-		case "command":
-			return "已运行";
-		case "edit":
-			return "已编辑";
-		case "write":
-			return "已写入";
-		case "read":
-			return "已读取";
-		case "search":
-			return "已搜索";
-		default:
-			return "已处理";
-	}
+	const keyMap: Record<ActivityKind, string> = {
+		thinking: "activity.group.thinking.done",
+		command: "activity.group.command.done",
+		edit: "activity.group.edit.done",
+		write: "activity.group.write.done",
+		read: "activity.group.read.done",
+		search: "activity.group.search.done",
+		other: "activity.group.other.done",
+	};
+	return translate(keyMap[kind]);
 }
 
 function unitForKind(kind: ActivityKind) {
-	switch (kind) {
-		case "thinking":
-			return "段对话";
-		case "command":
-			return "条命令";
-		case "edit":
-		case "write":
-		case "read":
-			return "个文件";
-		case "search":
-			return "次搜索";
-		default:
-			return "项任务";
-	}
+	const keyMap: Record<ActivityKind, string> = {
+		thinking: "activity.unit.thinking",
+		command: "activity.unit.command",
+		edit: "activity.unit.file",
+		write: "activity.unit.file",
+		read: "activity.unit.file",
+		search: "activity.unit.search",
+		other: "activity.unit.other",
+	};
+	return translate(keyMap[kind]);
 }
 
 function kindForTool(name: string, _args: Record<string, unknown>): ActivityKind {

@@ -19,6 +19,7 @@ import {
 	type ToolState,
 } from "@/components/ai-elements/tool";
 import { DiffViewer } from "@/components/chat/DiffViewer";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { ToolExecutionState } from "@/stores/session-state";
 
@@ -43,6 +44,7 @@ interface Props {
 }
 
 export function ToolCallCard({ call, result, execution }: Props) {
+	const { t } = useI18n();
 	const [open, setOpen] = useState(() => !result);
 	const Icon = iconFor(call.name);
 	const summary = summarizeArgs(call.name, call.arguments);
@@ -85,17 +87,17 @@ export function ToolCallCard({ call, result, execution }: Props) {
 				{diffPatch ? (
 					<div>
 						<div className="mb-1.5 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-							Diff
+							{t("tool.diff")}
 						</div>
 						<DiffViewer patch={diffPatch} className="max-h-72" />
 					</div>
 				) : null}
 				{liveResult ? (
 					<ToolOutput
-						errorText={liveResult.isError ? resultText || "Tool failed" : undefined}
+						errorText={liveResult.isError ? resultText || t("tool.failed") : undefined}
 						output={
 							<MessageResponse className="text-[12px] leading-6">
-								{resultText || "(no output)"}
+								{resultText || t("tool.noOutput")}
 							</MessageResponse>
 						}
 					/>
