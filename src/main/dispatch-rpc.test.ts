@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createMockSession } from "../test/mock-session";
 import { dispatchRpc } from "./dispatch-rpc";
 
@@ -400,31 +400,172 @@ describe("dispatchRpc", () => {
 		});
 	});
 
-	// ── desktop-only commands (should fail) ─────────────────────────────────
-	describe("desktop-only commands", () => {
-		const desktopCommands = [
-			"new_session",
-			"switch_session",
-			"fork",
-			"clone",
-			"get_commands",
-		] as const;
+	// ── session replacement commands ──────────────────────────────────────
+	describe("session replacement commands (no runtime)", () => {
+		it("new_session fails without runtime", async () => {
+			const resp = await dispatchRpc(session as any, { id: "28", type: "new_session" } as any);
+			expect(resp.success).toBe(false);
+			if (!resp.success) expect(resp.error).toContain("Runtime not available");
+		});
 
-		for (const cmd of desktopCommands) {
-			it(`${cmd} returns failure (handled by registry)`, async () => {
-				const resp = await dispatchRpc(
-					session as any,
-					{
-						id: "28",
-						type: cmd,
-					} as any,
-				);
-				expect(resp.success).toBe(false);
-				if (!resp.success) {
-					expect(resp.error).toContain("desktop session registry");
-				}
-			});
-		}
+		it("switch_session fails without runtime", async () => {
+			const resp = await dispatchRpc(
+				session as any,
+				{ id: "28", type: "switch_session", sessionPath: "/tmp/x.json" } as any,
+			);
+			expect(resp.success).toBe(false);
+			if (!resp.success) expect(resp.error).toContain("Runtime not available");
+		});
+
+		it("fork fails without runtime", async () => {
+			const resp = await dispatchRpc(
+				session as any,
+				{ id: "28", type: "fork", entryId: "e1" } as any,
+			);
+			expect(resp.success).toBe(false);
+			if (!resp.success) expect(resp.error).toContain("Runtime not available");
+		});
+
+		it("clone fails without runtime", async () => {
+			const resp = await dispatchRpc(session as any, { id: "28", type: "clone" } as any);
+			expect(resp.success).toBe(false);
+			if (!resp.success) expect(resp.error).toContain("Runtime not available");
+		});
+	});
+
+	describe("session replacement commands (with runtime)", () => {
+		let mockRuntime: {
+			newSession: ReturnType<typeof vi.fn>;
+			switchSession: ReturnType<typeof vi.fn>;
+			fork: ReturnType<typeof vi.fn>;
+			dispose: ReturnType<typeof vi.fn>;
+		};
+
+		beforeEach(() => {
+			mockRuntime = {
+				newSession: vi.fn().mockResolvedValue({ cancelled: false }),
+				switchSession: vi.fn().mockResolvedValue({ cancelled: false }),
+				fork: vi.fn().mockResolvedValue({ cancelled: false, selectedText: "forked text" }),
+				dispose: vi.fn(),
+			};
+		});
+
+		it("new_session delegates to runtime.newSession", async () => {
+			const resp = await dispatchRpc(
+				session as any,
+				{ id: "30", type: "new_session" } as any,
+				mockRuntime as any,
+			);
+			expect(mockRuntime.newSession).toHaveBeenCalled();
+			expect(resp.success).toBe(true);
+			if (resp.success && resp.command === "new_session") {
+				expect(resp.data.cancelled).toBe(false);
+			}
+		});
+
+		it("new_session passes parentSession option", async () => {
+			const resp = await dispatchRpc(
+				session as any,
+				{ id: "31", type: "new_session", parentSession: "/tmp/parent.json" } as any,
+				mockRuntime as any,
+			);
+			expect(mockRuntime.newSession).toHaveBeenCalledWith({ parentSession: "/tmp/parent.json" });
+			expect(resp.success).toBe(true);
+		});
+
+		it("switch_session delegates to runtime.switchSession", async () => {
+			const resp = await dispatchRpc(
+				session as any,
+				{ id: "32", type: "switch_session", sessionPath: "/tmp/other.json" } as any,
+				mockRuntime as any,
+			);
+			expect(mockRuntime.switchSession).toHaveBeenCalledWith("/tmp/other.json");
+			expect(resp.success).toBe(true);
+			if (resp.success && resp.command === "switch_session") {
+				expect(resp.data.cancelled).toBe(false);
+			}
+		});
+
+		it("fork delegates to runtime.fork and returns text", async () => {
+			const resp = await dispatchRpc(
+				session as any,
+				{ id: "33", type: "fork", entryId: "entry-42" } as any,
+				mockRuntime as any,
+			);
+			expect(mockRuntime.fork).toHaveBeenCalledWith("entry-42");
+			expect(resp.success).toBe(true);
+			if (resp.success && resp.command === "fork") {
+				expect(resp.data.text).toBe("forked text");
+				expect(resp.data.cancelled).toBe(false);
+			}
+		});
+
+		it("clone uses getLeafId + runtime.fork at position 'at'", async () => {
+			session.sessionManager = { getLeafId: vi.fn().mockReturnValue("leaf-99") } as any;
+			const resp = await dispatchRpc(
+				session as any,
+				{ id: "34", type: "clone" } as any,
+				mockRuntime as any,
+			);
+			expect(mockRuntime.fork).toHaveBeenCalledWith("leaf-99", { position: "at" });
+			expect(resp.success).toBe(true);
+		});
+
+		it("clone fails when no leaf id", async () => {
+			session.sessionManager = { getLeafId: vi.fn().mockReturnValue(null) } as any;
+			const resp = await dispatchRpc(
+				session as any,
+				{ id: "35", type: "clone" } as any,
+				mockRuntime as any,
+			);
+			expect(resp.success).toBe(false);
+			if (!resp.success) expect(resp.error).toContain("no current entry");
+		});
+	});
+
+	// ── get_commands ────────────────────────────────────────────────────────
+	describe("get_commands", () => {
+		it("returns registered extension commands, prompt templates, and skills", async () => {
+			session.extensionRunner = {
+				getRegisteredCommands: vi
+					.fn()
+					.mockReturnValue([
+						{ invocationName: "help", description: "Show help", sourceInfo: { path: "ext1" } },
+					]),
+			} as any;
+			session.promptTemplates = [
+				{ name: "review", description: "Code review", sourceInfo: { path: "pt1" } },
+			] as any;
+			session.resourceLoader = {
+				getSkills: vi.fn().mockReturnValue({
+					skills: [{ name: "debug", description: "Debug helper", sourceInfo: { path: "sk1" } }],
+				}),
+			} as any;
+
+			const resp = await dispatchRpc(session as any, { id: "36", type: "get_commands" });
+			expect(resp.success).toBe(true);
+			if (resp.success && resp.command === "get_commands") {
+				expect(resp.data.commands).toHaveLength(3);
+				expect(resp.data.commands[0].name).toBe("help");
+				expect(resp.data.commands[0].source).toBe("extension");
+				expect(resp.data.commands[1].name).toBe("review");
+				expect(resp.data.commands[1].source).toBe("prompt");
+				expect(resp.data.commands[2].name).toBe("skill:debug");
+				expect(resp.data.commands[2].source).toBe("skill");
+			}
+		});
+
+		it("returns empty commands when nothing registered", async () => {
+			session.extensionRunner = { getRegisteredCommands: vi.fn().mockReturnValue([]) } as any;
+			session.promptTemplates = [];
+			session.resourceLoader = { getSkills: vi.fn().mockReturnValue({ skills: [] }) } as any;
+
+			const resp = await dispatchRpc(session as any, { id: "37", type: "get_commands" });
+			expect(resp.success).toBe(true);
+			if (resp.success && resp.command === "get_commands") {
+				expect(resp.data.commands).toHaveLength(0);
+			}
+		});
 	});
 
 	// ── unknown command ─────────────────────────────────────────────────────

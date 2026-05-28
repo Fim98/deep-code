@@ -75,7 +75,8 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 
 	ipcMain.handle("pi:rpc", async (_e, sessionId: string, command: RpcCommand) => {
 		const session = sessionRegistry.get(sessionId);
-		return dispatchRpc(session, command);
+		const runtime = sessionRegistry.getRuntime(sessionId);
+		return dispatchRpc(session, command, runtime);
 	});
 
 	ipcMain.handle("pi:ping", () => "pong");

@@ -2,7 +2,12 @@ import { randomUUID } from "node:crypto";
 import {
 	type AgentSession,
 	type AgentSessionEvent,
-	createAgentSession,
+	type AgentSessionRuntime,
+	type CreateAgentSessionRuntimeFactory,
+	type CreateAgentSessionRuntimeResult,
+	createAgentSessionFromServices,
+	createAgentSessionRuntime,
+	createAgentSessionServices,
 	SessionManager,
 } from "@earendil-works/pi-coding-agent";
 import { getSharedServices } from "./shared-services.js";
@@ -24,9 +29,10 @@ export interface OpenSessionResult {
 type Listener = (event: AgentSessionEvent) => void;
 
 interface Entry {
-	session: AgentSession;
+	runtime: AgentSessionRuntime;
 	workspaceId: string;
-	unsubscribe: () => void;
+	/** Mutable ref — updated on each rebind after session replacement. */
+	unsubRef: { current: () => void };
 	listeners: Set<Listener>;
 }
 
@@ -36,43 +42,84 @@ class SessionRegistryImpl {
 	async open(opts: OpenSessionOptions): Promise<OpenSessionResult> {
 		const ws = getWorkspace(opts.workspaceId);
 		if (!ws) throw new Error(`Unknown workspaceId: ${opts.workspaceId}`);
-		const { authStorage, modelRegistry } = getSharedServices();
+		const { authStorage, modelRegistry, agentDir } = getSharedServices();
+
 		const sessionManager = opts.sessionFile
 			? SessionManager.open(opts.sessionFile, undefined, ws.path)
 			: SessionManager.create(ws.path);
-		const { session } = await createAgentSession({
+
+		const createRuntime: CreateAgentSessionRuntimeFactory = async (
+			options,
+		): Promise<CreateAgentSessionRuntimeResult> => {
+			const services = await createAgentSessionServices({
+				cwd: options.cwd,
+				agentDir: options.agentDir,
+				authStorage,
+				modelRegistry,
+			});
+			const result = await createAgentSessionFromServices({
+				services,
+				sessionManager: options.sessionManager,
+				sessionStartEvent: options.sessionStartEvent,
+			});
+			return { ...result, services, diagnostics: services.diagnostics };
+		};
+
+		const runtime = await createAgentSessionRuntime(createRuntime, {
 			cwd: ws.path,
-			authStorage,
-			modelRegistry,
+			agentDir,
 			sessionManager,
 		});
+
 		const sessionId = randomUUID();
 		const listeners = new Set<Listener>();
-		const unsubscribe = session.subscribe((event) => {
-			for (const l of listeners) l(event);
+
+		// Subscribe to the current session's events
+		const unsubRef: { current: () => void } = {
+			current: runtime.session.subscribe((event) => {
+				for (const l of listeners) l(event);
+			}),
+		};
+
+		// Tell the runtime how to rebind after session replacement (new/fork/switch)
+		runtime.setRebindSession(async () => {
+			unsubRef.current();
+			unsubRef.current = runtime.session.subscribe((event) => {
+				for (const l of listeners) l(event);
+			});
 		});
+
 		this.entries.set(sessionId, {
-			session,
+			runtime,
 			workspaceId: opts.workspaceId,
-			unsubscribe,
+			unsubRef,
 			listeners,
 		});
+
 		return {
 			sessionId,
 			workspaceId: opts.workspaceId,
-			sessionFile: session.sessionFile,
-			piSessionId: session.sessionId,
+			sessionFile: runtime.session.sessionFile,
+			piSessionId: runtime.session.sessionId,
 		};
 	}
 
+	/** Get the current AgentSession for an entry (always the latest after replacement). */
 	get(sessionId: string): AgentSession {
 		const entry = this.entries.get(sessionId);
 		if (!entry) throw new Error(`Unknown session: ${sessionId}`);
-		return entry.session;
+		return entry.runtime.session;
+	}
+
+	/** Get the AgentSessionRuntime for session replacement commands. */
+	getRuntime(sessionId: string): AgentSessionRuntime {
+		const entry = this.entries.get(sessionId);
+		if (!entry) throw new Error(`Unknown session: ${sessionId}`);
+		return entry.runtime;
 	}
 
 	tryGet(sessionId: string): AgentSession | undefined {
-		return this.entries.get(sessionId)?.session;
+		return this.entries.get(sessionId)?.runtime.session;
 	}
 
 	addListener(sessionId: string, listener: Listener): () => void {
@@ -85,8 +132,9 @@ class SessionRegistryImpl {
 	async close(sessionId: string): Promise<void> {
 		const entry = this.entries.get(sessionId);
 		if (!entry) return;
-		entry.unsubscribe();
+		entry.unsubRef.current();
 		entry.listeners.clear();
+		await entry.runtime.dispose();
 		this.entries.delete(sessionId);
 	}
 

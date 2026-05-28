@@ -57,7 +57,7 @@ session behavior grows more complex.
 
 ---
 
-### A3 · Runtime/session alignment with pi — **L**
+### A3 · Runtime/session alignment with pi — **L** — Done
 
 The current desktop registry owns a `Map<sessionId, AgentSession>`, which is
 enough for chat but blocks native pi session replacement flows. Commands such
@@ -69,8 +69,12 @@ route session replacement through pi's native runtime methods. Keep the
 renderer-facing desktop session id stable while rebinding to the replaced pi
 session.
 
-**Done when**: `new_session`, `switch_session`, `fork`, `clone`, and
-`get_commands` work through the same bridge as normal prompts.
+**Done**: `session-registry.ts` now owns `AgentSessionRuntime` per entry. On
+session replacement (new/fork/switch), `setRebindSession` re-subscribes event
+listeners to the new pi session while keeping the desktop sessionId stable.
+`dispatchRpc` accepts an optional runtime parameter and handles `new_session`,
+`switch_session`, `fork`, `clone`, and `get_commands` natively. 7 new tests
+cover all session replacement paths.
 
 ---
 
@@ -304,8 +308,8 @@ above.
 
 ## Suggested order for the next sprint
 
-1. **A2** minimal tests/CI (M) — establishes a regression floor.
-2. **A3** runtime/session alignment (L) — unlocks fork/clone/commands cleanly.
+1. ~~**A2** minimal tests/CI (M)~~ — **Done** (132 tests, CI pipeline).
+2. ~~**A3** runtime/session alignment (L)~~ — **Done** (AgentSessionRuntime integrated).
 3. **B1** command palette (M) — largest daily navigation win.
 4. **B2** attachments (M) — unlocks vision workflows.
 5. **B3** Settings dialog v2 (M) — makes pi settings editable from the app.

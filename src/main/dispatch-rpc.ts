@@ -1,4 +1,9 @@
-import type { AgentSession, RpcCommand, RpcResponse } from "@earendil-works/pi-coding-agent";
+import type {
+	AgentSession,
+	AgentSessionRuntime,
+	RpcCommand,
+	RpcResponse,
+} from "@earendil-works/pi-coding-agent";
 
 type SuccessData<T extends RpcCommand["type"]> =
 	Extract<RpcResponse, { command: T; success: true }> extends { data: infer D } ? D : undefined;
@@ -22,10 +27,17 @@ function fail(id: string | undefined, command: string, message: string): RpcResp
  * Translate a structured RpcCommand into a direct AgentSession call.
  * No serialization or process boundary involved — this runs in-process.
  *
+ * For session-replacement commands (new_session, switch_session, fork, clone),
+ * pass the AgentSessionRuntime. Without it, those commands return an error.
+ *
  * Mirrors packages/coding-agent/src/modes/rpc/rpc-mode.ts handleCommand,
  * but minus the stdio I/O layer.
  */
-export async function dispatchRpc(session: AgentSession, cmd: RpcCommand): Promise<RpcResponse> {
+export async function dispatchRpc(
+	session: AgentSession,
+	cmd: RpcCommand,
+	runtime?: AgentSessionRuntime,
+): Promise<RpcResponse> {
 	const id = cmd.id;
 	try {
 		switch (cmd.type) {
@@ -174,16 +186,79 @@ export async function dispatchRpc(session: AgentSession, cmd: RpcCommand): Promi
 				});
 			}
 
-			case "new_session":
-			case "switch_session":
-			case "fork":
-			case "clone":
+			// ── Session replacement commands (require runtime) ──────────────
+
+			case "new_session": {
+				if (!runtime) {
+					return fail(id, "new_session", "Runtime not available for new_session");
+				}
+				const options = cmd.parentSession ? { parentSession: cmd.parentSession } : undefined;
+				const result = await runtime.newSession(options);
+				return ok(id, "new_session", result);
+			}
+
+			case "switch_session": {
+				if (!runtime) {
+					return fail(id, "switch_session", "Runtime not available for switch_session");
+				}
+				const result = await runtime.switchSession(cmd.sessionPath);
+				return ok(id, "switch_session", result);
+			}
+
+			case "fork": {
+				if (!runtime) {
+					return fail(id, "fork", "Runtime not available for fork");
+				}
+				const result = await runtime.fork(cmd.entryId);
+				return ok(id, "fork", {
+					text: result.selectedText ?? "",
+					cancelled: result.cancelled,
+				});
+			}
+
+			case "clone": {
+				if (!runtime) {
+					return fail(id, "clone", "Runtime not available for clone");
+				}
+				const leafId = session.sessionManager.getLeafId();
+				if (!leafId) {
+					return fail(id, "clone", "Cannot clone session: no current entry selected");
+				}
+				const result = await runtime.fork(leafId, { position: "at" });
+				return ok(id, "clone", { cancelled: result.cancelled });
+			}
+
 			case "get_commands": {
-				return fail(
-					id,
-					cmd.type,
-					`Command "${cmd.type}" is handled by the desktop session registry, not by dispatchRpc`,
-				);
+				const commands: NonNullable<SuccessData<"get_commands">>["commands"] = [];
+
+				for (const command of session.extensionRunner.getRegisteredCommands()) {
+					commands.push({
+						name: command.invocationName,
+						description: command.description,
+						source: "extension",
+						sourceInfo: command.sourceInfo,
+					});
+				}
+
+				for (const template of session.promptTemplates) {
+					commands.push({
+						name: template.name,
+						description: template.description,
+						source: "prompt",
+						sourceInfo: template.sourceInfo,
+					});
+				}
+
+				for (const skill of session.resourceLoader.getSkills().skills) {
+					commands.push({
+						name: `skill:${skill.name}`,
+						description: skill.description,
+						source: "skill",
+						sourceInfo: skill.sourceInfo,
+					});
+				}
+
+				return ok(id, "get_commands", { commands });
 			}
 
 			default: {

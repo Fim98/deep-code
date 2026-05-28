@@ -22,8 +22,18 @@ export interface MockAgentSession {
 	autoCompactionEnabled: boolean;
 	messages: unknown[];
 	pendingMessageCount: number;
+	sessionManager: {
+		getLeafId: ReturnType<typeof vi.fn>;
+	};
 	modelRegistry: {
 		getAvailable: ReturnType<typeof vi.fn>;
+	};
+	extensionRunner: {
+		getRegisteredCommands: ReturnType<typeof vi.fn>;
+	};
+	promptTemplates: unknown[];
+	resourceLoader: {
+		getSkills: ReturnType<typeof vi.fn>;
 	};
 	setModel: ReturnType<typeof vi.fn>;
 	cycleModel: ReturnType<typeof vi.fn>;
@@ -63,8 +73,18 @@ export function createMockSession(overrides: Partial<MockAgentSession> = {}): Mo
 		autoCompactionEnabled: true,
 		messages: [],
 		pendingMessageCount: 0,
+		sessionManager: {
+			getLeafId: vi.fn().mockReturnValue(null),
+		},
 		modelRegistry: {
 			getAvailable: vi.fn().mockResolvedValue([]),
+		},
+		extensionRunner: {
+			getRegisteredCommands: vi.fn().mockReturnValue([]),
+		},
+		promptTemplates: [],
+		resourceLoader: {
+			getSkills: vi.fn().mockReturnValue({ skills: [] }),
 		},
 		setModel: vi.fn().mockResolvedValue(undefined),
 		cycleModel: vi.fn().mockResolvedValue(null),
