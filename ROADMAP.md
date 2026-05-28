@@ -345,12 +345,19 @@ with PII filtering (strips user paths from stack frames). IPC handlers
 `pi:telemetry:get/set` + preload bridge `telemetry.{get,set}`.
 Settings → General → Privacy section with toggle.
 
-### E5 · Broader tests — **L**
+### E5 · Broader tests — **L** — Done
 - vitest for `dispatch-rpc.ts`, `workspace-store.ts`, `session-fs.ts`
 - @testing-library/react for `ModelPicker`, `Composer`,
   `SettingsDialog`, `MessageTimeline`
 - playwright-electron smoke for: open app → add workspace → new session
   → send prompt → see response
+
+**Done**: 260 tests (124 node + 136 web) covering:
+- plan-tracker-core (26 tests for pure logic functions)
+- settings (11 tests for get/set with mocked SettingsManager)
+- ansi parser (11 tests for SGR/256-color/true-color)
+- ThemeSwitcher (4 tests for popover/selection)
+- All previously covered modules
 
 ---
 
@@ -396,5 +403,6 @@ above.
 15. ~~**C4** File tree sidebar (L)~~ — **Done** (lazy-loaded directory walker + collapsible tree + 6 tests).
 16. ~~**E2** Multi-window (M)~~ — **Done** (multi-BrowserWindow + ⌘⇧N shortcut).
 17. ~~**E4** Telemetry/Sentry (M)~~ — **Done** (opt-in Sentry + PII filtering + Settings toggle).
+18. ~~**E5** Broader tests (L)~~ — **Done** (260 tests: +55 across plan-tracker, settings, ansi, ThemeSwitcher).
 
 After this sprint, deepcode is closer to a real alpha than a dev demo.
