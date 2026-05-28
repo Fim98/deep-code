@@ -23,7 +23,6 @@ import { BashPanel } from "@/components/panels/BashPanel";
 import { ContextBar } from "@/components/settings/ContextBar";
 import { ModelPicker } from "@/components/settings/ModelPicker";
 import { SettingsDialog } from "@/components/settings/SettingsDialog";
-import { ThemeSwitcher } from "@/components/settings/ThemeSwitcher";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -408,7 +407,6 @@ export function App() {
 									Share
 								</Button>
 							) : null}
-							<ThemeSwitcher />
 							<Button
 								size="sm"
 								variant="primary"
