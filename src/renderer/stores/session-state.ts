@@ -49,11 +49,23 @@ export interface ToolExecutionState {
 	updatedAt: number;
 }
 
+export interface PendingSubmission {
+	id: string;
+	content: string;
+	kind: "prompt" | "steer";
+	createdAt: number;
+}
+
 interface SessionSlice {
 	messages: ChatMessage[];
 	state: RpcSessionState | null;
 	isStreaming: boolean;
 	activeTools: Record<string, ToolExecutionState>;
+	pendingSubmissions: PendingSubmission[];
+	queue: {
+		steering: string[];
+		followUp: string[];
+	};
 }
 
 interface Store {
@@ -62,6 +74,11 @@ interface Store {
 	setCurrent: (sid: string | null) => void;
 	hydrate: (sid: string) => Promise<void>;
 	attach: (sid: string) => () => void;
+	addPendingSubmission: (
+		sid: string,
+		submission: Omit<PendingSubmission, "createdAt">,
+	) => void;
+	removePendingSubmission: (sid: string, id: string) => void;
 }
 
 const emptySlice = (): SessionSlice => ({
@@ -69,6 +86,8 @@ const emptySlice = (): SessionSlice => ({
 	state: null,
 	isStreaming: false,
 	activeTools: {},
+	pendingSubmissions: [],
+	queue: { steering: [], followUp: [] },
 });
 
 function toChatMessage(m: any): ChatMessage {
@@ -122,6 +141,8 @@ export const useSessions = create<Store>((set, get) => ({
 					state,
 					isStreaming: state?.isStreaming ?? false,
 					activeTools: {},
+					pendingSubmissions: [],
+					queue: { steering: [], followUp: [] },
 				},
 			},
 		}));
@@ -130,6 +151,41 @@ export const useSessions = create<Store>((set, get) => ({
 	attach: (sid: string) => {
 		const unsub = pi.rpc.subscribe(sid, (ev) => applyEvent(set, get, sid, ev));
 		return unsub;
+	},
+
+	addPendingSubmission: (sid, submission) => {
+		set((s) => {
+			const slice = s.bySession[sid] ?? emptySlice();
+			return {
+				bySession: {
+					...s.bySession,
+					[sid]: {
+						...slice,
+						pendingSubmissions: [
+							...slice.pendingSubmissions,
+							{ ...submission, createdAt: Date.now() },
+						],
+					},
+				},
+			};
+		});
+	},
+
+	removePendingSubmission: (sid, id) => {
+		set((s) => {
+			const slice = s.bySession[sid] ?? emptySlice();
+			return {
+				bySession: {
+					...s.bySession,
+					[sid]: {
+						...slice,
+						pendingSubmissions: slice.pendingSubmissions.filter(
+							(item) => item.id !== id,
+						),
+					},
+				},
+			};
+		});
 	},
 }));
 
@@ -143,6 +199,20 @@ function applyEvent(
 		const slice = s.bySession[sid] ?? emptySlice();
 		let next: SessionSlice = slice;
 		switch (event.type) {
+			case "queue_update": {
+				const queued = new Set([...event.steering, ...event.followUp]);
+				next = {
+					...slice,
+					pendingSubmissions: slice.pendingSubmissions.filter(
+						(item) => !queued.has(item.content),
+					),
+					queue: {
+						steering: [...event.steering],
+						followUp: [...event.followUp],
+					},
+				};
+				break;
+			}
 			case "agent_start": {
 				next = { ...slice, isStreaming: true };
 				break;
@@ -158,7 +228,16 @@ function applyEvent(
 			case "message_update":
 			case "message_end": {
 				const incoming = toChatMessage(event.message);
-				next = { ...slice, messages: updateMessage(slice.messages, incoming) };
+				next = {
+					...slice,
+					messages: updateMessage(slice.messages, incoming),
+				};
+				if (incoming.role === "user") {
+					next.pendingSubmissions = removeMatchingPending(
+						slice.pendingSubmissions,
+						incoming.content,
+					);
+				}
 				if (event.type === "message_end" && incoming.role === "assistant") {
 					next.isStreaming = false;
 				}
@@ -169,7 +248,16 @@ function applyEvent(
 			}
 			case "turn_end": {
 				const incoming = toChatMessage(event.message);
-				next = { ...slice, messages: updateMessage(slice.messages, incoming) };
+				next = {
+					...slice,
+					messages: updateMessage(slice.messages, incoming),
+				};
+				if (incoming.role === "user") {
+					next.pendingSubmissions = removeMatchingPending(
+						slice.pendingSubmissions,
+						incoming.content,
+					);
+				}
 				if (event.toolResults?.length) {
 					let withResults = next.messages;
 					for (const r of event.toolResults) {
@@ -195,6 +283,31 @@ function applyEvent(
 		}
 		return { bySession: { ...s.bySession, [sid]: next } };
 	});
+}
+
+function removeMatchingPending(
+	pending: PendingSubmission[],
+	content: string | unknown[],
+): PendingSubmission[] {
+	const text = userMessageText(content);
+	if (!text) return pending;
+	const index = pending.findIndex((item) => item.content === text);
+	if (index === -1) return pending;
+	return pending.filter((_, itemIndex) => itemIndex !== index);
+}
+
+function userMessageText(content: string | unknown[]): string {
+	if (typeof content === "string") return content;
+	return content
+		.filter(
+			(part): part is { type: "text"; text: string } =>
+				!!part &&
+				typeof part === "object" &&
+				(part as { type?: unknown }).type === "text" &&
+				typeof (part as { text?: unknown }).text === "string",
+		)
+		.map((part) => part.text)
+		.join("\n");
 }
 
 function updateToolState(

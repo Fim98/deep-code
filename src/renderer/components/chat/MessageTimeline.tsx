@@ -24,6 +24,7 @@ import { Shimmer } from "@/components/ai-elements/shimmer";
 import {
 	useSessions,
 	type ChatMessage,
+	type PendingSubmission,
 	type ToolExecutionState,
 } from "@/stores/session-state";
 import { cn } from "@/lib/utils";
@@ -99,6 +100,22 @@ export function MessageTimeline({ sessionId }: Props) {
 	const messages = slice?.messages ?? [];
 	const isStreaming = slice?.isStreaming ?? false;
 	const activeTools = slice?.activeTools ?? {};
+	const pendingSubmissions = slice?.pendingSubmissions ?? [];
+	const queuedMessages = useMemo(
+		() => [
+			...((slice?.queue.steering ?? []).map((content, index) => ({
+				content,
+				index,
+				type: "steering" as const,
+			})) ?? []),
+			...((slice?.queue.followUp ?? []).map((content, index) => ({
+				content,
+				index,
+				type: "followUp" as const,
+			})) ?? []),
+		],
+		[slice?.queue.steering, slice?.queue.followUp],
+	);
 
 	const { toolResults, claimed } = useMemo(() => {
 		const map = new Map<string, ToolResultInfo>();
@@ -136,26 +153,41 @@ export function MessageTimeline({ sessionId }: Props) {
 	return (
 		<Conversation>
 			<ConversationContent>
-				{messages.length === 0 ? (
+				{messages.length === 0 && queuedMessages.length === 0 && pendingSubmissions.length === 0 ? (
 					<ConversationEmptyState
 						icon={<Sparkles className="size-7" />}
 						title="Send a message to begin"
 						description="Ask pi to read, edit, search, or run anything in this workspace."
 					/>
 				) : (
-					timelineItems.map((item) => (
-						<TimelineRow
-							key={item.key}
-							item={item}
-							toolResults={toolResults}
-							activeTools={activeTools}
-							isStreamingLast={
-								isStreaming &&
-								item.type === "assistantTurn" &&
-								item.lastIndex === lastAssistantIdx
-							}
-						/>
-					))
+					<>
+						{timelineItems.map((item) => (
+							<TimelineRow
+								key={item.key}
+								item={item}
+								toolResults={toolResults}
+								activeTools={activeTools}
+								isStreamingLast={
+									isStreaming &&
+									item.type === "assistantTurn" &&
+									item.lastIndex === lastAssistantIdx
+								}
+							/>
+						))}
+						{pendingSubmissions.map((submission) => (
+							<PendingSubmissionTurn
+								key={submission.id}
+								submission={submission}
+							/>
+						))}
+						{queuedMessages.map((message) => (
+							<QueuedMessageRow
+								key={`${message.type}-${message.index}-${message.content}`}
+								content={message.content}
+								type={message.type}
+							/>
+						))}
+					</>
 				)}
 			</ConversationContent>
 			<ConversationScrollButton />
@@ -198,6 +230,50 @@ function TimelineRow({
 	return null;
 }
 
+function PendingSubmissionTurn({
+	submission,
+}: {
+	submission: PendingSubmission;
+}) {
+	return (
+		<>
+			<UserRow content={submission.content} />
+			<Message from="assistant">
+				<MessageContent className="flex flex-col gap-3.5">
+					<ActivityPanel
+						activities={[]}
+						elapsed="0s"
+						isStreaming
+						hasFinalText={false}
+					/>
+				</MessageContent>
+			</Message>
+		</>
+	);
+}
+
+function QueuedMessageRow({
+	content,
+	type,
+}: {
+	content: string;
+	type: "steering" | "followUp";
+}) {
+	return (
+		<Message from="user">
+			<div className="flex min-w-0 w-fit max-w-[76%] flex-col gap-2 rounded-[22px] rounded-br-[10px] border border-primary/15 bg-card/90 px-4 py-3 text-[14px] leading-6 text-foreground shadow-[0_10px_30px_rgba(0,0,0,0.04)] backdrop-blur-xl">
+				<div className="flex items-center gap-2 text-[11px] font-medium text-primary/70">
+					<span className="size-1.5 rounded-full bg-primary/50" />
+					{type === "steering" ? "Queued steer" : "Queued follow-up"}
+				</div>
+				<div className="min-w-0 whitespace-pre-wrap break-words text-foreground/85 [overflow-wrap:anywhere]">
+					{content}
+				</div>
+			</div>
+		</Message>
+	);
+}
+
 function UserRow({ content }: { content: string | unknown[] }) {
 	const text =
 		typeof content === "string"
@@ -223,7 +299,11 @@ function UserRow({ content }: { content: string | unknown[] }) {
 						className="max-h-72 self-end rounded-[18px] border border-white/25 object-contain"
 					/>
 				))}
-				{text ? <div className="whitespace-pre-wrap">{text}</div> : null}
+				{text ? (
+					<div className="min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+						{text}
+					</div>
+				) : null}
 			</MessageContent>
 		</Message>
 	);
@@ -475,7 +555,7 @@ function CustomRow({ data }: { data: ChatMessage & { role: "custom" } }) {
 				<div className="font-medium uppercase tracking-[0.08em] opacity-70">
 					{data.subtype}
 				</div>
-				<pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap font-mono text-[11px] leading-5">
+				<pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-5 [overflow-wrap:anywhere]">
 					{summarize(data.data)}
 				</pre>
 			</MessageContent>
@@ -512,7 +592,7 @@ function OrphanToolResult({
 					<span className="opacity-50">·</span>
 					<span>{isError ? "error" : "result"}</span>
 				</div>
-				<pre className="max-h-48 overflow-auto whitespace-pre-wrap font-mono text-[11px] leading-5">
+				<pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-5 [overflow-wrap:anywhere]">
 					{text || "(no output)"}
 				</pre>
 			</MessageContent>

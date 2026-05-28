@@ -38,5 +38,6 @@ export async function listSessionsForCwd(cwd: string): Promise<SessionListItem[]
 }
 
 export async function deleteSessionFile(sessionPath: string): Promise<void> {
+	if (!sessionPath.trim()) throw new Error("Session path is empty");
 	await rm(sessionPath, { force: true });
 }

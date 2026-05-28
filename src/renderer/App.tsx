@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 import { MainArea } from "@/components/layout/MainArea";
 import {
 	Sidebar,
@@ -152,19 +153,24 @@ export function App() {
 		}
 	}
 
-	async function deleteSession(s: SessionInfo) {
-		if (!activeWs) return;
+	async function deleteSession(workspaceId: string, s: SessionInfo) {
 		const ok = window.confirm(
 			`Delete session "${s.name ?? (s.firstMessage.slice(0, 40) || "Untitled")}"?\n\nThis removes the session file from disk and cannot be undone.`,
 		);
 		if (!ok) return;
 		try {
-			await pi.sessions.delete({ workspaceId: activeWs, sessionPath: s.path });
+			await pi.sessions.delete({ workspaceId, sessionPath: s.path });
+			setSessionsByWs((prev) => ({
+				...prev,
+				[workspaceId]: (prev[workspaceId] ?? []).filter(
+					(session) => session.path !== s.path,
+				),
+			}));
 			if (s.id === activePiSid) {
 				setActiveSid(null);
 				setActivePiSid(null);
 			}
-			await refreshSessions(activeWs);
+			await refreshSessions(workspaceId);
 		} catch (e) {
 			emitToast(
 				`Delete failed: ${e instanceof Error ? e.message : String(e)}`,
@@ -234,13 +240,14 @@ export function App() {
 								active={w.id === activeWs}
 								sessions={sessionsByWs[w.id] ?? []}
 								activePiSid={activePiSid}
+								activeSessionRunning={!!slice?.isStreaming}
 								renamingId={renamingId}
 								onSelectWorkspace={selectWorkspace}
 								onOpenSession={openSession}
 								onStartRename={setRenamingId}
 								onSubmitRename={renameSession}
 								onCancelRename={() => setRenamingId(null)}
-								onDeleteSession={deleteSession}
+								onDeleteSession={(session) => deleteSession(w.id, session)}
 							/>
 						))
 					)}
@@ -353,6 +360,7 @@ function WorkspaceWithSessions({
 	active,
 	sessions,
 	activePiSid,
+	activeSessionRunning,
 	renamingId,
 	onSelectWorkspace,
 	onOpenSession,
@@ -365,6 +373,7 @@ function WorkspaceWithSessions({
 	active: boolean;
 	sessions: SessionInfo[];
 	activePiSid: string | null;
+	activeSessionRunning: boolean;
 	renamingId: string | null;
 	onSelectWorkspace: (id: string) => void;
 	onOpenSession: (sessionFile?: string) => void;
@@ -435,6 +444,7 @@ function WorkspaceWithSessions({
 								key={s.path}
 								session={s}
 								active={s.id === activePiSid}
+								isRunning={s.id === activePiSid && activeSessionRunning}
 								renaming={renamingId === s.path}
 								onClick={() => onOpenSession(s.path)}
 								onStartRename={() => onStartRename(s.path)}
@@ -502,6 +512,7 @@ function NoSessionState({
 function SessionRow({
 	session,
 	active,
+	isRunning,
 	renaming,
 	onClick,
 	onStartRename,
@@ -511,6 +522,7 @@ function SessionRow({
 }: {
 	session: SessionInfo;
 	active: boolean;
+	isRunning: boolean;
 	renaming: boolean;
 	onClick: () => void;
 	onStartRename: () => void;
@@ -588,7 +600,17 @@ function SessionRow({
 						{sessionTitle}
 					</div>
 				</div>
-				<div className="ml-auto shrink-0 opacity-0 transition-opacity group-hover/sessionrow:opacity-100">
+				{isRunning ? (
+					<div className="ml-2 flex size-5 shrink-0 items-center justify-center rounded-full text-primary">
+						<Spinner size="sm" className="size-3" />
+					</div>
+				) : null}
+				<div
+					className={cn(
+						"ml-auto shrink-0 opacity-0 transition-opacity group-hover/sessionrow:opacity-100",
+						isRunning && "hidden",
+					)}
+				>
 					<button
 						onClick={(e) => {
 							e.stopPropagation();

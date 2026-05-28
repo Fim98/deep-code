@@ -10,6 +10,7 @@ import {
 	type PromptInputMessage,
 } from "@/components/ai-elements/prompt-input";
 import { pi } from "@/lib/rpc";
+import { useSessions } from "@/stores/session-state";
 
 interface Props {
 	sessionId: string;
@@ -18,6 +19,8 @@ interface Props {
 
 export function Composer({ sessionId, isStreaming }: Props) {
 	const [text, setText] = useState("");
+	const addPendingSubmission = useSessions((s) => s.addPendingSubmission);
+	const removePendingSubmission = useSessions((s) => s.removePendingSubmission);
 
 	async function submit(message?: PromptInputMessage) {
 		const content = (message?.text ?? text).trim();
@@ -27,14 +30,25 @@ export function Composer({ sessionId, isStreaming }: Props) {
 			}
 			return;
 		}
+		const pendingId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+		const kind = isStreaming ? "steer" : "prompt";
+		addPendingSubmission(sessionId, { id: pendingId, content, kind });
 		setText("");
-		await pi.rpc.send(sessionId, {
-			type: isStreaming ? "steer" : "prompt",
-			message: content,
-		});
+		try {
+			const response = await pi.rpc.send(sessionId, {
+				type: isStreaming ? "steer" : "prompt",
+				message: content,
+			});
+			if (!response.success) removePendingSubmission(sessionId, pendingId);
+		} catch (error) {
+			removePendingSubmission(sessionId, pendingId);
+			throw error;
+		}
 	}
 
 	function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
+		const nativeEvent = e.nativeEvent;
+		if (nativeEvent.isComposing || nativeEvent.keyCode === 229) return;
 		if (e.key === "Enter" && !e.shiftKey) {
 			e.preventDefault();
 			void submit();
