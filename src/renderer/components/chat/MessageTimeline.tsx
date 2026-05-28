@@ -409,9 +409,9 @@ function ActivityPanel({
 							}}
 						/>
 					) : (
-						groups.map((group) => (
+						groups.map((group, index) => (
 							<ActivityGroupRow
-								key={group.kind}
+								key={`${group.kind}-${index}`}
 								group={group}
 							/>
 						))
@@ -585,26 +585,21 @@ function buildActivities(
 }
 
 function groupActivities(items: ActivityItem[]): ActivityGroup[] {
-	const order: ActivityKind[] = [
-		"thinking",
-		"edit",
-		"write",
-		"command",
-		"read",
-		"search",
-		"other",
-	];
-	return order
-		.map((kind) => {
-			const groupItems = items.filter((item) => item.kind === kind);
-			if (groupItems.length === 0) return null;
-			return {
-				kind,
-				items: groupItems,
-				status: aggregateStatus(groupItems),
-			};
-		})
-		.filter((group): group is ActivityGroup => !!group);
+	const groups: ActivityGroup[] = [];
+	for (const item of items) {
+		const last = groups.at(-1);
+		if (last?.kind === item.kind) {
+			last.items.push(item);
+			last.status = aggregateStatus(last.items);
+			continue;
+		}
+		groups.push({
+			kind: item.kind,
+			items: [item],
+			status: item.status,
+		});
+	}
+	return groups;
 }
 
 function aggregateStatus(items: ActivityItem[]): ActivityStatus {
