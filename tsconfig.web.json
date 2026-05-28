@@ -19,5 +19,5 @@
 		},
 		"outDir": "./out-tsc/web"
 	},
-	"include": ["src/renderer/**/*.ts", "src/renderer/**/*.tsx"]
+	"include": ["src/renderer/**/*.ts", "src/renderer/**/*.tsx", "src/test/**/*.ts"]
 }

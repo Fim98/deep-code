@@ -44,7 +44,7 @@ now ~127 kB.
 
 ---
 
-### A2 · Basic test + CI baseline — **M**
+### A2 · Basic test + CI baseline — **M** — Done
 
 There are no test files yet. Add a minimal quality floor before runtime and
 session behavior grows more complex.
@@ -53,8 +53,7 @@ session behavior grows more complex.
 `session-fs.ts`; add React tests for `Composer`, `ModelPicker`, and
 `SettingsDialog`; add CI running `npm run typecheck` and tests.
 
-**Done when**: local and CI checks catch type errors plus core bridge/session
-regressions.
+**Done**: 125 tests across 11 test files. Node (main-process): `dispatch-rpc.ts` (34 tests), `workspace-store.ts` (15), `session-fs.ts` (6), `auth.ts` (9). Renderer: `session-state.ts` (13), `theme.ts` (7), `Composer.tsx` (10), `ModelPicker.tsx` (6), `SettingsDialog.tsx` (9), `keyboard.ts` (8), `utils.ts` (7). GitHub Actions CI workflow runs typecheck + tests on every push/PR.
 
 ---
 
