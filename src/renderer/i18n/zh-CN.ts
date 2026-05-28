@@ -214,4 +214,22 @@ export const zhCN: Record<string, string> = {
 	"theme.light": "浅色",
 	"theme.dark": "深色",
 	"theme.label": "主题",
+
+	// ─── Log viewer ───────────────────────────────────────────────────────────
+	"logs.title": "错误日志",
+	"logs.viewLogs": "查看日志",
+	"logs.diagnostics": "诊断信息",
+	"logs.entryCount": "{{count}} 条记录 · 最多保留 500 条",
+	"logs.noEntries": "暂无错误日志",
+	"logs.loading": "加载中…",
+	"logs.refresh": "刷新",
+	"logs.copyLogs": "复制日志",
+	"logs.clearLogs": "清除日志",
+	"logs.cleared": "日志已清除",
+	"logs.copied": "日志已复制到剪贴板",
+	"logs.copyFailed": "复制日志失败",
+	"logs.loadFailed": "加载日志失败：{{error}}",
+	"logs.clearFailed": "清除日志失败：{{error}}",
+	"logs.showStack": "显示堆栈",
+	"logs.hideStack": "隐藏堆栈",
 };

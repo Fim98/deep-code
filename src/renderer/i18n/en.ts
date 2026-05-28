@@ -218,4 +218,22 @@ export const en: Record<string, string> = {
 	"theme.light": "Light",
 	"theme.dark": "Dark",
 	"theme.label": "Theme",
+
+	// ─── Log viewer ───────────────────────────────────────────────────────────
+	"logs.title": "Error Logs",
+	"logs.viewLogs": "View Logs",
+	"logs.diagnostics": "Diagnostics",
+	"logs.entryCount": "{{count}} entries · last 500 max",
+	"logs.noEntries": "No errors logged",
+	"logs.loading": "Loading…",
+	"logs.refresh": "Refresh",
+	"logs.copyLogs": "Copy logs",
+	"logs.clearLogs": "Clear logs",
+	"logs.cleared": "Logs cleared",
+	"logs.copied": "Logs copied to clipboard",
+	"logs.copyFailed": "Failed to copy logs",
+	"logs.loadFailed": "Failed to load logs: {{error}}",
+	"logs.clearFailed": "Failed to clear logs: {{error}}",
+	"logs.showStack": "show stack",
+	"logs.hideStack": "hide stack",
 };

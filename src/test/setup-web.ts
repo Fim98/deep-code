@@ -38,6 +38,10 @@ const mockPi = {
 	shell: {
 		showItemInFolder: vi.fn().mockResolvedValue(undefined),
 	},
+	logs: {
+		get: vi.fn().mockResolvedValue([]),
+		clear: vi.fn().mockResolvedValue(undefined),
+	},
 	rpc: {
 		send: vi.fn().mockResolvedValue({ success: true }),
 		subscribe: vi.fn().mockReturnValue(() => {}),

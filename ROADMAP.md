@@ -313,9 +313,17 @@ in window state. Useful when comparing two sessions side-by-side.
 Requires moving renderer global state out of localStorage into
 per-window IPC.
 
-### E3 · Crash / error log viewer — **S**
+### E3 · Crash / error log viewer — **S** — Done
 `drainErrors()` on settings/auth + main process uncaught errors collected
 into an in-memory ring buffer. Settings → About → "View logs".
+
+**Done**: `src/main/error-log.ts` — in-memory ring buffer (500 max)
+capturing uncaught exceptions, unhandled rejections, and manually logged
+errors. Global handlers installed at app ready. IPC `pi:logs:get` /
+`pi:logs:clear` exposed to renderer. `LogViewerDialog` component in
+Settings → About → "View Logs" with severity badges, expandable stack
+traces, copy-to-clipboard, and clear. Preload bridge and renderer types
+updated. 8 tests cover ring buffer, logging, and eviction.
 
 ### E4 · Telemetry / Sentry (opt-in) — **M**
 Wrap Sentry init around an opt-in toggle in Settings → General. Useful

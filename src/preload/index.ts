@@ -31,6 +31,14 @@ const shellApi = {
 	showItemInFolder: (path: string) => ipcRenderer.invoke("pi:shell:show-item", path),
 };
 
+const logs = {
+	get: () =>
+		ipcRenderer.invoke("pi:logs:get") as Promise<
+			Array<{ timestamp: number; source: string; message: string; stack?: string }>
+		>,
+	clear: () => ipcRenderer.invoke("pi:logs:clear") as Promise<void>,
+};
+
 const rpc = {
 	send: (sessionId: string, command: unknown) => ipcRenderer.invoke("pi:rpc", sessionId, command),
 	subscribe: (sessionId: string, cb: (event: unknown) => void) => {
@@ -97,6 +105,7 @@ const api = {
 	appInfo,
 	updater,
 	shell: shellApi,
+	logs,
 } as const;
 
 contextBridge.exposeInMainWorld("pi", api);

@@ -3,6 +3,7 @@ import {
 	ExternalLink,
 	Eye,
 	EyeOff,
+	FileText,
 	FolderOpen,
 	Info,
 	Key,
@@ -15,6 +16,7 @@ import {
 	Trash2,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { LogViewerDialog } from "@/components/log-viewer/LogViewerDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -455,6 +457,7 @@ function AboutTab() {
 	const [agentDir, setAgentDir] = useState("…");
 	const [updateStatus, setUpdateStatus] = useState<string>("idle");
 	const [checking, setChecking] = useState(false);
+	const [logsOpen, setLogsOpen] = useState(false);
 
 	useEffect(() => {
 		pi.appInfo
@@ -556,6 +559,22 @@ function AboutTab() {
 			</section>
 
 			<section className="space-y-3">
+				<SectionHeader title="Diagnostics" />
+				<div className="flex flex-wrap gap-2">
+					<Button
+						type="button"
+						variant="secondary"
+						size="sm"
+						className="rounded-full"
+						onClick={() => setLogsOpen(true)}
+					>
+						<FileText className="size-3.5" />
+						View Logs
+					</Button>
+				</div>
+			</section>
+
+			<section className="space-y-3">
 				<SectionHeader title="Links" />
 				<div className="flex flex-wrap gap-2">
 					<ExternalButton label="Pi Documentation" url="https://pi.dev/docs" />
@@ -563,6 +582,7 @@ function AboutTab() {
 					<ExternalButton label="Report Issue" url="https://github.com/Fim98/deep-code/issues" />
 				</div>
 			</section>
+			<LogViewerDialog open={logsOpen} onOpenChange={setLogsOpen} />
 		</div>
 	);
 }

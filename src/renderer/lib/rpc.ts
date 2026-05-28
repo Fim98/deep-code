@@ -79,6 +79,10 @@ export interface PiBridge {
 	shell: {
 		showItemInFolder: (path: string) => Promise<void>;
 	};
+	logs: {
+		get: () => Promise<LogEntry[]>;
+		clear: () => Promise<void>;
+	};
 	rpc: {
 		send: <C extends RpcCommand>(sessionId: string, command: C) => Promise<RpcResponse>;
 		subscribe: (sessionId: string, cb: (event: AgentSessionEvent) => void) => () => void;
@@ -120,6 +124,13 @@ export interface UpdateState {
 		| "downloaded";
 	version?: string;
 	error?: string;
+}
+
+export interface LogEntry {
+	timestamp: number;
+	source: string;
+	message: string;
+	stack?: string;
 }
 
 export interface ProviderEntry {

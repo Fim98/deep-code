@@ -2,6 +2,7 @@ import type { RpcCommand } from "@earendil-works/pi-coding-agent";
 import { type BrowserWindow, dialog, ipcMain, nativeTheme, shell } from "electron";
 import { listConfiguredProviders, listKnownProviders, removeProvider, setApiKey } from "./auth.js";
 import { dispatchRpc } from "./dispatch-rpc.js";
+import { clearLogs, getLogs } from "./error-log.js";
 import { deleteSessionFile, listSessionsForCwd } from "./session-fs.js";
 import { sessionRegistry } from "./session-registry.js";
 import { getAgentDirPath, getDesktopSettings, setDesktopSetting } from "./settings.js";
@@ -173,6 +174,12 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 	});
 	ipcMain.handle("pi:update:install", () => {
 		quitAndInstall();
+	});
+
+	// Error logs
+	ipcMain.handle("pi:logs:get", () => getLogs());
+	ipcMain.handle("pi:logs:clear", () => {
+		clearLogs();
 	});
 
 	ipcMain.handle("pi:auth:list", () => listConfiguredProviders());

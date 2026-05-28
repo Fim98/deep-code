@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { app, BrowserWindow, nativeImage, nativeTheme } from "electron";
+import { installErrorHandlers } from "./error-log.js";
 import { registerIpcHandlers } from "./ipc.js";
 import { destroyUpdater, initAutoUpdater } from "./updater.js";
 
@@ -80,6 +81,7 @@ async function createWindow(): Promise<BrowserWindow> {
 }
 
 app.whenReady().then(async () => {
+	installErrorHandlers();
 	registerIpcHandlers(() => mainWindow);
 	initAutoUpdater();
 	const icon = getNativeIcon();
