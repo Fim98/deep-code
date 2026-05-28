@@ -1,28 +1,85 @@
 # deepcode Roadmap
 
-Status as of 2026-05-26.
+Status as of 2026-05-28.
 
 ## Context
 
-The MVP (M1–M10) is complete and deployable end-to-end: workspace + session
-management, in-process pi SDK bridge, HeroUI-powered chat & composer,
-tool/diff/bash panels, model picker, provider auth UI, light/dark themes,
-session rename/delete, keyboard shortcuts. The next phases focus on (a)
-shipping deepcode as a real macOS/Windows/Linux app, (b) the everyday-flow
-gaps people hit after their first hour (commands, search, attachments,
-context cost), and (c) deeper agent surface (file tree, MCP, fork tree).
+The MVP is complete and builds successfully: workspace/session management,
+in-process pi SDK bridge, chat timeline, composer, live tool cards, diff view,
+Bash panel, model picker, provider auth UI, session rename/delete, themes,
+keyboard shortcuts, and context/cost display.
 
-Phases are **priority bands** (P0 → P3), not strict time orderings. Within a
-band, items are listed roughly in the order I'd pick them up. Effort labels:
-**S** ≤ 0.5d, **M** 1–2d, **L** 3–5d, **XL** > 1w.
+The next route is not to turn deepcode into a separate agent platform. The
+primary reference is `~/Documents/pi-mono`: deepcode should keep following pi's
+SDK primitives (`AgentSession`, `AgentSessionRuntime`, `SessionManager`,
+`AuthStorage`, `ModelRegistry`, `SettingsManager`, `ImageContent`).
+
+`~/Documents/opencode` is useful as a productization reference for packaging,
+PTY terminal architecture, typed local APIs, and MCP/plugin surface area. It is
+not the model for deepcode's current core runtime.
+
+Phases are priority bands, not strict release numbers. Effort labels: **S** <=
+0.5d, **M** 1-2d, **L** 3-5d, **XL** > 1w.
 
 ---
 
-## P0 — Daily-use blockers
+## P0 — Alpha hardening
 
-These are the items every new user notices within their first session.
+These items keep the app fast, verifiable, and aligned with the upstream pi API
+before the feature surface grows.
 
-### N1 · Command palette (⌘K) — **M**
+### A1 · Bundle weight reduction — **S** — Done
+
+The production build currently succeeds, but the renderer entry chunk is still
+large. Split markdown/highlighting/diagram-heavy dependencies away from the app
+shell.
+
+**Tech**: configure Vite `manualChunks` for `streamdown`, `shiki`, `mermaid`,
+Radix primitives, motion, icons, and React vendor code. Re-check generated
+bundle sizes after every dependency change.
+
+**Done**: Vite manual chunks split the renderer into app shell, vendor, React,
+Radix UI, icons, motion, and markdown chunks. The main renderer entry chunk is
+now ~127 kB.
+
+---
+
+### A2 · Basic test + CI baseline — **M**
+
+There are no test files yet. Add a minimal quality floor before runtime and
+session behavior grows more complex.
+
+**Tech**: add vitest for `dispatch-rpc.ts`, `workspace-store.ts`, and
+`session-fs.ts`; add React tests for `Composer`, `ModelPicker`, and
+`SettingsDialog`; add CI running `npm run typecheck` and tests.
+
+**Done when**: local and CI checks catch type errors plus core bridge/session
+regressions.
+
+---
+
+### A3 · Runtime/session alignment with pi — **L**
+
+The current desktop registry owns a `Map<sessionId, AgentSession>`, which is
+enough for chat but blocks native pi session replacement flows. Commands such
+as `new_session`, `switch_session`, `fork`, `clone`, and `get_commands` are
+currently rejected by `dispatchRpc`.
+
+**Tech**: introduce `AgentSessionRuntime` in the main-process registry and
+route session replacement through pi's native runtime methods. Keep the
+renderer-facing desktop session id stable while rebinding to the replaced pi
+session.
+
+**Done when**: `new_session`, `switch_session`, `fork`, `clone`, and
+`get_commands` work through the same bridge as normal prompts.
+
+---
+
+## P1 — Daily workflow
+
+These are the controls users reach for during normal work.
+
+### B1 · Command palette (Cmd+K) — **M**
 Single-shortcut launcher for:
 
 - switch / create workspace
@@ -31,39 +88,22 @@ Single-shortcut launcher for:
 - toggle bash panel, theme, settings dialog
 - invoke pi slash commands (`get_commands` already exists)
 
-**Tech**: build the overlay with HeroUI `Modal`, `ListBox`, and `Input`.
-New `components/command-palette/CommandPalette.tsx` + global `⌘K`
+**Tech**: build the overlay with existing Radix-based dialog/input primitives.
+New `components/command-palette/CommandPalette.tsx` plus a global `Cmd+K`
 shortcut in `lib/keyboard.ts`. RPC: `get_commands`, `get_available_models`.
 
-**Done when**: pressing `⌘K` opens an overlay with grouped actions and
+**Done when**: pressing `Cmd+K` opens an overlay with grouped actions and
 fuzzy-search; selecting routes via the existing handlers.
 
 ---
 
-### N2 · Bundle weight reduction — **S**
-The renderer main bundle is 4.4 MB today, dominated by Streamdown +
-shiki's full language pack + mermaid. Cold start on a HiDPI MacBook is
-~600ms.
-
-**Tech**: configure vite `build.rollupOptions.output.manualChunks` to
-split `streamdown`, `shiki`, and `mermaid`. Investigate
-Streamdown's `langs` option to inline only ~20 popular languages and
-lazy-load the rest (already lazy-chunked, but the entry pulls them
-eagerly via the language registry).
-
-**Done when**: main `index.js` < 1.5 MB, no UX regression on markdown
-rendering for the 20 most common languages (ts/tsx/js/jsx/json/py/rs/go/
-java/kotlin/swift/c/cpp/cs/sql/yaml/toml/bash/sh/diff).
-
----
-
-### N3 · HeroUI composer attachments (images + files) — **M**
+### B2 · Composer attachments (images + files) — **M**
 The composer should support drag/drop, file picking, and screenshot capture.
 Agent `prompt` already accepts `ImageContent[]`.
 
-**Tech**: extend the HeroUI composer with `Button`, `Popover`, `Chip`, and
-hidden file input plumbing owned by the component. On submit, read each
-file to base64 and pass as `images: ImageContent[]` to
+**Tech**: extend the local composer with attachment chips, hidden file input,
+drag/drop, and clipboard image handling. On submit, read each image file to
+base64 and pass as `images: ImageContent[]` to
 `pi.rpc.send(sid, { type: "prompt", message, images })`.
 
 **Done when**: dragging an image onto the composer attaches it; sending
@@ -72,42 +112,40 @@ models).
 
 ---
 
-### N4 · Settings dialog — Tabs + MCP + General — **M**
-Today's `SettingsDialog` shows providers only. Split into a left-rail
-nested layout:
+### B3 · Settings dialog v2 — General + Providers + Models + About — **M**
+
+Today's `SettingsDialog` shows providers only. Split into a left-rail nested
+layout:
 
 | Tab | Content |
 |---|---|
 | General | Theme (move from header), startup workspace, ⌘ shortcuts hint |
 | Providers | Current API key editor |
-| MCP servers | List `mcpServers` from pi `Settings`; add/remove/enable |
-| About | Version, links, "Open ~/.pi/agent/" button |
+| Models | Enabled model patterns, custom models file hint |
+| About | Version, links, "Open ~/.pi/agent/" button, diagnostics |
 
-**Tech**: pi `SettingsManager.getProjectSettings()` / `getGlobalSettings()`
-exposes `mcpServers: Record<string, McpConfig>`. New main IPC
-`pi:settings:get` / `pi:settings:set` (writes through SettingsManager
-locking). Use HeroUI `Tabs`.
+**Tech**: use pi `SettingsManager` instead of inventing a desktop-only settings
+format. New main IPC `pi:settings:get` / `pi:settings:set` should write through
+pi's settings manager.
 
-**Done when**: provider auth still works; can add an MCP server (e.g.
-filesystem) and see it surface in pi's available tools after restart.
-
----
-
-### N5 · Context usage + cost bar — **S**
-`SessionStats` already returns `tokens`, `cost`, and `contextUsage`.
-Surface this so users know when to compact / switch models.
-
-**Tech**: poll `get_session_stats` on every `turn_end` event; render a
-small bar in the titlebar between the model picker and the bash icon:
-`[contextUsed/total]  $0.12`. Add a tooltip with the breakdown
-(input/output/cacheRead/cacheWrite).
-
-**Done when**: bar updates after each turn; clicking opens a popover with
-the full breakdown and a "Compact now" button (RPC `compact`).
+**Done when**: provider auth still works, theme/startup/general settings are
+editable, and settings persist through pi's normal global/project files.
 
 ---
 
-### N6 · electron-builder packaging — **M**
+### B4 · Session and message search — **M**
+
+With long histories the sidebar becomes a wall. Add per-workspace session
+search and in-session `Cmd+F` message search.
+
+**Done when**: sidebar search filters by name/message text; in-session search
+highlights matches and Enter cycles results.
+
+---
+
+## P2 — Shipping surface
+
+### C1 · electron-builder packaging — **M**
 The app is currently dev-only. Ship `.dmg` (universal2), `.exe` (NSIS),
 and `.AppImage`.
 
@@ -123,26 +161,7 @@ dev`, IPC + RPC work, electron-store persists across launches.
 
 ---
 
-## P1 — Important feature gaps
-
-### N7 · HeroUI tool-call surface polish — **S**
-Currently we render tool calls with our own HeroUI card. Tighten it around
-HeroUI `Disclosure`, `Card`, `Chip`, and `CodeBlock`-style typography for
-the official status pills and consistent spacing.
-
-**Tech**: adapter that maps our `AssistantMessage.content[].toolCall` +
-the joined `ToolResultMessage` into Vercel AI SDK's `ToolUIPart` shape:
-`{ type: "tool-<name>", toolCallId, state, input, output, errorText }`.
-Keep our diff renderer (`DiffViewer`) inside the HeroUI disclosure body
-when the detail has `patch`.
-
-**Done when**: every read/edit/bash/grep/find/write tool renders via the
-HeroUI tool surface; collapsing state persists across re-renders; diffs
-still appear for edit/write.
-
----
-
-### N8 · Fork / branch tree visualization — **M**
+### C2 · Fork / branch tree visualization — **M**
 pi tracks session branches (`getEntries`, `getTree`, `fork`, `clone`).
 Today there's no way to fork or visualize branches in deepcode.
 
@@ -158,25 +177,8 @@ active one highlighted.
 
 ---
 
-### N9 · Session & message search — **M**
-With long histories the sidebar becomes a wall. Add:
-
-- per-workspace search input above the session list (filter by name +
-  `allMessagesText` already returned by `SessionInfo`)
-- in-session `⌘F` overlay (filter messages currently rendered)
-
-**Tech**: client-side filter for session list (fast, already have the
-data). For in-session search use a controlled state + scrollIntoView on
-match.
-
-**Done when**: typing in the workspace search narrows the list; `⌘F`
-opens a small input near the titlebar, highlights matches in the
-timeline, `Enter` cycles.
-
----
-
-### N10 · Auto-updater — **M**
-Once N6 ships notarized builds, wire `electron-updater` so users get
+### C3 · Auto-updater — **M**
+Once C1 ships notarized builds, wire `electron-updater` so users get
 patches without re-downloading.
 
 **Tech**: `autoUpdater` in main, check on startup + every 6h; show a
@@ -188,7 +190,7 @@ single click.
 
 ---
 
-### N11 · File tree sidebar — **L**
+### C4 · File tree sidebar — **L**
 Optional secondary sidebar (right side, toggleable) showing the
 workspace cwd. Click a file → ask the agent to read it (pre-fills the
 composer with `Read @path` or similar), double-click → open in the
@@ -203,22 +205,22 @@ work as described; large repos (10k files) don't freeze the UI.
 
 ---
 
-## P2 — Quality-of-life
+## P3 — Quality-of-life
 
-### N12 · HeroUI terminal polish — **S**
+### D1 · Bash panel polish — **S**
 Add ANSI color support and a more terminal-like look to the existing
-HeroUI BashPanel. We're still running one-shot commands, not pty.
+BashPanel. We're still running one-shot commands, not pty.
 
 ---
 
-### N13 · Theme presets + accent picker — **S**
+### D2 · Theme presets + accent picker — **S**
 Currently only system/light/dark. Apple Music has a few accent
 variations. Add 3–4 presets that swap `--primary` + `--accent` + adjust
 related rings/badges, persisted via electron-store.
 
 ---
 
-### N14 · i18n (zh-CN + en) — **M**
+### D3 · i18n (zh-CN + en) — **M**
 User-facing strings (Settings, NoSessionState, empty states, dialogs)
 get extracted into a tiny `i18n.ts` (function-based, no runtime
 library). zh-CN + en bundled, follows system locale by default with a
@@ -226,7 +228,7 @@ Settings override.
 
 ---
 
-### N15 · Inline diff editor — **M**
+### D4 · Inline diff editor — **M**
 For edit/write tool calls, let the user approve / tweak the proposed
 diff before pi applies it. Requires a preview-then-confirm RPC, which
 pi exposes via the extension system (`BeforeToolCallContext` returns
@@ -235,41 +237,41 @@ extension that intercepts edit/write.
 
 ---
 
-### N16 · Slash command palette — **S**
+### D5 · Slash command palette — **S**
 Surfacing `get_commands` (RPC already exists). In the composer, typing
 `/` shows registered extension commands + skills + prompt templates,
 similar to Cursor. Reuses N1's command palette infrastructure.
 
 ---
 
-### N17 · Session sharing — **S**
+### D6 · Session sharing — **S**
 RPC `export_html` already returns a self-contained HTML transcript. Add
 a "Share" menu item with two options: save as `.html` (system save
 dialog) or upload to a gist (uses pi's `getShareViewerUrl`).
 
 ---
 
-## P3 — Long tail
+## P4 — Long tail
 
-### N18 · pty interactive terminal — **L**
+### E1 · pty interactive terminal — **L**
 Embed `node-pty` (already in opencode's deps) and an xterm.js viewport
 to give a real shell inside the bash panel.
 
-### N19 · Multi-window — **M**
+### E2 · Multi-window — **M**
 Each `BrowserWindow` keeps its own `activeWorkspaceId` + `activeSessionId`
 in window state. Useful when comparing two sessions side-by-side.
 Requires moving renderer global state out of localStorage into
 per-window IPC.
 
-### N20 · Crash / error log viewer — **S**
+### E3 · Crash / error log viewer — **S**
 `drainErrors()` on settings/auth + main process uncaught errors collected
 into an in-memory ring buffer. Settings → About → "View logs".
 
-### N21 · Telemetry / Sentry (opt-in) — **M**
+### E4 · Telemetry / Sentry (opt-in) — **M**
 Wrap Sentry init around an opt-in toggle in Settings → General. Useful
 for catching regressions in beta builds.
 
-### N22 · Tests — **L**
+### E5 · Broader tests — **L**
 - vitest for `dispatch-rpc.ts`, `workspace-store.ts`, `session-fs.ts`
 - @testing-library/react for `ModelPicker`, `Composer`,
   `SettingsDialog`, `MessageTimeline`
@@ -293,9 +295,9 @@ above.
   scroll-to-bottom animation.
 - **State persistence layering** — today: workspaces in electron-store,
   theme in localStorage, sessions on disk via pi. The split is fine but
-  worth documenting once N6 ships so packaged apps keep settings across
+  worth documenting once C1 ships so packaged apps keep settings across
   versions.
-- **Workspace package extraction** — once electron-builder is in (N6),
+- **Workspace package extraction** — once electron-builder is in (C1),
   audit `package.json` "dependencies" vs "devDependencies" so the
   packaged app doesn't carry vite/electron itself.
 
@@ -303,16 +305,10 @@ above.
 
 ## Suggested order for the next sprint
 
-If I were picking the next 1–2 weeks:
+1. **A2** minimal tests/CI (M) — establishes a regression floor.
+2. **A3** runtime/session alignment (L) — unlocks fork/clone/commands cleanly.
+3. **B1** command palette (M) — largest daily navigation win.
+4. **B2** attachments (M) — unlocks vision workflows.
+5. **B3** Settings dialog v2 (M) — makes pi settings editable from the app.
 
-1. **N2** bundle reduction (S) — invisible win, but every other UI
-   change feels snappier afterwards.
-2. **N1** command palette (M) — single biggest navigation upgrade.
-3. **N5** context usage bar (S) — answers the most common "why is it
-   slow / expensive" question.
-4. **N3** HeroUI composer attachments (M) — unlocks vision flows.
-5. **N6** electron-builder packaging (M) — lets you actually hand the
-   app to a friend.
-
-Total: ~5 working days. After this we're closer to a real public alpha
-than to a dev demo.
+After this sprint, deepcode is closer to a real alpha than a dev demo.
