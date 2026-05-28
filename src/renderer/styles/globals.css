@@ -201,7 +201,7 @@
 /* Compact markdown rendering for assistant messages. */
 .message-response [data-streamdown="code-block"],
 .message-response [data-streamdown="mermaid-block"] {
-	margin: 12px 0;
+	margin: 8px 0;
 	gap: 0;
 	overflow: hidden;
 	border: 1px solid var(--border);
@@ -226,9 +226,9 @@
 	border: 0;
 	border-radius: 0;
 	background: transparent;
-	padding: 12px 14px;
+	padding: 10px 12px;
 	font-size: 12px;
-	line-height: 1.65;
+	line-height: 1.55;
 }
 
 .message-response [data-streamdown="code-block-body"] pre {
@@ -248,7 +248,7 @@
 }
 
 .message-response [data-streamdown="table-wrapper"] {
-	margin: 12px 0;
+	margin: 8px 0;
 	gap: 0;
 	overflow: hidden;
 	border: 1px solid var(--border);
@@ -268,11 +268,11 @@
 }
 
 .message-response [data-streamdown="table"] {
-	font-size: 13px;
-	line-height: 1.55;
+	font-size: 12.5px;
+	line-height: 1.5;
 }
 
 .message-response [data-streamdown="table-header-cell"],
 .message-response [data-streamdown="table-cell"] {
-	padding: 7px 10px;
+	padding: 6px 9px;
 }

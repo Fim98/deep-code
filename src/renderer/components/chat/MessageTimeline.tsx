@@ -317,7 +317,7 @@ function AssistantRow({
 
 	return (
 		<Message from="assistant">
-			<MessageContent className="flex flex-col gap-5">
+			<MessageContent className="flex flex-col gap-3.5">
 				<ActivityPanel
 					activities={activities}
 					elapsed={elapsed}
@@ -367,11 +367,9 @@ function ActivityPanel({
 			<button
 				type="button"
 				onClick={() => setManualOpen((value) => !(value ?? autoOpen))}
-				className="group flex w-full cursor-pointer items-center gap-2 border-b border-border/60 pb-3 text-left text-[14px] font-medium transition-colors hover:text-foreground"
+				className="group flex w-full cursor-pointer items-center gap-2 border-b border-border/60 pb-2.5 text-left text-[13px] font-medium transition-colors hover:text-foreground"
 			>
-				<span className="min-w-0">
-					{isStreaming ? <Shimmer>{label}</Shimmer> : label}
-				</span>
+				<span className="min-w-0">{label}</span>
 				<ChevronRight
 					className={cn(
 						"size-4 shrink-0 transition-transform duration-200",
@@ -380,7 +378,7 @@ function ActivityPanel({
 				/>
 			</button>
 			{open ? (
-				<div className="space-y-4 border-b border-border/60 py-4">
+				<div className="space-y-3 border-b border-border/60 py-3">
 					{groups.length === 0 && isStreaming ? (
 						<ActivityGroupRow
 							group={{
@@ -416,7 +414,7 @@ function ActivityGroupRow({ group }: { group: ActivityGroup }) {
 	const running = group.status === "running" || group.status === "pending";
 	const title = running ? runningGroupTitle(group) : groupTitle(group);
 	return (
-		<div className="text-[13px]">
+		<div className="text-[12.5px]">
 			<button
 				type="button"
 				onClick={() => setOpen((value) => !value)}
@@ -439,13 +437,13 @@ function ActivityGroupRow({ group }: { group: ActivityGroup }) {
 				/>
 			</button>
 			{running ? (
-				<div className="mt-2 space-y-1.5 pl-6">
+				<div className="mt-1.5 space-y-1 pl-6">
 					{group.items.map((item) => (
 						<ActivityItemRow key={item.id} item={item} />
 					))}
 				</div>
 			) : open ? (
-				<div className="mt-2 space-y-1.5 pl-6">
+				<div className="mt-1.5 space-y-1 pl-6">
 					{group.items.map((item) => (
 						<ActivityItemRow key={item.id} item={item} />
 					))}
@@ -457,16 +455,15 @@ function ActivityGroupRow({ group }: { group: ActivityGroup }) {
 
 function ActivityItemRow({ item }: { item: ActivityItem }) {
 	const label = formatItemLabel(item);
-	const running = item.status === "running" || item.status === "pending";
 	return (
 		<div
 			className={cn(
-				"truncate font-mono text-[12px] leading-5",
+				"truncate font-mono text-[11.5px] leading-5",
 				item.status === "error" ? "text-destructive" : "text-muted-foreground",
 			)}
 			title={label}
 		>
-			{running ? <Shimmer>{label}</Shimmer> : label}
+			{label}
 		</div>
 	);
 }
@@ -757,18 +754,65 @@ function statusForTool(
 function summarizeTool(name: string, args: Record<string, unknown>) {
 	if (!args || typeof args !== "object") return name;
 	if ("command" in args) return String(args.command).split("\n")[0];
-	if ("path" in args) {
-		const path = compactPath(String(args.path));
-		if ("pattern" in args) return `${path}  ‹${String(args.pattern)}›`;
-		return path;
+	const path = pathFromArgs(args);
+	const compact = path ? compactPath(path) : null;
+	switch (name) {
+		case "write":
+		case "edit":
+		case "read":
+		case "ls":
+			return compact ?? "未指定路径";
+		case "grep":
+		case "find": {
+			const pattern = stringArg(args, "pattern") ?? stringArg(args, "query");
+			if (compact && pattern) return `${compact}  ‹${pattern}›`;
+			return compact ?? pattern ?? name;
+		}
+		default:
+			break;
 	}
-	if ("file" in args) return compactPath(String(args.file));
+	if (compact) {
+		if ("pattern" in args) return `${compact}  ‹${String(args.pattern)}›`;
+		return compact;
+	}
 	if ("query" in args) return String(args.query);
 	if ("pattern" in args) return String(args.pattern);
-	const first = Object.values(args).find(
-		(value) => typeof value === "string" || typeof value === "number",
+	const fallback = Object.entries(args).find(
+		([key, value]) =>
+			!isVerboseToolArg(key) &&
+			(typeof value === "string" || typeof value === "number"),
 	);
-	return first == null ? name : String(first);
+	return fallback == null ? name : String(fallback[1]);
+}
+
+function pathFromArgs(args: Record<string, unknown>) {
+	return (
+		stringArg(args, "path") ??
+		stringArg(args, "file_path") ??
+		stringArg(args, "filePath") ??
+		stringArg(args, "filepath") ??
+		stringArg(args, "file")
+	);
+}
+
+function stringArg(args: Record<string, unknown>, key: string) {
+	const value = args[key];
+	return typeof value === "string" && value.trim() ? value : null;
+}
+
+function isVerboseToolArg(key: string) {
+	return [
+		"content",
+		"oldText",
+		"newText",
+		"old_text",
+		"new_text",
+		"old_string",
+		"new_string",
+		"patch",
+		"diff",
+		"edits",
+	].includes(key);
 }
 
 function compactPath(path: string) {
