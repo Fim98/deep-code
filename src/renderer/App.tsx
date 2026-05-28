@@ -326,7 +326,7 @@ export function App() {
 				}
 				footer={
 					activeSid ? (
-						<div className="flex flex-col gap-2.5">
+						<div className="flex flex-col gap-2">
 							<PlanTrackerWidget sessionId={activeSid} />
 							<Composer sessionId={activeSid} isStreaming={slice?.isStreaming ?? false} />
 						</div>

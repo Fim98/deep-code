@@ -32,7 +32,7 @@ export function PlanTrackerWidget({ sessionId }: Props) {
 			animate={{ opacity: 1, y: 0 }}
 			exit={{ opacity: 0, y: 8 }}
 			transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-			className="w-full"
+			className="mx-auto w-full max-w-3xl"
 		>
 			{/* Card container */}
 			<div
