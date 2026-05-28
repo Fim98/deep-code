@@ -50,6 +50,11 @@ const windowManagement = {
 	new: () => ipcRenderer.invoke("pi:window:new") as Promise<void>,
 };
 
+const telemetry = {
+	get: () => ipcRenderer.invoke("pi:telemetry:get") as Promise<boolean>,
+	set: (value: boolean) => ipcRenderer.invoke("pi:telemetry:set", value) as Promise<void>,
+};
+
 const rpc = {
 	send: (sessionId: string, command: unknown) => ipcRenderer.invoke("pi:rpc", sessionId, command),
 	subscribe: (sessionId: string, cb: (event: unknown) => void) => {
@@ -119,6 +124,7 @@ const api = {
 	logs,
 	fileTree,
 	window: windowManagement,
+	telemetry,
 } as const;
 
 contextBridge.exposeInMainWorld("pi", api);

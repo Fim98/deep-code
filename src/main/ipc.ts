@@ -8,6 +8,7 @@ import { createWindow } from "./index.js";
 import { deleteSessionFile, listSessionsForCwd } from "./session-fs.js";
 import { sessionRegistry } from "./session-registry.js";
 import { getAgentDirPath, getDesktopSettings, setDesktopSetting } from "./settings.js";
+import { isTelemetryEnabled, setTelemetryEnabled } from "./telemetry.js";
 import { quitAndInstall, scheduleCheck } from "./updater.js";
 import {
 	addWorkspace,
@@ -173,6 +174,12 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 	// Window management
 	ipcMain.handle("pi:window:new", () => {
 		void createWindow();
+	});
+
+	// Telemetry
+	ipcMain.handle("pi:telemetry:get", () => isTelemetryEnabled());
+	ipcMain.handle("pi:telemetry:set", (_e, value: boolean) => {
+		setTelemetryEnabled(value);
 	});
 
 	// Auto-updater

@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { app, BrowserWindow, nativeImage, nativeTheme } from "electron";
 import { installErrorHandlers } from "./error-log.js";
 import { registerIpcHandlers } from "./ipc.js";
+import { initTelemetry } from "./telemetry.js";
 import { destroyUpdater, initAutoUpdater } from "./updater.js";
 
 const isDev = !app.isPackaged;
@@ -89,6 +90,7 @@ function getAnyWindow(): BrowserWindow | undefined {
 
 app.whenReady().then(async () => {
 	installErrorHandlers();
+	initTelemetry();
 	registerIpcHandlers(getAnyWindow);
 	initAutoUpdater();
 	const icon = getNativeIcon();

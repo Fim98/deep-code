@@ -1,9 +1,9 @@
 import {
+	AlertTriangle,
 	Folder,
 	FolderOpen,
 	FolderPlus,
 	MessageSquarePlus,
-	Search,
 	Settings as SettingsIcon,
 	Share2,
 	Sparkles,
@@ -25,6 +25,14 @@ import { ModelPicker } from "@/components/settings/ModelPicker";
 import { SettingsDialog } from "@/components/settings/SettingsDialog";
 import { ThemeSwitcher } from "@/components/settings/ThemeSwitcher";
 import { Button } from "@/components/ui/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { useKeyboardShortcuts } from "@/lib/keyboard";
@@ -46,6 +54,10 @@ export function App() {
 	const [renamingId, setRenamingId] = useState<string | null>(null);
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const [paletteOpen, setPaletteOpen] = useState(false);
+	const [deleteTarget, setDeleteTarget] = useState<{
+		workspaceId: string;
+		session: SessionInfo;
+	} | null>(null);
 
 	const { hydrate, attach, setCurrent } = useSessions();
 	const slice = useSessions((s) => (activeSid ? s.bySession[activeSid] : null));
@@ -173,11 +185,10 @@ export function App() {
 		}
 	}
 
-	async function deleteSession(workspaceId: string, s: SessionInfo) {
-		const ok = window.confirm(
-			`Delete session "${s.name ?? (s.firstMessage.slice(0, 40) || "Untitled")}"?\n\nThis removes the session file from disk and cannot be undone.`,
-		);
-		if (!ok) return;
+	async function confirmDeleteSession() {
+		if (!deleteTarget) return;
+		const { workspaceId, session: s } = deleteTarget;
+		setDeleteTarget(null);
 		try {
 			await pi.sessions.delete({ workspaceId, sessionPath: s.path });
 			setSessionsByWs((prev) => ({
@@ -240,6 +251,56 @@ export function App() {
 	return (
 		<div className="flex h-full w-full bg-background">
 			<ToastHost />
+
+			{/* Delete session confirmation dialog */}
+			<Dialog
+				open={!!deleteTarget}
+				onOpenChange={(open) => {
+					if (!open) setDeleteTarget(null);
+				}}
+			>
+				<DialogContent className="max-w-[400px] rounded-[24px] p-0">
+					<div className="flex flex-col items-center px-8 pt-8">
+						<div className="mb-5 flex size-12 items-center justify-center rounded-full bg-destructive/10">
+							<AlertTriangle className="size-5 text-destructive" />
+						</div>
+						<DialogHeader className="text-center">
+							<DialogTitle className="text-[18px] font-semibold tracking-tight">
+								Delete session
+							</DialogTitle>
+							<DialogDescription className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
+								Are you sure you want to delete{" "}
+								<span className="font-medium text-foreground/80">
+									"
+									{deleteTarget?.session.name ??
+										(truncate(deleteTarget?.session.firstMessage ?? "", 40) || "Untitled")}
+									"
+								</span>
+								? This action cannot be undone.
+							</DialogDescription>
+						</DialogHeader>
+					</div>
+					<DialogFooter className="flex-row gap-3 border-t border-border/50 px-8 py-5">
+						<Button
+							variant="ghost"
+							size="md"
+							className="flex-1 rounded-full text-[14px]"
+							onClick={() => setDeleteTarget(null)}
+						>
+							Cancel
+						</Button>
+						<Button
+							variant="destructive"
+							size="md"
+							className="flex-1 rounded-full text-[14px]"
+							onClick={confirmDeleteSession}
+						>
+							Delete
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
 			<SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
 			<CommandPalette
 				open={paletteOpen}
@@ -290,7 +351,7 @@ export function App() {
 								onStartRename={setRenamingId}
 								onSubmitRename={renameSession}
 								onCancelRename={() => setRenamingId(null)}
-								onDeleteSession={(session) => deleteSession(w.id, session)}
+								onDeleteSession={(session) => setDeleteTarget({ workspaceId: w.id, session })}
 							/>
 						))
 					)}
@@ -347,15 +408,6 @@ export function App() {
 									Share
 								</Button>
 							) : null}
-							<Button
-								size="sm"
-								variant="secondary"
-								aria-label="Search chats"
-								className="h-9 rounded-full px-4 text-[13px] font-medium"
-							>
-								<Search className="size-4" />
-								Search
-							</Button>
 							<ThemeSwitcher />
 							<Button
 								size="sm"

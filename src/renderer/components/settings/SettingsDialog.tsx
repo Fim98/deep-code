@@ -237,6 +237,12 @@ function GeneralTab() {
 				</SettingRow>
 			</section>
 
+			{/* Telemetry */}
+			<section className="space-y-3">
+				<SectionHeader title="Privacy" />
+				<TelemetryToggle />
+			</section>
+
 			{/* Keyboard shortcuts */}
 			<section className="space-y-3">
 				<SectionHeader title="Keyboard Shortcuts" />
@@ -628,6 +634,34 @@ function LanguagePicker() {
 				))}
 			</SelectContent>
 		</Select>
+	);
+}
+
+function TelemetryToggle() {
+	const [telemetryEnabled, setTelemetryEnabled] = useState(false);
+	const [loading, setLoading] = useState(true);
+
+	useEffect(() => {
+		pi.telemetry.get().then((v) => {
+			setTelemetryEnabled(v);
+			setLoading(false);
+		});
+	}, []);
+
+	const handleToggle = async (value: boolean) => {
+		setTelemetryEnabled(value);
+		await pi.telemetry.set(value);
+	};
+
+	if (loading) return null;
+
+	return (
+		<SettingRow
+			label="Send anonymous crash reports"
+			description="Help improve deepcode by sending error data. No personal information is collected."
+		>
+			<ToggleSwitch checked={telemetryEnabled} onChange={handleToggle} />
+		</SettingRow>
 	);
 }
 

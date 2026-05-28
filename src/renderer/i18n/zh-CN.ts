@@ -242,4 +242,9 @@ export const zhCN: Record<string, string> = {
 	"fileTree.close": "关闭文件树",
 	"fileTree.toggle": "切换文件树",
 	"fileTree.copiedPath": "已复制 {{path}}",
+
+	// ─── Telemetry ──────────────────────────────────────────────────────────
+	"telemetry.privacy": "隐私",
+	"telemetry.crashReports": "发送匿名崩溃报告",
+	"telemetry.crashReportsDescription": "通过发送错误数据帮助改进 deepcode。不会收集个人信息。",
 };

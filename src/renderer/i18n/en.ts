@@ -246,4 +246,10 @@ export const en: Record<string, string> = {
 	"fileTree.close": "Close file tree",
 	"fileTree.toggle": "Toggle file tree",
 	"fileTree.copiedPath": "Copied {{path}}",
+
+	// ─── Telemetry ──────────────────────────────────────────────────────────
+	"telemetry.privacy": "Privacy",
+	"telemetry.crashReports": "Send anonymous crash reports",
+	"telemetry.crashReportsDescription":
+		"Help improve deepcode by sending error data. No personal information is collected.",
 };

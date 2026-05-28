@@ -48,6 +48,10 @@ const mockPi = {
 	window: {
 		new: vi.fn().mockResolvedValue(undefined),
 	},
+	telemetry: {
+		get: vi.fn().mockResolvedValue(false),
+		set: vi.fn().mockResolvedValue(undefined),
+	},
 	rpc: {
 		send: vi.fn().mockResolvedValue({ success: true }),
 		subscribe: vi.fn().mockReturnValue(() => {}),

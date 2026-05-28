@@ -89,6 +89,10 @@ export interface PiBridge {
 	window: {
 		new: () => Promise<void>;
 	};
+	telemetry: {
+		get: () => Promise<boolean>;
+		set: (value: boolean) => Promise<void>;
+	};
 	rpc: {
 		send: <C extends RpcCommand>(sessionId: string, command: C) => Promise<RpcResponse>;
 		subscribe: (sessionId: string, cb: (event: AgentSessionEvent) => void) => () => void;

@@ -335,9 +335,15 @@ Settings → About → "View Logs" with severity badges, expandable stack
 traces, copy-to-clipboard, and clear. Preload bridge and renderer types
 updated. 8 tests cover ring buffer, logging, and eviction.
 
-### E4 · Telemetry / Sentry (opt-in) — **M**
+### E4 · Telemetry / Sentry (opt-in) — **M** — Done
 Wrap Sentry init around an opt-in toggle in Settings → General. Useful
 for catching regressions in beta builds.
+
+**Done**: `src/main/telemetry.ts` — opt-in Sentry integration.
+Disabled by default, persisted via electron-store. Initializes Sentry
+with PII filtering (strips user paths from stack frames). IPC handlers
+`pi:telemetry:get/set` + preload bridge `telemetry.{get,set}`.
+Settings → General → Privacy section with toggle.
 
 ### E5 · Broader tests — **L**
 - vitest for `dispatch-rpc.ts`, `workspace-store.ts`, `session-fs.ts`
@@ -389,5 +395,6 @@ above.
 14. ~~**E3** Crash/error log viewer (S)~~ — **Done** (ring buffer + LogViewerDialog + 8 tests).
 15. ~~**C4** File tree sidebar (L)~~ — **Done** (lazy-loaded directory walker + collapsible tree + 6 tests).
 16. ~~**E2** Multi-window (M)~~ — **Done** (multi-BrowserWindow + ⌘⇧N shortcut).
+17. ~~**E4** Telemetry/Sentry (M)~~ — **Done** (opt-in Sentry + PII filtering + Settings toggle).
 
 After this sprint, deepcode is closer to a real alpha than a dev demo.
