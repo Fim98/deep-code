@@ -45,21 +45,21 @@
 	--card-foreground: #111111;
 	--popover: #ffffff;
 	--popover-foreground: #111111;
-	--primary: #5B5BF7;
+	--primary: #5b5bf7;
 	--primary-foreground: #ffffff;
-	--primary-hover: #6B6BFF;
-	--primary-soft: #ECECFF;
+	--primary-hover: #6b6bff;
+	--primary-soft: #ececff;
 	--secondary: rgba(0, 0, 0, 0.04);
 	--secondary-foreground: #111111;
 	--muted: rgba(0, 0, 0, 0.04);
 	--muted-foreground: #999999;
 	--accent: rgba(91, 91, 247, 0.08);
-	--accent-foreground: #5B5BF7;
-	--destructive: #FF3B30;
+	--accent-foreground: #5b5bf7;
+	--destructive: #ff3b30;
 	--destructive-foreground: #ffffff;
 	--border: rgba(0, 0, 0, 0.06);
 	--input: rgba(0, 0, 0, 0.04);
-	--ring: #5B5BF7;
+	--ring: #5b5bf7;
 	--sidebar: rgba(255, 255, 255, 0.75);
 	--sidebar-foreground: #111111;
 	--shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.03);
@@ -77,21 +77,21 @@
 	--card-foreground: #f5f5f7;
 	--popover: #2c2c2e;
 	--popover-foreground: #f5f5f7;
-	--primary: #7B7BFF;
+	--primary: #7b7bff;
 	--primary-foreground: #ffffff;
-	--primary-hover: #8B8BFF;
+	--primary-hover: #8b8bff;
 	--primary-soft: rgba(123, 123, 255, 0.15);
 	--secondary: rgba(255, 255, 255, 0.06);
 	--secondary-foreground: #f5f5f7;
 	--muted: rgba(255, 255, 255, 0.06);
 	--muted-foreground: #98989d;
 	--accent: rgba(123, 123, 255, 0.12);
-	--accent-foreground: #7B7BFF;
-	--destructive: #FF453A;
+	--accent-foreground: #7b7bff;
+	--destructive: #ff453a;
 	--destructive-foreground: #ffffff;
 	--border: rgba(255, 255, 255, 0.08);
 	--input: rgba(255, 255, 255, 0.06);
-	--ring: #7B7BFF;
+	--ring: #7b7bff;
 	--sidebar: rgba(44, 44, 46, 0.8);
 	--sidebar-foreground: #f5f5f7;
 	--shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.15);
@@ -109,11 +109,15 @@
 	}
 
 	body {
-		font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+		font-feature-settings:
+			"rlig" 1,
+			"calt" 1,
+			"ss01" 1;
 		background: transparent;
 		color: var(--foreground);
-		font-family: "Inter", "SF Pro Display", "SF Pro Text", -apple-system,
-			BlinkMacSystemFont, "Helvetica Neue", system-ui, sans-serif;
+		font-family:
+			"Inter", "SF Pro Display", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Helvetica Neue",
+			system-ui, sans-serif;
 		-webkit-font-smoothing: antialiased;
 		-moz-osx-font-smoothing: grayscale;
 	}
@@ -137,7 +141,6 @@
 		-webkit-app-region: drag;
 	}
 }
-
 
 /* ─── Scrollbar styling (thin, Apple-like) ─── */
 ::-webkit-scrollbar {

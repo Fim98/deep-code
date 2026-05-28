@@ -1,4 +1,3 @@
-import { useEffect, useMemo, useState } from "react";
 import {
 	ChevronRight,
 	FilePen,
@@ -9,25 +8,22 @@ import {
 	Terminal,
 	Wrench,
 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import {
 	Conversation,
 	ConversationContent,
 	ConversationEmptyState,
 	ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
-import {
-	Message,
-	MessageContent,
-	MessageResponse,
-} from "@/components/ai-elements/message";
+import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
 import { Shimmer } from "@/components/ai-elements/shimmer";
+import { cn } from "@/lib/utils";
 import {
-	useSessions,
 	type ChatMessage,
 	type PendingSubmission,
 	type ToolExecutionState,
+	useSessions,
 } from "@/stores/session-state";
-import { cn } from "@/lib/utils";
 
 interface Props {
 	sessionId: string;
@@ -54,14 +50,7 @@ type Part =
 	| ToolCallPart
 	| { type: "image"; data: string; mimeType: string };
 
-type ActivityKind =
-	| "thinking"
-	| "command"
-	| "edit"
-	| "write"
-	| "read"
-	| "search"
-	| "other";
+type ActivityKind = "thinking" | "command" | "edit" | "write" | "read" | "search" | "other";
 type ActivityStatus = "pending" | "running" | "done" | "error";
 
 interface ActivityItem {
@@ -145,10 +134,7 @@ export function MessageTimeline({ sessionId }: Props) {
 		}
 		return -1;
 	}, [messages]);
-	const timelineItems = useMemo(
-		() => buildTimelineItems(messages, claimed),
-		[messages, claimed],
-	);
+	const timelineItems = useMemo(() => buildTimelineItems(messages, claimed), [messages, claimed]);
 
 	return (
 		<Conversation>
@@ -175,10 +161,7 @@ export function MessageTimeline({ sessionId }: Props) {
 							/>
 						))}
 						{pendingSubmissions.map((submission) => (
-							<PendingSubmissionTurn
-								key={submission.id}
-								submission={submission}
-							/>
+							<PendingSubmissionTurn key={submission.id} submission={submission} />
 						))}
 						{queuedMessages.map((message) => (
 							<QueuedMessageRow
@@ -230,35 +213,20 @@ function TimelineRow({
 	return null;
 }
 
-function PendingSubmissionTurn({
-	submission,
-}: {
-	submission: PendingSubmission;
-}) {
+function PendingSubmissionTurn({ submission }: { submission: PendingSubmission }) {
 	return (
 		<>
 			<UserRow content={submission.content} />
 			<Message from="assistant">
 				<MessageContent className="flex flex-col gap-3.5">
-					<ActivityPanel
-						activities={[]}
-						elapsed="0s"
-						isStreaming
-						hasFinalText={false}
-					/>
+					<ActivityPanel activities={[]} elapsed="0s" isStreaming hasFinalText={false} />
 				</MessageContent>
 			</Message>
 		</>
 	);
 }
 
-function QueuedMessageRow({
-	content,
-	type,
-}: {
-	content: string;
-	type: "steering" | "followUp";
-}) {
+function QueuedMessageRow({ content, type }: { content: string; type: "steering" | "followUp" }) {
 	return (
 		<Message from="user">
 			<div className="flex min-w-0 w-fit max-w-[76%] flex-col gap-2 rounded-[22px] rounded-br-[10px] border border-primary/15 bg-card/90 px-4 py-3 text-[14px] leading-6 text-foreground shadow-[0_10px_30px_rgba(0,0,0,0.04)] backdrop-blur-xl">
@@ -285,9 +253,7 @@ function UserRow({ content }: { content: string | unknown[] }) {
 	const images =
 		typeof content === "string"
 			? []
-			: (content as Part[]).filter(
-					(p): p is Part & { type: "image" } => p?.type === "image",
-				);
+			: (content as Part[]).filter((p): p is Part & { type: "image" } => p?.type === "image");
 	return (
 		<Message from="user">
 			<MessageContent className="flex flex-col items-stretch gap-3">
@@ -389,9 +355,7 @@ function AssistantRow({
 		toolResults,
 		lastMessage?.timestamp ?? startedAt,
 	);
-	const elapsed = formatDuration(
-		Math.max(0, (isStreaming ? Date.now() : endedAt) - startedAt),
-	);
+	const elapsed = formatDuration(Math.max(0, (isStreaming ? Date.now() : endedAt) - startedAt));
 	const model = lastMessage?.model;
 	const stopReason = lastMessage?.stopReason;
 
@@ -408,9 +372,7 @@ function AssistantRow({
 				{model || stopReason ? (
 					<div className="text-[11px] font-medium text-muted-foreground/55">
 						{model ?? ""}
-						{stopReason && stopReason !== "stop"
-							? ` · ${stopReason}`
-							: ""}
+						{stopReason && stopReason !== "stop" ? ` · ${stopReason}` : ""}
 					</div>
 				) : null}
 			</MessageContent>
@@ -451,10 +413,7 @@ function ActivityPanel({
 			>
 				<span className="min-w-0">{label}</span>
 				<ChevronRight
-					className={cn(
-						"size-4 shrink-0 transition-transform duration-200",
-						open && "rotate-90",
-					)}
+					className={cn("size-4 shrink-0 transition-transform duration-200", open && "rotate-90")}
 				/>
 			</button>
 			{open ? (
@@ -476,10 +435,7 @@ function ActivityPanel({
 						/>
 					) : (
 						groups.map((group, index) => (
-							<ActivityGroupRow
-								key={`${group.kind}-${index}`}
-								group={group}
-							/>
+							<ActivityGroupRow key={`${group.kind}-${index}`} group={group} />
 						))
 					)}
 				</div>
@@ -501,19 +457,13 @@ function ActivityGroupRow({ group }: { group: ActivityGroup }) {
 				className="group flex w-full cursor-pointer items-center gap-2 text-left transition-colors hover:text-foreground"
 			>
 				<Icon
-					className={cn(
-						"size-4 shrink-0",
-						running ? "text-primary" : "text-muted-foreground",
-					)}
+					className={cn("size-4 shrink-0", running ? "text-primary" : "text-muted-foreground")}
 				/>
 				<span className="min-w-0 flex-1 truncate">
 					{running ? <Shimmer>{title}</Shimmer> : title}
 				</span>
 				<ChevronRight
-					className={cn(
-						"size-3.5 shrink-0 transition-transform duration-200",
-						open && "rotate-90",
-					)}
+					className={cn("size-3.5 shrink-0 transition-transform duration-200", open && "rotate-90")}
 				/>
 			</button>
 			{running ? (
@@ -552,9 +502,7 @@ function CustomRow({ data }: { data: ChatMessage & { role: "custom" } }) {
 	return (
 		<Message from="assistant">
 			<MessageContent className="rounded-[18px] border border-border/40 bg-card/50 px-4 py-3 text-[12px] text-muted-foreground shadow-[0_2px_8px_rgba(0,0,0,0.03)] backdrop-blur-xl">
-				<div className="font-medium uppercase tracking-[0.08em] opacity-70">
-					{data.subtype}
-				</div>
+				<div className="font-medium uppercase tracking-[0.08em] opacity-70">{data.subtype}</div>
 				<pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-5 [overflow-wrap:anywhere]">
 					{summarize(data.data)}
 				</pre>
@@ -780,7 +728,7 @@ function unitForKind(kind: ActivityKind) {
 	}
 }
 
-function kindForTool(name: string, args: Record<string, unknown>): ActivityKind {
+function kindForTool(name: string, _args: Record<string, unknown>): ActivityKind {
 	switch (name) {
 		case "bash":
 			return "command";
@@ -799,10 +747,7 @@ function kindForTool(name: string, args: Record<string, unknown>): ActivityKind 
 	}
 }
 
-function actionForTool(
-	name: string,
-	args: Record<string, unknown>,
-): ActivityItem["action"] {
+function actionForTool(name: string, _args: Record<string, unknown>): ActivityItem["action"] {
 	switch (name) {
 		case "bash":
 			return "run";
@@ -859,8 +804,7 @@ function summarizeTool(name: string, args: Record<string, unknown>) {
 	if ("pattern" in args) return String(args.pattern);
 	const fallback = Object.entries(args).find(
 		([key, value]) =>
-			!isVerboseToolArg(key) &&
-			(typeof value === "string" || typeof value === "number"),
+			!isVerboseToolArg(key) && (typeof value === "string" || typeof value === "number"),
 	);
 	return fallback == null ? name : String(fallback[1]);
 }
@@ -910,10 +854,7 @@ function diffStatForTool(
 	const patch = details?.patch ?? details?.diff;
 	if (patch) return diffStatFromPatch(patch);
 	const lower = name.toLowerCase();
-	if (
-		(lower.includes("write") || lower.includes("create")) &&
-		typeof args.content === "string"
-	) {
+	if ((lower.includes("write") || lower.includes("create")) && typeof args.content === "string") {
 		const added = String(args.content).split("\n").length;
 		return `+${added} -0`;
 	}

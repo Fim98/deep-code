@@ -1,8 +1,4 @@
-import {
-	AuthStorage,
-	ModelRegistry,
-	getAgentDir,
-} from "@earendil-works/pi-coding-agent";
+import { AuthStorage, getAgentDir, ModelRegistry } from "@earendil-works/pi-coding-agent";
 
 let auth: AuthStorage | undefined;
 let modelRegistry: ModelRegistry | undefined;

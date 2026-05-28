@@ -1,10 +1,6 @@
-import { useEffect, useState, type ComponentProps } from "react";
 import { ChevronRight, Sparkles } from "lucide-react";
-import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { type ComponentProps, useEffect, useState } from "react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 
 export function Reasoning({

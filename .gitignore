@@ -3,6 +3,7 @@ out/
 out-tsc/
 .vite/
 dist/
+release/
 *.log
 # heroui-agents-md
 .heroui-docs/

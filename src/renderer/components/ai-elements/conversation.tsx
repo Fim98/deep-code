@@ -1,15 +1,15 @@
+import { ArrowDown, MessageSquare } from "lucide-react";
 import {
+	type ComponentProps,
 	createContext,
+	type ReactNode,
 	useCallback,
 	useContext,
 	useEffect,
 	useMemo,
 	useRef,
 	useState,
-	type ComponentProps,
-	type ReactNode,
 } from "react";
-import { ArrowDown, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -29,11 +29,7 @@ function useConversation() {
 	return ctx;
 }
 
-export function Conversation({
-	children,
-	className,
-	...props
-}: ComponentProps<"div">) {
+export function Conversation({ children, className, ...props }: ComponentProps<"div">) {
 	const viewportRef = useRef<HTMLDivElement | null>(null);
 	const [isAtBottom, setIsAtBottom] = useState(true);
 
@@ -58,10 +54,7 @@ export function Conversation({
 	return (
 		<ConversationContext.Provider value={value}>
 			<div
-				className={cn(
-					"relative flex h-full min-h-0 flex-1 flex-col overflow-hidden",
-					className,
-				)}
+				className={cn("relative flex h-full min-h-0 flex-1 flex-col overflow-hidden", className)}
 				{...props}
 			>
 				<div
@@ -76,11 +69,7 @@ export function Conversation({
 	);
 }
 
-export function ConversationContent({
-	children,
-	className,
-	...props
-}: ComponentProps<"div">) {
+export function ConversationContent({ children, className, ...props }: ComponentProps<"div">) {
 	const { viewportRef, isAtBottom } = useConversation();
 
 	useEffect(() => {
@@ -92,10 +81,7 @@ export function ConversationContent({
 
 	return (
 		<div
-			className={cn(
-					"mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-5 px-8 py-7",
-				className,
-			)}
+			className={cn("mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-5 px-8 py-7", className)}
 			{...props}
 		>
 			{children}
@@ -130,19 +116,14 @@ export function ConversationEmptyState({
 				{title}
 			</div>
 			{description ? (
-				<p className="mt-3 max-w-md text-[14px] leading-6 text-muted-foreground">
-					{description}
-				</p>
+				<p className="mt-3 max-w-md text-[14px] leading-6 text-muted-foreground">{description}</p>
 			) : null}
 			{children}
 		</div>
 	);
 }
 
-export function ConversationScrollButton({
-	className,
-	...props
-}: ComponentProps<typeof Button>) {
+export function ConversationScrollButton({ className, ...props }: ComponentProps<typeof Button>) {
 	const { isAtBottom, scrollToBottom } = useConversation();
 	if (isAtBottom) return null;
 	return (

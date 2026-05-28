@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 import { pi } from "@/lib/rpc";
+import { cn } from "@/lib/utils";
 import { useSessions } from "@/stores/session-state";
 
 type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
@@ -18,12 +18,7 @@ interface ModelRef {
 	reasoning?: boolean;
 }
 
-const THINKING_LEVELS: ThinkingLevel[] = [
-	"off",
-	"medium",
-	"high",
-	"xhigh",
-];
+const THINKING_LEVELS: ThinkingLevel[] = ["off", "medium", "high", "xhigh"];
 
 interface Props {
 	sessionId: string;
@@ -124,57 +119,53 @@ export function ModelPicker({ sessionId, model, thinkingLevel }: Props) {
 					/>
 				</div>
 				<div className="model-picker-scroll min-h-0 flex-1 overflow-y-auto py-1">
-						{loading ? (
-							<div className="px-3 py-6 text-center text-[11px] text-muted-foreground">
-								Loading…
-							</div>
-						) : grouped.length === 0 ? (
-							<div className="px-3 py-6 text-center text-[11px] text-muted-foreground">
-								No models. Configure auth in <span className="font-mono">~/.pi/agent/auth.json</span>.
-							</div>
-						) : (
-							grouped.map(([provider, list]) => (
-								<div key={provider} className="px-1.5 pb-1.5">
-									<div className="px-3 pb-1.5 pt-2.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">
-										{provider}
-									</div>
-									{list.map((m) => {
-										const active =
-											model?.provider === m.provider && model.id === m.id;
-										return (
-											<button
-												key={`${m.provider}/${m.id}`}
-												onClick={() => pick(m)}
-												className={cn(
-													"flex min-h-[38px] w-full cursor-pointer items-center gap-2 rounded-[10px] px-3 py-2 text-left text-[12px] transition-colors",
-													active
-														? "bg-foreground/[0.05] text-foreground"
-														: "text-foreground/70 hover:bg-foreground/[0.04] hover:text-foreground",
-												)}
-											>
-												<Check
-													className={cn(
-														"size-3.5 shrink-0",
-														active ? "text-primary" : "opacity-0",
-													)}
-												/>
-												<span className="min-w-0 flex-1 truncate font-medium text-foreground/90">
-													{m.name}
-												</span>
-												{m.reasoning ? (
-													<Badge variant="default" size="sm">R</Badge>
-												) : null}
-												{m.contextWindow ? (
-													<span className="shrink-0 text-[10px] tabular-nums text-muted-foreground/80">
-														{formatContext(m.contextWindow)}
-													</span>
-												) : null}
-											</button>
-										);
-									})}
+					{loading ? (
+						<div className="px-3 py-6 text-center text-[11px] text-muted-foreground">Loading…</div>
+					) : grouped.length === 0 ? (
+						<div className="px-3 py-6 text-center text-[11px] text-muted-foreground">
+							No models. Configure auth in <span className="font-mono">~/.pi/agent/auth.json</span>.
+						</div>
+					) : (
+						grouped.map(([provider, list]) => (
+							<div key={provider} className="px-1.5 pb-1.5">
+								<div className="px-3 pb-1.5 pt-2.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">
+									{provider}
 								</div>
-							))
-						)}
+								{list.map((m) => {
+									const active = model?.provider === m.provider && model.id === m.id;
+									return (
+										<button
+											key={`${m.provider}/${m.id}`}
+											onClick={() => pick(m)}
+											className={cn(
+												"flex min-h-[38px] w-full cursor-pointer items-center gap-2 rounded-[10px] px-3 py-2 text-left text-[12px] transition-colors",
+												active
+													? "bg-foreground/[0.05] text-foreground"
+													: "text-foreground/70 hover:bg-foreground/[0.04] hover:text-foreground",
+											)}
+										>
+											<Check
+												className={cn("size-3.5 shrink-0", active ? "text-primary" : "opacity-0")}
+											/>
+											<span className="min-w-0 flex-1 truncate font-medium text-foreground/90">
+												{m.name}
+											</span>
+											{m.reasoning ? (
+												<Badge variant="default" size="sm">
+													R
+												</Badge>
+											) : null}
+											{m.contextWindow ? (
+												<span className="shrink-0 text-[10px] tabular-nums text-muted-foreground/80">
+													{formatContext(m.contextWindow)}
+												</span>
+											) : null}
+										</button>
+									);
+								})}
+							</div>
+						))
+					)}
 				</div>
 				<div className="shrink-0 border-t border-border/30 p-2">
 					<div className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">

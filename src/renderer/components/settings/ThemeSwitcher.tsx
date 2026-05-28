@@ -2,7 +2,7 @@ import { Monitor, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { useTheme, type ThemeChoice } from "@/stores/theme";
+import { type ThemeChoice, useTheme } from "@/stores/theme";
 
 const OPTIONS: Array<{
 	value: ThemeChoice;
@@ -16,9 +16,7 @@ const OPTIONS: Array<{
 
 export function ThemeSwitcher() {
 	const { choice, applied, setChoice } = useTheme();
-	const Active =
-		OPTIONS.find((o) => o.value === choice)?.icon ??
-		(applied === "dark" ? Moon : Sun);
+	const Active = OPTIONS.find((o) => o.value === choice)?.icon ?? (applied === "dark" ? Moon : Sun);
 
 	return (
 		<Popover>
@@ -43,9 +41,7 @@ export function ThemeSwitcher() {
 						>
 							<Icon className="size-4" />
 							<span className="flex-1 text-left">{label}</span>
-							{active ? (
-								<span className="size-1.5 rounded-full bg-primary" />
-							) : null}
+							{active ? <span className="size-1.5 rounded-full bg-primary" /> : null}
 						</button>
 					);
 				})}

@@ -1,8 +1,4 @@
-import type {
-	AgentSessionEvent,
-	RpcCommand,
-	RpcResponse,
-} from "@earendil-works/pi-coding-agent";
+import type { AgentSessionEvent, RpcCommand, RpcResponse } from "@earendil-works/pi-coding-agent";
 
 export interface WorkspaceEntry {
 	id: string;
@@ -42,32 +38,18 @@ export interface PiBridge {
 	};
 	sessions: {
 		list: (workspaceId: string) => Promise<SessionListItem[]>;
-		open: (opts: {
-			workspaceId: string;
-			sessionFile?: string;
-		}) => Promise<OpenSessionResult>;
+		open: (opts: { workspaceId: string; sessionFile?: string }) => Promise<OpenSessionResult>;
 		close: (sessionId: string) => Promise<void>;
-		delete: (args: {
-			workspaceId: string;
-			sessionPath: string;
-		}) => Promise<void>;
+		delete: (args: { workspaceId: string; sessionPath: string }) => Promise<void>;
 	};
 	rpc: {
-		send: <C extends RpcCommand>(
-			sessionId: string,
-			command: C,
-		) => Promise<RpcResponse>;
-		subscribe: (
-			sessionId: string,
-			cb: (event: AgentSessionEvent) => void,
-		) => () => void;
+		send: <C extends RpcCommand>(sessionId: string, command: C) => Promise<RpcResponse>;
+		subscribe: (sessionId: string, cb: (event: AgentSessionEvent) => void) => () => void;
 	};
 	theme: {
 		setSource: (source: "system" | "light" | "dark") => Promise<"light" | "dark">;
 		get: () => Promise<{ source: string; shouldUseDark: boolean }>;
-		onUpdate: (
-			cb: (info: { source: string; shouldUseDark: boolean }) => void,
-		) => () => void;
+		onUpdate: (cb: (info: { source: string; shouldUseDark: boolean }) => void) => () => void;
 	};
 	auth: {
 		list: () => Promise<ProviderEntry[]>;

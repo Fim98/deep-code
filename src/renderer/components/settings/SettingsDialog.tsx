@@ -1,23 +1,16 @@
+import { ExternalLink, Eye, EyeOff, Key, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import {
-	ExternalLink,
-	Eye,
-	EyeOff,
-	Key,
-	Plus,
-	ShieldCheck,
-	Trash2,
-} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
 	Dialog,
 	DialogContent,
-	DialogHeader,
 	DialogDescription,
+	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
 	Select,
 	SelectContent,
@@ -25,10 +18,9 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { type ProviderEntry, pi } from "@/lib/rpc";
 import { emitToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
-import { pi, type ProviderEntry } from "@/lib/rpc";
 
 const MODELS_DOCS_URL = "https://pi.dev/docs/latest/models";
 const AUTH_CONFIG_PATH = "~/.pi/agent/auth.json";
@@ -104,10 +96,7 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
 	async function refresh() {
 		setLoading(true);
 		try {
-			const [c, k] = await Promise.all([
-				pi.auth.list(),
-				pi.auth.knownProviders(),
-			]);
+			const [c, k] = await Promise.all([pi.auth.list(), pi.auth.knownProviders()]);
 			setConfigured(c);
 			setKnown(k);
 		} catch (e) {
@@ -136,10 +125,7 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
 		}
 	}
 
-	const configuredSet = useMemo(
-		() => new Set(configured.map((c) => c.provider)),
-		[configured],
-	);
+	const configuredSet = useMemo(() => new Set(configured.map((c) => c.provider)), [configured]);
 	const availableProviders = useMemo(
 		() => known.filter((provider) => !configuredSet.has(provider)),
 		[known, configuredSet],
@@ -158,8 +144,8 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
 								Provider Settings
 							</DialogTitle>
 							<DialogDescription className="mt-2 max-w-2xl text-[13px] leading-6">
-								Configured credentials from <span className="font-mono">/login</span>{" "}
-								appear here. Custom providers and models are configured separately.
+								Configured credentials from <span className="font-mono">/login</span> appear here.
+								Custom providers and models are configured separately.
 							</DialogDescription>
 						</div>
 					</div>
@@ -187,10 +173,7 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
 								)}
 							</div>
 						</section>
-						<PresetProviderForm
-							providers={availableProviders}
-							onSave={handleSave}
-						/>
+						<PresetProviderForm providers={availableProviders} onSave={handleSave} />
 						<CustomModelsHint />
 					</div>
 				</ScrollArea>
@@ -199,13 +182,7 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
 	);
 }
 
-function SettingsSectionHeader({
-	title,
-	description,
-}: {
-	title: string;
-	description: string;
-}) {
+function SettingsSectionHeader({ title, description }: { title: string; description: string }) {
 	return (
 		<div className="space-y-1">
 			<div className="select-none text-[11px] font-medium uppercase tracking-[0.14em] text-primary/70">
@@ -235,11 +212,7 @@ function ConfiguredRow({
 		<div className="rounded-[24px] border border-border/60 bg-card px-5 py-4 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
 			<div className="flex items-center gap-4">
 				<div className="flex size-10 shrink-0 items-center justify-center rounded-[16px] bg-foreground/[0.04] text-muted-foreground">
-					{entry.type === "oauth" ? (
-						<ShieldCheck className="size-4" />
-					) : (
-						<Key className="size-4" />
-					)}
+					{entry.type === "oauth" ? <ShieldCheck className="size-4" /> : <Key className="size-4" />}
 				</div>
 				<div className="min-w-0 flex-1">
 					<div className="flex min-w-0 items-center gap-2">
@@ -328,9 +301,7 @@ function PresetProviderForm({
 					>
 						<div className="grid gap-3 sm:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
 							<div className="space-y-1.5">
-								<label className="px-1 text-[11px] font-medium text-muted-foreground">
-									Provider
-								</label>
+								<div className="px-1 text-[11px] font-medium text-muted-foreground">Provider</div>
 								<Select value={provider} onValueChange={setProvider}>
 									<SelectTrigger className="text-[13px]">
 										<SelectValue placeholder="Select provider" />
@@ -345,11 +316,15 @@ function PresetProviderForm({
 								</Select>
 							</div>
 							<div className="space-y-1.5">
-								<label className="px-1 text-[11px] font-medium text-muted-foreground">
+								<label
+									htmlFor="provider-api-key"
+									className="px-1 text-[11px] font-medium text-muted-foreground"
+								>
 									API key or env name
 								</label>
 								<div className="flex items-center gap-2">
 									<Input
+										id="provider-api-key"
 										value={key}
 										onChange={(e) => setKey(e.target.value)}
 										type={reveal ? "text" : "password"}
@@ -380,8 +355,9 @@ function PresetProviderForm({
 							{hint?.hint ?? "Preset provider."}
 							{supportsOAuth ? (
 								<>
-									{" "}For OAuth, send <span className="font-mono">/login</span> in chat
-									and select this provider.
+									{" "}
+									For OAuth, send <span className="font-mono">/login</span> in chat and select this
+									provider.
 								</>
 							) : null}
 						</div>
@@ -408,8 +384,8 @@ function CustomModelsHint() {
 		<div className="flex items-center justify-between gap-4 rounded-[24px] border border-border/60 bg-card px-5 py-4 text-[13px] leading-6 text-muted-foreground shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
 			<div className="min-w-0">
 				Custom providers, local models, and proxies use{" "}
-				<span className="font-mono text-foreground/80">models.json</span>. See the Pi
-				models documentation for setup details.
+				<span className="font-mono text-foreground/80">models.json</span>. See the Pi models
+				documentation for setup details.
 			</div>
 			<Button
 				type="button"

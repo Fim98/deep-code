@@ -1,13 +1,5 @@
-import {
-	motion,
-	type HTMLMotionProps,
-	type MotionProps,
-} from "motion/react";
-import {
-	type ComponentPropsWithoutRef,
-	type ElementType,
-	type ReactNode,
-} from "react";
+import { type HTMLMotionProps, type MotionProps, motion } from "motion/react";
+import { type ComponentPropsWithoutRef, type ElementType, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 type ShimmerProps<T extends ElementType> = {
@@ -27,8 +19,7 @@ export function Shimmer<T extends ElementType = "span">({
 	...props
 }: ShimmerProps<T>) {
 	const Component = motion.create((as ?? "span") as ElementType);
-	const textLength =
-		typeof children === "string" ? Math.max(children.length, 12) : 18;
+	const textLength = typeof children === "string" ? Math.max(children.length, 12) : 18;
 
 	return (
 		<Component

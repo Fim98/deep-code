@@ -10,28 +10,23 @@ interface RpcEventPayload {
 const workspaces = {
 	list: () => ipcRenderer.invoke("pi:workspace:list"),
 	getActive: () => ipcRenderer.invoke("pi:workspace:get-active"),
-	setActive: (id: string | null) =>
-		ipcRenderer.invoke("pi:workspace:set-active", id),
-	add: (path: string, name?: string) =>
-		ipcRenderer.invoke("pi:workspace:add", path, name),
+	setActive: (id: string | null) => ipcRenderer.invoke("pi:workspace:set-active", id),
+	add: (path: string, name?: string) => ipcRenderer.invoke("pi:workspace:add", path, name),
 	remove: (id: string) => ipcRenderer.invoke("pi:workspace:remove", id),
 	pickDirectory: () => ipcRenderer.invoke("pi:workspace:pick-directory"),
 };
 
 const sessions = {
-	list: (workspaceId: string) =>
-		ipcRenderer.invoke("pi:session:list", workspaceId),
+	list: (workspaceId: string) => ipcRenderer.invoke("pi:session:list", workspaceId),
 	open: (opts: { workspaceId: string; sessionFile?: string }) =>
 		ipcRenderer.invoke("pi:session:open", opts),
-	close: (sessionId: string) =>
-		ipcRenderer.invoke("pi:session:close", sessionId),
+	close: (sessionId: string) => ipcRenderer.invoke("pi:session:close", sessionId),
 	delete: (args: { workspaceId: string; sessionPath: string }) =>
 		ipcRenderer.invoke("pi:session:delete", args),
 };
 
 const rpc = {
-	send: (sessionId: string, command: unknown) =>
-		ipcRenderer.invoke("pi:rpc", sessionId, command),
+	send: (sessionId: string, command: unknown) => ipcRenderer.invoke("pi:rpc", sessionId, command),
 	subscribe: (sessionId: string, cb: (event: unknown) => void) => {
 		const handler = (_e: Electron.IpcRendererEvent, payload: RpcEventPayload) => {
 			if (payload.sessionId === sessionId) cb(payload.event);
@@ -44,8 +39,7 @@ const rpc = {
 const auth = {
 	list: () => ipcRenderer.invoke("pi:auth:list"),
 	knownProviders: () => ipcRenderer.invoke("pi:auth:known-providers"),
-	setKey: (provider: string, key: string) =>
-		ipcRenderer.invoke("pi:auth:set-key", provider, key),
+	setKey: (provider: string, key: string) => ipcRenderer.invoke("pi:auth:set-key", provider, key),
 	remove: (provider: string) => ipcRenderer.invoke("pi:auth:remove", provider),
 };
 

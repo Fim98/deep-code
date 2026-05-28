@@ -18,19 +18,9 @@ export function DiffViewer({ patch, className }: Props) {
 			{lines.map((raw, i) => {
 				const cls = classify(raw);
 				return (
-					<div
-						key={i}
-						className={cn(
-							"px-2.5 py-[1px] tabular-nums",
-							cls.bg,
-							cls.text,
-						)}
-					>
+					<div key={i} className={cn("px-2.5 py-[1px] tabular-nums", cls.bg, cls.text)}>
 						<span
-							className={cn(
-								"mr-2 inline-block w-3 select-none text-center opacity-60",
-								cls.text,
-							)}
+							className={cn("mr-2 inline-block w-3 select-none text-center opacity-60", cls.text)}
 						>
 							{cls.gutter}
 						</span>

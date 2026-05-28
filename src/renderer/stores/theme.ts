@@ -21,16 +21,14 @@ function readChoice(): ThemeChoice {
 
 function resolveSystem(): AppliedTheme {
 	if (typeof window === "undefined") return "light";
-	return window.matchMedia("(prefers-color-scheme: dark)").matches
-		? "dark"
-		: "light";
+	return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
 function resolve(choice: ThemeChoice): AppliedTheme {
 	return choice === "system" ? resolveSystem() : choice;
 }
 
-export const useTheme = create<Store>((set, get) => ({
+export const useTheme = create<Store>((set) => ({
 	choice: readChoice(),
 	applied: resolve(readChoice()),
 	setChoice: (c) => {

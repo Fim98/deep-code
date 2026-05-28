@@ -1,15 +1,7 @@
-import type {
-	AgentSession,
-	RpcCommand,
-	RpcResponse,
-} from "@earendil-works/pi-coding-agent";
+import type { AgentSession, RpcCommand, RpcResponse } from "@earendil-works/pi-coding-agent";
 
-type SuccessData<T extends RpcCommand["type"]> = Extract<
-	RpcResponse,
-	{ command: T; success: true }
-> extends { data: infer D }
-	? D
-	: undefined;
+type SuccessData<T extends RpcCommand["type"]> =
+	Extract<RpcResponse, { command: T; success: true }> extends { data: infer D } ? D : undefined;
 
 function ok<T extends RpcCommand["type"]>(
 	id: string | undefined,
@@ -22,11 +14,7 @@ function ok<T extends RpcCommand["type"]>(
 	return { id, type: "response", command, success: true, data } as RpcResponse;
 }
 
-function fail(
-	id: string | undefined,
-	command: string,
-	message: string,
-): RpcResponse {
+function fail(id: string | undefined, command: string, message: string): RpcResponse {
 	return { id, type: "response", command, success: false, error: message };
 }
 
@@ -37,10 +25,7 @@ function fail(
  * Mirrors packages/coding-agent/src/modes/rpc/rpc-mode.ts handleCommand,
  * but minus the stdio I/O layer.
  */
-export async function dispatchRpc(
-	session: AgentSession,
-	cmd: RpcCommand,
-): Promise<RpcResponse> {
+export async function dispatchRpc(session: AgentSession, cmd: RpcCommand): Promise<RpcResponse> {
 	const id = cmd.id;
 	try {
 		switch (cmd.type) {
@@ -89,15 +74,9 @@ export async function dispatchRpc(
 
 			case "set_model": {
 				const models = await session.modelRegistry.getAvailable();
-				const model = models.find(
-					(m) => m.provider === cmd.provider && m.id === cmd.modelId,
-				);
+				const model = models.find((m) => m.provider === cmd.provider && m.id === cmd.modelId);
 				if (!model) {
-					return fail(
-						id,
-						"set_model",
-						`Model not found: ${cmd.provider}/${cmd.modelId}`,
-					);
+					return fail(id, "set_model", `Model not found: ${cmd.provider}/${cmd.modelId}`);
 				}
 				await session.setModel(model);
 				return ok(id, "set_model", model);

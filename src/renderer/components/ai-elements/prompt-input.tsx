@@ -1,5 +1,5 @@
-import * as React from "react";
 import { ArrowUp, Loader2 } from "lucide-react";
+import * as React from "react";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { Textarea, type TextareaProps } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -11,18 +11,10 @@ export interface PromptInputMessage {
 
 export interface PromptInputProps
 	extends Omit<React.FormHTMLAttributes<HTMLFormElement>, "onSubmit"> {
-	onSubmit?: (
-		message: PromptInputMessage,
-		event: React.FormEvent<HTMLFormElement>,
-	) => void;
+	onSubmit?: (message: PromptInputMessage, event: React.FormEvent<HTMLFormElement>) => void;
 }
 
-export function PromptInput({
-	className,
-	onSubmit,
-	children,
-	...props
-}: PromptInputProps) {
+export function PromptInput({ className, onSubmit, children, ...props }: PromptInputProps) {
 	return (
 		<form
 			className={cn(
@@ -43,80 +35,60 @@ export function PromptInput({
 	);
 }
 
-export function PromptInputBody({
-	className,
-	...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+export function PromptInputBody({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
 	return <div className={cn("flex min-w-0", className)} {...props} />;
 }
 
-export function PromptInputFooter({
-	className,
-	...props
-}: React.HTMLAttributes<HTMLDivElement>) {
-	return (
-		<div
-			className={cn("mt-2 flex items-center gap-3 px-1", className)}
-			{...props}
-		/>
-	);
+export function PromptInputFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+	return <div className={cn("mt-2 flex items-center gap-3 px-1", className)} {...props} />;
 }
 
-export function PromptInputTools({
-	className,
-	...props
-}: React.HTMLAttributes<HTMLDivElement>) {
-	return (
-		<div
-			className={cn("flex flex-1 items-center gap-2", className)}
-			{...props}
-		/>
-	);
+export function PromptInputTools({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+	return <div className={cn("flex flex-1 items-center gap-2", className)} {...props} />;
 }
 
-export const PromptInputTextarea = React.forwardRef<
-	HTMLTextAreaElement,
-	TextareaProps
->(({ className, name = "message", onInput, rows = 1, ...props }, ref) => {
-	const internalRef = React.useRef<HTMLTextAreaElement | null>(null);
+export const PromptInputTextarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
+	({ className, name = "message", onInput, rows = 1, ...props }, ref) => {
+		const internalRef = React.useRef<HTMLTextAreaElement | null>(null);
 
-	const setRefs = React.useCallback(
-		(node: HTMLTextAreaElement | null) => {
-			internalRef.current = node;
-			if (typeof ref === "function") ref(node);
-			else if (ref) ref.current = node;
-		},
-		[ref],
-	);
+		const setRefs = React.useCallback(
+			(node: HTMLTextAreaElement | null) => {
+				internalRef.current = node;
+				if (typeof ref === "function") ref(node);
+				else if (ref) ref.current = node;
+			},
+			[ref],
+		);
 
-	const resize = React.useCallback(() => {
-		const node = internalRef.current;
-		if (!node) return;
-		node.style.height = "auto";
-		node.style.height = `${Math.min(node.scrollHeight, 176)}px`;
-	}, []);
+		const resize = React.useCallback(() => {
+			const node = internalRef.current;
+			if (!node) return;
+			node.style.height = "auto";
+			node.style.height = `${Math.min(node.scrollHeight, 176)}px`;
+		}, []);
 
-	React.useLayoutEffect(() => {
-		resize();
-	}, [resize, props.value]);
+		React.useLayoutEffect(() => {
+			resize();
+		}, [resize, props.value]);
 
-	return (
-		<Textarea
-			className={cn(
-				"max-h-44 min-h-[56px] flex-1 rounded-[24px] px-4 py-3 text-[14px] leading-6",
-				className,
-			)}
-			name={name}
-			onInput={(event) => {
-				resize();
-				onInput?.(event);
-			}}
-			ref={setRefs}
-			rows={rows}
-			{...props}
-		/>
-	);
-});
+		return (
+			<Textarea
+				className={cn(
+					"max-h-44 min-h-[56px] flex-1 rounded-[24px] px-4 py-3 text-[14px] leading-6",
+					className,
+				)}
+				name={name}
+				onInput={(event) => {
+					resize();
+					onInput?.(event);
+				}}
+				ref={setRefs}
+				rows={rows}
+				{...props}
+			/>
+		);
+	},
+);
 PromptInputTextarea.displayName = "PromptInputTextarea";
 
 export function PromptInputButton({
@@ -125,14 +97,7 @@ export function PromptInputButton({
 	size = "sm",
 	...props
 }: ButtonProps) {
-	return (
-		<Button
-			className={className}
-			size={size}
-			variant={variant}
-			{...props}
-		/>
-	);
+	return <Button className={className} size={size} variant={variant} {...props} />;
 }
 
 export interface PromptInputSubmitProps extends Omit<ButtonProps, "type"> {
@@ -157,11 +122,7 @@ export function PromptInputSubmit({
 			{...props}
 		>
 			{children ??
-				(busy ? (
-					<Loader2 className="size-3.5 animate-spin" />
-				) : (
-					<ArrowUp className="size-3.5" />
-				))}
+				(busy ? <Loader2 className="size-3.5 animate-spin" /> : <ArrowUp className="size-3.5" />)}
 		</Button>
 	);
 }

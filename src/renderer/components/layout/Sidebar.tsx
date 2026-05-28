@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
@@ -13,10 +12,7 @@ export function Sidebar({ children }: Props) {
 			style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
 		>
 			<div className="h-7 shrink-0" />
-			<ScrollArea
-				className="min-h-0 flex-1 pb-5"
-				viewportClassName="[&>div]:!block"
-			>
+			<ScrollArea className="min-h-0 flex-1 pb-5" viewportClassName="[&>div]:!block">
 				<div
 					className="w-full min-w-0 space-y-6 px-4"
 					style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
@@ -45,9 +41,7 @@ export function SidebarSection({ title, action, children }: SectionProps) {
 					{action}
 				</div>
 			</div>
-			<div className="w-full min-w-0 space-y-1">
-				{children}
-			</div>
+			<div className="w-full min-w-0 space-y-1">{children}</div>
 		</section>
 	);
 }
@@ -82,7 +76,7 @@ export function SidebarItem({
 				role="button"
 				tabIndex={0}
 				onKeyDown={(e) => {
-					if (e.key === "Enter" || e.key === " " ) {
+					if (e.key === "Enter" || e.key === " ") {
 						e.preventDefault();
 						onClick?.();
 					}
@@ -91,10 +85,7 @@ export function SidebarItem({
 				className={cn(
 					"group flex min-h-[40px] w-full cursor-pointer items-center gap-3 rounded-[14px] px-3 py-2 text-left text-[14px] transition-colors duration-150",
 					active
-						? cn(
-								"bg-foreground/[0.06] text-foreground",
-								activeClassName,
-							)
+						? cn("bg-foreground/[0.06] text-foreground", activeClassName)
 						: "text-foreground/70 hover:bg-foreground/[0.04] hover:text-foreground",
 					right && "pr-9",
 					className,

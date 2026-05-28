@@ -1,8 +1,5 @@
+import type { AgentSessionEvent, RpcSessionState } from "@earendil-works/pi-coding-agent";
 import { create } from "zustand";
-import type {
-	AgentSessionEvent,
-	RpcSessionState,
-} from "@earendil-works/pi-coding-agent";
 import { pi } from "@/lib/rpc";
 
 export type ChatMessage =
@@ -74,10 +71,7 @@ interface Store {
 	setCurrent: (sid: string | null) => void;
 	hydrate: (sid: string) => Promise<void>;
 	attach: (sid: string) => () => void;
-	addPendingSubmission: (
-		sid: string,
-		submission: Omit<PendingSubmission, "createdAt">,
-	) => void;
+	addPendingSubmission: (sid: string, submission: Omit<PendingSubmission, "createdAt">) => void;
 	removePendingSubmission: (sid: string, id: string) => void;
 }
 
@@ -106,9 +100,7 @@ function toChatMessage(m: any): ChatMessage {
 }
 
 function updateMessage(list: ChatMessage[], incoming: ChatMessage): ChatMessage[] {
-	const idx = list.findIndex(
-		(m) => m.role === incoming.role && m.timestamp === incoming.timestamp,
-	);
+	const idx = list.findIndex((m) => m.role === incoming.role && m.timestamp === incoming.timestamp);
 	if (idx === -1) return [...list, incoming];
 	const next = list.slice();
 	next[idx] = incoming;
@@ -179,9 +171,7 @@ export const useSessions = create<Store>((set, get) => ({
 					...s.bySession,
 					[sid]: {
 						...slice,
-						pendingSubmissions: slice.pendingSubmissions.filter(
-							(item) => item.id !== id,
-						),
+						pendingSubmissions: slice.pendingSubmissions.filter((item) => item.id !== id),
 					},
 				},
 			};
@@ -203,9 +193,7 @@ function applyEvent(
 				const queued = new Set([...event.steering, ...event.followUp]);
 				next = {
 					...slice,
-					pendingSubmissions: slice.pendingSubmissions.filter(
-						(item) => !queued.has(item.content),
-					),
+					pendingSubmissions: slice.pendingSubmissions.filter((item) => !queued.has(item.content)),
 					queue: {
 						steering: [...event.steering],
 						followUp: [...event.followUp],
@@ -218,15 +206,13 @@ function applyEvent(
 				break;
 			}
 			case "agent_end": {
-				const messages = event.messages
-					.map(toChatMessage)
-					.reduce(updateMessage, slice.messages);
+				const messages = event.messages.map(toChatMessage).reduce(updateMessage, slice.messages);
 				// Only stop streaming if agent won't auto-retry.
 				// When willRetry=true, agent_start fires again shortly.
 				next = {
 					...slice,
 					messages,
-					isStreaming: event.willRetry ? true : false,
+					isStreaming: !!event.willRetry,
 					activeTools: event.willRetry ? slice.activeTools : {},
 				};
 				break;
@@ -324,10 +310,7 @@ function updateToolState(
 	const ev = event as Extract<
 		AgentSessionEvent,
 		{
-			type:
-				| "tool_execution_start"
-				| "tool_execution_update"
-				| "tool_execution_end";
+			type: "tool_execution_start" | "tool_execution_update" | "tool_execution_end";
 		}
 	>;
 	if (

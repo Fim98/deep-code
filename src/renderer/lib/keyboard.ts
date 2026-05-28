@@ -12,10 +12,7 @@ export function useKeyboardShortcuts(chords: KeyChord[]) {
 		const onKey = (e: KeyboardEvent) => {
 			const target = e.target as HTMLElement | null;
 			const tag = target?.tagName?.toLowerCase();
-			const editable =
-				tag === "input" ||
-				tag === "textarea" ||
-				target?.isContentEditable;
+			const editable = tag === "input" || tag === "textarea" || target?.isContentEditable;
 			for (const c of chords) {
 				if (e.key.toLowerCase() !== c.key.toLowerCase()) continue;
 				if (!!c.meta !== (e.metaKey || e.ctrlKey)) continue;

@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Square, X } from "lucide-react";
+import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { pi } from "@/lib/rpc";
@@ -51,9 +51,7 @@ export function BashPanel({ sessionId, onClose }: Props) {
 				exitCode?: number;
 				error?: string;
 			};
-			const output =
-				data.output ??
-				[data.stdout, data.stderr].filter(Boolean).join("\n").trim();
+			const output = data.output ?? [data.stdout, data.stderr].filter(Boolean).join("\n").trim();
 			setHistory((h) => [
 				...h,
 				{
@@ -65,10 +63,7 @@ export function BashPanel({ sessionId, onClose }: Props) {
 				},
 			]);
 		} else if (!resp.success) {
-			setHistory((h) => [
-				...h,
-				{ command: cmd, output: "", exitCode: -1, error: resp.error },
-			]);
+			setHistory((h) => [...h, { command: cmd, output: "", exitCode: -1, error: resp.error }]);
 		}
 		inputRef.current?.focus();
 	}
@@ -104,10 +99,7 @@ export function BashPanel({ sessionId, onClose }: Props) {
 				</div>
 			</div>
 			<ScrollArea className="flex-1">
-				<div
-					ref={scrollRef}
-					className="space-y-2 px-3 py-2 font-mono text-[11.5px]"
-				>
+				<div ref={scrollRef} className="space-y-2 px-3 py-2 font-mono text-[11.5px]">
 					{history.length === 0 ? (
 						<div className="px-1 py-2 text-[11px] text-muted-foreground">
 							No commands yet. Try <span className="text-foreground/80">ls</span> or{" "}
@@ -120,9 +112,7 @@ export function BashPanel({ sessionId, onClose }: Props) {
 			</ScrollArea>
 			<div className="flex shrink-0 items-center gap-2 border-t border-border/30 px-3 py-2">
 				<div className="flex flex-1 items-center gap-1.5 rounded-full bg-foreground/[0.04] px-3 py-1.5">
-					<span className="select-none font-mono text-[12px] text-primary">
-						$
-					</span>
+					<span className="select-none font-mono text-[12px] text-primary">$</span>
 					<input
 						ref={inputRef}
 						value={input}
@@ -144,9 +134,7 @@ function BashRow({ entry }: { entry: BashEntry }) {
 		<div className="rounded-[12px] border border-border/30 bg-foreground/[0.02] px-2.5 py-1.5">
 			<div className="flex items-center gap-1.5">
 				<span className="text-primary">$</span>
-				<span className="min-w-0 flex-1 truncate text-foreground/90">
-					{entry.command}
-				</span>
+				<span className="min-w-0 flex-1 truncate text-foreground/90">{entry.command}</span>
 				<span
 					className={cn(
 						"text-[10px] tracking-wider",
@@ -162,9 +150,7 @@ function BashRow({ entry }: { entry: BashEntry }) {
 					{entry.output}
 				</pre>
 			) : null}
-			{entry.error ? (
-				<div className="mt-1 text-[11px] text-destructive">{entry.error}</div>
-			) : null}
+			{entry.error ? <div className="mt-1 text-[11px] text-destructive">{entry.error}</div> : null}
 		</div>
 	);
 }

@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import {
 	type AgentSession,
 	type AgentSessionEvent,
-	SessionManager,
 	createAgentSession,
+	SessionManager,
 } from "@earendil-works/pi-coding-agent";
 import { getSharedServices } from "./shared-services.js";
 import { getWorkspace } from "./workspace-store.js";

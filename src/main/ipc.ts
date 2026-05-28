@@ -1,11 +1,6 @@
 import type { RpcCommand } from "@earendil-works/pi-coding-agent";
 import { type BrowserWindow, dialog, ipcMain, nativeTheme } from "electron";
-import {
-	listConfiguredProviders,
-	listKnownProviders,
-	removeProvider,
-	setApiKey,
-} from "./auth.js";
+import { listConfiguredProviders, listKnownProviders, removeProvider, setApiKey } from "./auth.js";
 import { dispatchRpc } from "./dispatch-rpc.js";
 import { deleteSessionFile, listSessionsForCwd } from "./session-fs.js";
 import { sessionRegistry } from "./session-registry.js";
@@ -25,12 +20,8 @@ type ThemeSource = "system" | "light" | "dark";
 export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined): void {
 	ipcMain.handle("pi:workspace:list", () => listWorkspaces());
 	ipcMain.handle("pi:workspace:get-active", () => getActiveWorkspaceId());
-	ipcMain.handle("pi:workspace:set-active", (_e, id: string | null) =>
-		setActiveWorkspaceId(id),
-	);
-	ipcMain.handle("pi:workspace:add", (_e, path: string, name?: string) =>
-		addWorkspace(path, name),
-	);
+	ipcMain.handle("pi:workspace:set-active", (_e, id: string | null) => setActiveWorkspaceId(id));
+	ipcMain.handle("pi:workspace:add", (_e, path: string, name?: string) => addWorkspace(path, name));
 	ipcMain.handle("pi:workspace:remove", (_e, id: string) => removeWorkspace(id));
 	ipcMain.handle("pi:workspace:pick-directory", async () => {
 		const win = getWindow();
@@ -38,9 +29,7 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 			properties: ["openDirectory", "createDirectory"],
 			title: "Choose a workspace",
 		};
-		const result = win
-			? await dialog.showOpenDialog(win, opts)
-			: await dialog.showOpenDialog(opts);
+		const result = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts);
 		if (result.canceled || result.filePaths.length === 0) return null;
 		return result.filePaths[0];
 	});
@@ -72,10 +61,7 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 
 	ipcMain.handle(
 		"pi:session:delete",
-		async (
-			_e,
-			args: { workspaceId: string; sessionPath: string },
-		): Promise<void> => {
+		async (_e, args: { workspaceId: string; sessionPath: string }): Promise<void> => {
 			// Close any open sessions backed by this file before deletion.
 			for (const open of sessionRegistry.listOpen()) {
 				const sess = sessionRegistry.tryGet(open.sessionId);
@@ -87,13 +73,10 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 		},
 	);
 
-	ipcMain.handle(
-		"pi:rpc",
-		async (_e, sessionId: string, command: RpcCommand) => {
-			const session = sessionRegistry.get(sessionId);
-			return dispatchRpc(session, command);
-		},
-	);
+	ipcMain.handle("pi:rpc", async (_e, sessionId: string, command: RpcCommand) => {
+		const session = sessionRegistry.get(sessionId);
+		return dispatchRpc(session, command);
+	});
 
 	ipcMain.handle("pi:ping", () => "pong");
 

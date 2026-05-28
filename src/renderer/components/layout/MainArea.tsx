@@ -19,11 +19,7 @@ export function MainArea({ header, footer, children }: Props) {
 				</div>
 			</div>
 			<div className="relative min-h-0 flex-1 overflow-hidden">{children}</div>
-			{footer ? (
-				<div className="shrink-0 px-8 pb-6 pt-3">
-					{footer}
-				</div>
-			) : null}
+			{footer ? <div className="shrink-0 px-8 pb-6 pt-3">{footer}</div> : null}
 		</main>
 	);
 }

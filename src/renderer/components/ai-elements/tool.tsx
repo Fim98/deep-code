@@ -1,29 +1,12 @@
+import { CheckCircle2, ChevronRight, CircleDashed, Loader2, TriangleAlert } from "lucide-react";
 import { type ComponentProps, type ReactNode } from "react";
-import {
-	CheckCircle2,
-	ChevronRight,
-	CircleDashed,
-	Loader2,
-	TriangleAlert,
-} from "lucide-react";
-import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 
-export type ToolState =
-	| "input-streaming"
-	| "input-available"
-	| "output-available"
-	| "output-error";
+export type ToolState = "input-streaming" | "input-available" | "output-available" | "output-error";
 
-export function Tool({
-	className,
-	...props
-}: ComponentProps<typeof Collapsible>) {
+export function Tool({ className, ...props }: ComponentProps<typeof Collapsible>) {
 	return (
 		<Collapsible
 			className={cn(
@@ -62,22 +45,20 @@ export function ToolHeader({
 			<span className="min-w-0 truncate text-[13px] font-medium text-foreground">
 				{displayTitle}
 			</span>
-			{children ? <div className="flex min-w-0 flex-1 items-center gap-2">{children}</div> : <span className="flex-1" />}
+			{children ? (
+				<div className="flex min-w-0 flex-1 items-center gap-2">{children}</div>
+			) : (
+				<span className="flex-1" />
+			)}
 			{badge}
 		</CollapsibleTrigger>
 	);
 }
 
-export function ToolContent({
-	className,
-	...props
-}: ComponentProps<typeof CollapsibleContent>) {
+export function ToolContent({ className, ...props }: ComponentProps<typeof CollapsibleContent>) {
 	return (
 		<CollapsibleContent
-			className={cn(
-				"space-y-3 border-t border-border/40 bg-background/35 px-4 py-3",
-				className,
-			)}
+			className={cn("space-y-3 border-t border-border/40 bg-background/35 px-4 py-3", className)}
 			{...props}
 		/>
 	);
@@ -107,11 +88,7 @@ export function ToolOutput({
 	errorText?: string;
 }) {
 	return (
-		<ToolSection
-			label={errorText ? "Error" : "Output"}
-			className={className}
-			{...props}
-		>
+		<ToolSection label={errorText ? "Error" : "Output"} className={className} {...props}>
 			<div
 				className={cn(
 					"max-h-72 overflow-auto text-[12px] leading-6",
@@ -119,9 +96,7 @@ export function ToolOutput({
 				)}
 			>
 				{errorText ? (
-					<pre className="whitespace-pre-wrap font-mono text-[11px] leading-5">
-						{errorText}
-					</pre>
+					<pre className="whitespace-pre-wrap font-mono text-[11px] leading-5">{errorText}</pre>
 				) : (
 					(output ?? <span className="text-muted-foreground">(no output)</span>)
 				)}
@@ -171,7 +146,13 @@ export function getStatusBadge(state: ToolState) {
 					: "Error";
 	return (
 		<Badge
-			variant={state === "output-error" ? "destructive" : state === "input-available" ? "primary" : "default"}
+			variant={
+				state === "output-error"
+					? "destructive"
+					: state === "input-available"
+						? "primary"
+						: "default"
+			}
 			size="sm"
 			className="shrink-0"
 		>

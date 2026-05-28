@@ -1,13 +1,13 @@
-import { useState, type KeyboardEvent } from "react";
 import { Send, Square } from "lucide-react";
+import { type KeyboardEvent, useState } from "react";
 import {
 	PromptInput,
 	PromptInputBody,
 	PromptInputFooter,
+	type PromptInputMessage,
 	PromptInputSubmit,
 	PromptInputTextarea,
 	PromptInputTools,
-	type PromptInputMessage,
 } from "@/components/ai-elements/prompt-input";
 import { pi } from "@/lib/rpc";
 import { useSessions } from "@/stores/session-state";
@@ -84,11 +84,7 @@ export function Composer({ sessionId, isStreaming }: Props) {
 						) : (
 							<Send className="size-3.5" />
 						)}
-						{isStreaming && !text.trim()
-							? "Abort"
-							: isStreaming
-								? "Steer"
-								: "Send"}
+						{isStreaming && !text.trim() ? "Abort" : isStreaming ? "Steer" : "Send"}
 					</PromptInputSubmit>
 				</PromptInputTools>
 			</PromptInputFooter>

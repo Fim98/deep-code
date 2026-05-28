@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { BrowserWindow, app, nativeImage, nativeTheme } from "electron";
+import { app, BrowserWindow, nativeImage, nativeTheme } from "electron";
 import { registerIpcHandlers } from "./ipc.js";
 
 const isDev = !app.isPackaged;
@@ -11,7 +11,9 @@ const windowIconByPlatform: Partial<Record<NodeJS.Platform, string>> = {
 let mainWindow: BrowserWindow | undefined;
 
 function findResourcePath(fileName: string) {
-	const basePaths = isDev ? [process.cwd(), app.getAppPath()] : [process.resourcesPath, app.getAppPath()];
+	const basePaths = isDev
+		? [process.cwd(), app.getAppPath()]
+		: [process.resourcesPath, app.getAppPath()];
 	for (const basePath of basePaths) {
 		const resourcePath = join(basePath, "resources", fileName);
 		if (existsSync(resourcePath)) return resourcePath;

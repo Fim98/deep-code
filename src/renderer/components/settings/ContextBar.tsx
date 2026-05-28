@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
 import { Gauge } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
@@ -159,13 +159,7 @@ export function ContextBar({ sessionId, modelId, modelContextWindow }: Props) {
 	);
 }
 
-function UsageStat({
-	label,
-	value,
-}: {
-	label: string;
-	value: number | null | undefined;
-}) {
+function UsageStat({ label, value }: { label: string; value: number | null | undefined }) {
 	return (
 		<div className="rounded-[14px] bg-foreground/[0.03] px-3 py-2.5">
 			<div className="text-muted-foreground/80">{label}</div>

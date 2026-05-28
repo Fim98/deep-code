@@ -1,5 +1,4 @@
-import { toast } from "sonner";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 
 export function emitToast(message: string, kind: "error" | "info" = "error") {
 	if (kind === "error") {
@@ -16,9 +15,7 @@ export function installGlobalErrorToasts() {
 	});
 	window.addEventListener("unhandledrejection", (e) => {
 		const r = e.reason;
-		emitToast(
-			typeof r === "string" ? r : r?.message ? String(r.message) : String(r),
-		);
+		emitToast(typeof r === "string" ? r : r?.message ? String(r.message) : String(r));
 	});
 }
 

@@ -1,4 +1,3 @@
-import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	Folder,
 	FolderOpen,
@@ -10,31 +9,24 @@ import {
 	Terminal,
 	Trash2,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Spinner } from "@/components/ui/spinner";
-import { MainArea } from "@/components/layout/MainArea";
-import {
-	Sidebar,
-	SidebarItem,
-	SidebarSection,
-} from "@/components/layout/Sidebar";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Composer } from "@/components/chat/Composer";
 import { MessageTimeline } from "@/components/chat/MessageTimeline";
+import { MainArea } from "@/components/layout/MainArea";
+import { Sidebar, SidebarItem, SidebarSection } from "@/components/layout/Sidebar";
 import { BashPanel } from "@/components/panels/BashPanel";
+import { ContextBar } from "@/components/settings/ContextBar";
 import { ModelPicker } from "@/components/settings/ModelPicker";
 import { SettingsDialog } from "@/components/settings/SettingsDialog";
 import { ThemeSwitcher } from "@/components/settings/ThemeSwitcher";
-import { ContextBar } from "@/components/settings/ContextBar";
-import {
-	ToastHost,
-	emitToast,
-	installGlobalErrorToasts,
-} from "@/lib/toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 import { useKeyboardShortcuts } from "@/lib/keyboard";
-import { useSessions } from "@/stores/session-state";
-import { cn } from "@/lib/utils";
 import { pi } from "@/lib/rpc";
+import { emitToast, installGlobalErrorToasts, ToastHost } from "@/lib/toast";
+import { cn } from "@/lib/utils";
+import { useSessions } from "@/stores/session-state";
 
 type Workspace = Awaited<ReturnType<typeof pi.workspaces.list>>[number];
 type SessionInfo = Awaited<ReturnType<typeof pi.sessions.list>>[number];
@@ -84,10 +76,7 @@ export function App() {
 	useKeyboardShortcuts(shortcuts);
 
 	async function refreshWorkspaces() {
-		const [list, active] = await Promise.all([
-			pi.workspaces.list(),
-			pi.workspaces.getActive(),
-		]);
+		const [list, active] = await Promise.all([pi.workspaces.list(), pi.workspaces.getActive()]);
 		setWorkspaces(list);
 		setActiveWs(active);
 		await Promise.all(list.map((w) => refreshSessions(w.id)));
@@ -147,9 +136,7 @@ export function App() {
 			}
 			await refreshSessions(activeWs);
 		} catch (e) {
-			emitToast(
-				`Failed to open session: ${e instanceof Error ? e.message : String(e)}`,
-			);
+			emitToast(`Failed to open session: ${e instanceof Error ? e.message : String(e)}`);
 		}
 	}
 
@@ -162,9 +149,7 @@ export function App() {
 			await pi.sessions.delete({ workspaceId, sessionPath: s.path });
 			setSessionsByWs((prev) => ({
 				...prev,
-				[workspaceId]: (prev[workspaceId] ?? []).filter(
-					(session) => session.path !== s.path,
-				),
+				[workspaceId]: (prev[workspaceId] ?? []).filter((session) => session.path !== s.path),
 			}));
 			if (s.id === activePiSid) {
 				setActiveSid(null);
@@ -172,9 +157,7 @@ export function App() {
 			}
 			await refreshSessions(workspaceId);
 		} catch (e) {
-			emitToast(
-				`Delete failed: ${e instanceof Error ? e.message : String(e)}`,
-			);
+			emitToast(`Delete failed: ${e instanceof Error ? e.message : String(e)}`);
 		}
 	}
 
@@ -193,9 +176,7 @@ export function App() {
 			if (!resp.success) emitToast(resp.error);
 			await refreshSessions(activeWs!);
 		} catch (e) {
-			emitToast(
-				`Rename failed: ${e instanceof Error ? e.message : String(e)}`,
-			);
+			emitToast(`Rename failed: ${e instanceof Error ? e.message : String(e)}`);
 		}
 	}
 
@@ -214,7 +195,6 @@ export function App() {
 			<ToastHost />
 			<SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
 			<Sidebar>
-
 				<SidebarSection
 					title="Workspaces"
 					action={
@@ -255,7 +235,7 @@ export function App() {
 			</Sidebar>
 
 			<MainArea
-					header={
+				header={
 					<>
 						<div className="min-w-0">
 							{activeSid && slice?.state?.sessionName ? (
@@ -322,10 +302,7 @@ export function App() {
 				}
 				footer={
 					activeSid ? (
-						<Composer
-							sessionId={activeSid}
-							isStreaming={slice?.isStreaming ?? false}
-						/>
+						<Composer sessionId={activeSid} isStreaming={slice?.isStreaming ?? false} />
 					) : null
 				}
 			>
@@ -336,10 +313,7 @@ export function App() {
 						</div>
 						{bashOpen ? (
 							<div className="shrink-0 px-4 pb-3 pt-1">
-								<BashPanel
-									sessionId={activeSid}
-									onClose={() => setBashOpen(false)}
-								/>
+								<BashPanel sessionId={activeSid} onClose={() => setBashOpen(false)} />
 							</div>
 						) : null}
 					</div>
@@ -405,18 +379,10 @@ function WorkspaceWithSessions({
 				icon={
 					expanded ? (
 						<FolderOpen
-							className={cn(
-								"size-3.5",
-								active ? "text-foreground" : "text-blue-500/80",
-							)}
+							className={cn("size-3.5", active ? "text-foreground" : "text-blue-500/80")}
 						/>
 					) : (
-						<Folder
-							className={cn(
-								"size-3.5",
-								active ? "text-foreground" : "text-blue-500/80",
-							)}
-						/>
+						<Folder className={cn("size-3.5", active ? "text-foreground" : "text-blue-500/80")} />
 					)
 				}
 				title={workspace.name}
@@ -481,9 +447,7 @@ function NoSessionState({
 			<div className="mb-5 flex size-14 items-center justify-center rounded-[18px] bg-gradient-to-br from-primary/20 to-primary/10 text-primary shadow-md shadow-primary/10">
 				<Sparkles className="size-7" />
 			</div>
-			<h1 className="text-2xl font-semibold tracking-tight">
-				Start coding with pi
-			</h1>
+			<h1 className="text-2xl font-semibold tracking-tight">Start coding with pi</h1>
 			<p className="mt-2 max-w-md text-sm text-muted-foreground">
 				{hasWorkspace
 					? "Open an existing session from the sidebar, or start a fresh one in this workspace."
@@ -563,7 +527,6 @@ function SessionRow({
 	}
 
 	const sessionTitle = session.name ?? (truncate(session.firstMessage, 36) || "Untitled");
-	const sessionSubtitle = `${session.messageCount} msg · ${formatTime(session.modified)}`;
 
 	return (
 		<div
@@ -578,7 +541,7 @@ function SessionRow({
 				role="button"
 				tabIndex={0}
 				onKeyDown={(e) => {
-					if (e.key === "Enter" || e.key === " " ) {
+					if (e.key === "Enter" || e.key === " ") {
 						e.preventDefault();
 						onClick();
 					}
@@ -633,17 +596,4 @@ function SessionRow({
 function truncate(text: string, n: number): string {
 	const trimmed = text.replace(/\s+/g, " ").trim();
 	return trimmed.length > n ? `${trimmed.slice(0, n - 1)}…` : trimmed;
-}
-
-function formatTime(ms: number): string {
-	const d = new Date(ms);
-	const now = new Date();
-	const sameDay =
-		d.getFullYear() === now.getFullYear() &&
-		d.getMonth() === now.getMonth() &&
-		d.getDate() === now.getDate();
-	if (sameDay) {
-		return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-	}
-	return d.toLocaleDateString([], { month: "short", day: "numeric" });
 }

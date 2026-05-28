@@ -1,16 +1,15 @@
-import { useState } from "react";
 import {
-	FileText,
 	FilePen,
 	FilePlus,
+	FileText,
 	Folder,
 	FolderSearch,
 	Search,
 	Terminal,
 	Wrench,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { DiffViewer } from "@/components/chat/DiffViewer";
+import { useState } from "react";
+import { MessageResponse } from "@/components/ai-elements/message";
 import {
 	Tool,
 	ToolContent,
@@ -19,7 +18,8 @@ import {
 	ToolOutput,
 	type ToolState,
 } from "@/components/ai-elements/tool";
-import { MessageResponse } from "@/components/ai-elements/message";
+import { DiffViewer } from "@/components/chat/DiffViewer";
+import { cn } from "@/lib/utils";
 import type { ToolExecutionState } from "@/stores/session-state";
 
 interface ToolCallPart {
@@ -49,8 +49,7 @@ export function ToolCallCard({ call, result, execution }: Props) {
 	const liveResult = result ?? executionToResult(execution);
 	const resultText = liveResult ? extractText(liveResult.content) : null;
 	const errored = !!liveResult?.isError || execution?.status === "error";
-	const running =
-		!result && (execution?.status === "running" || execution?.status === "pending");
+	const running = !result && (execution?.status === "running" || execution?.status === "pending");
 	const diffPatch = pickDiffPatch(call, result);
 	const state: ToolState = errored
 		? "output-error"
@@ -64,27 +63,13 @@ export function ToolCallCard({ call, result, execution }: Props) {
 		<Tool
 			open={open}
 			onOpenChange={setOpen}
-			className={cn(
-				errored
-					? "border-destructive/30"
-					: running
-						? "border-primary/30"
-						: undefined,
-			)}
+			className={cn(errored ? "border-destructive/30" : running ? "border-primary/30" : undefined)}
 		>
-			<ToolHeader
-				toolType={`tool-${call.name}`}
-				state={state}
-				title={call.name}
-			>
+			<ToolHeader toolType={`tool-${call.name}`} state={state} title={call.name}>
 				<Icon
 					className={cn(
 						"size-3.5 shrink-0",
-						errored
-							? "text-destructive"
-							: running
-								? "text-primary"
-								: "text-muted-foreground",
+						errored ? "text-destructive" : running ? "text-primary" : "text-muted-foreground",
 					)}
 				/>
 				{summary ? (

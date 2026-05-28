@@ -1,5 +1,5 @@
-import { Streamdown, type StreamdownProps } from "streamdown";
 import type { HTMLAttributes } from "react";
+import { Streamdown, type StreamdownProps } from "streamdown";
 import { cn } from "@/lib/utils";
 
 type MessageRole = "user" | "assistant" | "system" | "tool";
@@ -22,10 +22,7 @@ export function Message({
 	);
 }
 
-export function MessageContent({
-	className,
-	...props
-}: HTMLAttributes<HTMLDivElement>) {
+export function MessageContent({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
 	return (
 		<div
 			className={cn(
