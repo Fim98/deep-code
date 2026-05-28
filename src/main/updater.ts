@@ -1,5 +1,8 @@
 import { app, BrowserWindow } from "electron";
-import { autoUpdater, type UpdateInfo } from "electron-updater";
+import * as ElectronUpdater from "electron-updater";
+
+const { autoUpdater } = ElectronUpdater;
+type UpdateInfo = ElectronUpdater.UpdateInfo;
 
 const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours
 

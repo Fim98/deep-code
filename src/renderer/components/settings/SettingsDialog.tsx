@@ -33,9 +33,11 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { LOCALE_LABELS, LOCALES, useI18n } from "@/lib/i18n";
 import { type DesktopSettings, type ProviderEntry, pi } from "@/lib/rpc";
 import { emitToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { ACCENT_PRESETS, useAccent } from "@/stores/accent";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -161,6 +163,12 @@ function GeneralTab() {
 							);
 						})}
 					</div>
+				</SettingRow>
+				<SettingRow label="Accent color" description="Choose a primary color for the interface">
+					<AccentPicker />
+				</SettingRow>
+				<SettingRow label="Language" description="Choose your preferred language">
+					<LanguagePicker />
 				</SettingRow>
 			</section>
 
@@ -560,6 +568,48 @@ function AboutTab() {
 }
 
 // ─── Shared sub-components ───────────────────────────────────────────────────
+
+function AccentPicker() {
+	const { activeId, setAccent } = useAccent();
+	return (
+		<div className="flex gap-2">
+			{ACCENT_PRESETS.map((preset) => (
+				<button
+					key={preset.id}
+					type="button"
+					onClick={() => setAccent(preset.id)}
+					title={preset.label}
+					aria-label={`Accent: ${preset.label}`}
+					className={cn(
+						"size-6 rounded-full border-2 transition-all duration-150",
+						activeId === preset.id
+							? "border-foreground scale-110"
+							: "border-transparent hover:scale-105",
+					)}
+					style={{ backgroundColor: preset.swatch }}
+				/>
+			))}
+		</div>
+	);
+}
+
+function LanguagePicker() {
+	const { locale, setLocale } = useI18n();
+	return (
+		<Select value={locale} onValueChange={(v) => setLocale(v as typeof locale)}>
+			<SelectTrigger className="w-[140px] text-[13px]">
+				<SelectValue />
+			</SelectTrigger>
+			<SelectContent>
+				{LOCALES.map((loc) => (
+					<SelectItem key={loc} value={loc}>
+						{LOCALE_LABELS[loc]}
+					</SelectItem>
+				))}
+			</SelectContent>
+		</Select>
+	);
+}
 
 function SectionHeader({ title, description }: { title: string; description?: string }) {
 	return (

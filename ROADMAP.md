@@ -239,18 +239,32 @@ Integrated into BashPanel via `<AnsiText>` component.
 
 ---
 
-### D2 · Theme presets + accent picker — **S**
+### D2 · Theme presets + accent picker — **S** — Done
 Currently only system/light/dark. Apple Music has a few accent
 variations. Add 3–4 presets that swap `--primary` + `--accent` + adjust
 related rings/badges, persisted via electron-store.
 
+**Done**: `src/renderer/stores/accent.ts` provides 5 accent presets
+(Indigo, Blue, Emerald, Rose, Amber) that swap `--primary`,
+`--primary-hover`, `--primary-soft`, `--accent`, `--accent-foreground`,
+and `--ring` CSS variables on the document root. Persisted via
+localStorage. Accent picker with color swatches in Settings → General.
+8 tests cover preset validation, persistence, CSS application.
+
 ---
 
-### D3 · i18n (zh-CN + en) — **M**
+### D3 · i18n (zh-CN + en) — **M** — Done
 User-facing strings (Settings, NoSessionState, empty states, dialogs)
 get extracted into a tiny `i18n.ts` (function-based, no runtime
 library). zh-CN + en bundled, follows system locale by default with a
 Settings override.
+
+**Done**: `src/renderer/lib/i18n.ts` — function-based i18n with no
+runtime library. `useI18n()` hook returns `t()` translator with
+`{{param}}` interpolation. Dictionaries: `en.ts` (150+ keys) and
+`zh-CN.ts` (full Chinese translation). System locale detection on boot
+with localStorage override. Language picker in Settings → General.
+9 tests cover key parity, interpolation, persistence, locale switching.
 
 ---
 
