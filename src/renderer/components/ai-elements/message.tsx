@@ -51,21 +51,7 @@ export function MessageResponse({
 	return (
 		<Streamdown
 			parseIncompleteMarkdown={parseIncompleteMarkdown}
-			controls={false}
-			lineNumbers={false}
-			className={cn(
-				"message-response space-y-2 text-[14px] leading-6 text-foreground [&>*]:my-0",
-				"[&_a]:text-primary [&_a]:underline-offset-4 hover:[&_a]:underline",
-				"[&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-4 [&_blockquote]:text-muted-foreground",
-				"[&_code]:rounded-[8px] [&_code]:bg-foreground/[0.05] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.9em]",
-				"[&_pre]:m-0 [&_pre]:max-w-full [&_pre]:overflow-auto [&_pre]:bg-transparent [&_pre]:p-0",
-				"[&_pre_code]:bg-transparent [&_pre_code]:p-0",
-				"[&_ul]:my-1.5 [&_ul]:list-disc [&_ul]:pl-5",
-				"[&_ol]:my-1.5 [&_ol]:list-decimal [&_ol]:pl-5",
-				"[&_li]:my-0.5",
-				"[&_p]:my-0",
-				className,
-			)}
+			className={className}
 			{...props}
 		>
 			{children}

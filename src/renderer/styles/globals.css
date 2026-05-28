@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "streamdown/styles.css";
 
+@source "../../../node_modules/streamdown/dist/*.js";
+
 @theme inline {
 	--color-background: var(--background);
 	--color-foreground: var(--foreground);
@@ -196,83 +198,4 @@
 
 .dark .model-picker-scroll::-webkit-scrollbar-thumb:hover {
 	background: rgba(255, 255, 255, 0.18);
-}
-
-/* Compact markdown rendering for assistant messages. */
-.message-response [data-streamdown="code-block"],
-.message-response [data-streamdown="mermaid-block"] {
-	margin: 8px 0;
-	gap: 0;
-	overflow: hidden;
-	border: 1px solid var(--border);
-	border-radius: 14px;
-	background: rgba(0, 0, 0, 0.025);
-	padding: 0;
-}
-
-.dark .message-response [data-streamdown="code-block"],
-.dark .message-response [data-streamdown="mermaid-block"] {
-	background: rgba(255, 255, 255, 0.035);
-}
-
-.message-response [data-streamdown="code-block-header"],
-.message-response [data-streamdown="code-block-actions"],
-.message-response [data-streamdown="mermaid-block-actions"] {
-	display: none;
-}
-
-.message-response [data-streamdown="code-block-body"] {
-	overflow-x: auto;
-	border: 0;
-	border-radius: 0;
-	background: transparent;
-	padding: 10px 12px;
-	font-size: 12px;
-	line-height: 1.55;
-}
-
-.message-response [data-streamdown="code-block-body"] pre {
-	margin: 0;
-	background: transparent !important;
-}
-
-.message-response [data-streamdown="inline-code"] {
-	border-radius: 7px;
-	background: rgba(0, 0, 0, 0.045);
-	padding: 1px 5px;
-	font-size: 0.9em;
-}
-
-.dark .message-response [data-streamdown="inline-code"] {
-	background: rgba(255, 255, 255, 0.08);
-}
-
-.message-response [data-streamdown="table-wrapper"] {
-	margin: 8px 0;
-	gap: 0;
-	overflow: hidden;
-	border: 1px solid var(--border);
-	border-radius: 14px;
-	background: transparent;
-	padding: 0;
-}
-
-.message-response [data-streamdown="table-wrapper"] > div:first-child:not(:last-child) {
-	display: none;
-}
-
-.message-response [data-streamdown="table-wrapper"] > div {
-	border: 0;
-	border-radius: 0;
-	background: transparent;
-}
-
-.message-response [data-streamdown="table"] {
-	font-size: 12.5px;
-	line-height: 1.5;
-}
-
-.message-response [data-streamdown="table-header-cell"],
-.message-response [data-streamdown="table-cell"] {
-	padding: 6px 9px;
 }
