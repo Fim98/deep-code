@@ -103,7 +103,7 @@ filtering, action dispatch, keyboard nav, and RPC integration.
 
 ---
 
-### B2 · Composer attachments (images + files) — **M**
+### B2 · Composer attachments (images + files) — **M** — Done
 The composer should support drag/drop, file picking, and screenshot capture.
 Agent `prompt` already accepts `ImageContent[]`.
 
@@ -112,9 +112,14 @@ drag/drop, and clipboard image handling. On submit, read each image file to
 base64 and pass as `images: ImageContent[]` to
 `pi.rpc.send(sid, { type: "prompt", message, images })`.
 
-**Done when**: dragging an image onto the composer attaches it; sending
-includes it in the prompt; assistant can `read` the image (vision
-models).
+**Done**: Composer now supports image attachments via:
+- 📎 Attach button (hidden file input, accepts png/jpeg/gif/webp)
+- 📋 Clipboard paste (auto-detects image items)
+- 🖱️ Drag & drop (with visual overlay)
+- Chip display with thumbnail, filename, size, and remove button
+- On submit: converts to base64 `ImageContent[]` and passes to RPC
+- Send button enabled with attachments even without text
+- 26 tests covering all attachment flows
 
 ---
 
@@ -311,10 +316,11 @@ above.
 
 ## Suggested order for the next sprint
 
-1. ~~**A2** minimal tests/CI (M)~~ — **Done** (132 tests, CI pipeline).
+1. ~~**A2** minimal tests/CI (M)~~ — **Done** (162 tests, CI pipeline).
 2. ~~**A3** runtime/session alignment (L)~~ — **Done** (AgentSessionRuntime integrated).
-3. **B1** command palette (M) — largest daily navigation win.
-4. **B2** attachments (M) — unlocks vision workflows.
+3. ~~**B1** command palette (M)~~ — **Done** (⌘K overlay with fuzzy search + 15 tests).
+4. ~~**B2** attachments (M)~~ — **Done** (drag/drop/paste/file picker + 26 tests).
 5. **B3** Settings dialog v2 (M) — makes pi settings editable from the app.
+6. **B4** Session & message search (M).
 
 After this sprint, deepcode is closer to a real alpha than a dev demo.

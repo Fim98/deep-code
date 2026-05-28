@@ -6,9 +6,21 @@
  * State is returned in tool result `details` for branching support.
  */
 
-import { StringEnum } from "@earendil-works/pi-ai";
 import { defineTool, type ToolDefinition } from "@earendil-works/pi-coding-agent";
 import { type Static, Type } from "typebox";
+
+/**
+ * Creates a string enum schema compatible with LLM providers
+ * that don't support anyOf/const patterns.
+ */
+function StringEnum<T extends readonly string[]>(values: T, options?: { description?: string }) {
+	return Type.Unsafe<T[number]>({
+		type: "string",
+		enum: values as any,
+		...(options?.description && { description: options.description }),
+	});
+}
+
 import {
 	handleClear,
 	handleInit,

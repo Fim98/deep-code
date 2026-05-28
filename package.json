@@ -58,6 +58,7 @@
 		"streamdown": "2.5.0",
 		"tailwind-merge": "3.0.2",
 		"tailwind-variants": "^3.2.2",
+		"typebox": "1.1.38",
 		"zustand": "5.0.13"
 	},
 	"devDependencies": {

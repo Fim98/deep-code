@@ -12,6 +12,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Composer } from "@/components/chat/Composer";
 import { MessageTimeline } from "@/components/chat/MessageTimeline";
+import { PlanTrackerWidget } from "@/components/chat/PlanTrackerWidget";
 import { CommandPalette } from "@/components/command-palette/CommandPalette";
 import { MainArea } from "@/components/layout/MainArea";
 import { Sidebar, SidebarItem, SidebarSection } from "@/components/layout/Sidebar";
@@ -325,7 +326,10 @@ export function App() {
 				}
 				footer={
 					activeSid ? (
-						<Composer sessionId={activeSid} isStreaming={slice?.isStreaming ?? false} />
+						<div className="flex flex-col gap-2.5">
+							<PlanTrackerWidget sessionId={activeSid} />
+							<Composer sessionId={activeSid} isStreaming={slice?.isStreaming ?? false} />
+						</div>
 					) : null
 				}
 			>
