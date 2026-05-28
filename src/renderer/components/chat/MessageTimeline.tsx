@@ -551,7 +551,11 @@ function buildActivities(
 			status: statusForTool(result, execution),
 			toolName: part.name,
 			action: actionForTool(part.name, part.arguments),
-			diffStat: diffStatForTool(part.name, part.arguments, result),
+			diffStat: diffStatForTool(
+				part.name,
+				part.arguments,
+				result ?? execution?.result ?? execution?.partialResult,
+			),
 		});
 	}
 	if (includeActiveOrphans) {
@@ -565,7 +569,11 @@ function buildActivities(
 				status: statusForTool(undefined, execution),
 				toolName: execution.toolName,
 				action: actionForTool(execution.toolName, execution.args),
-				diffStat: diffStatForTool(execution.toolName, execution.args),
+				diffStat: diffStatForTool(
+					execution.toolName,
+					execution.args,
+					execution.result ?? execution.partialResult,
+				),
 			});
 		}
 	}
@@ -772,7 +780,7 @@ function compactPath(path: string) {
 function diffStatForTool(
 	name: string,
 	args: Record<string, unknown>,
-	result?: ToolResultInfo,
+	result?: { details?: unknown },
 ) {
 	const details = result?.details as { patch?: string; diff?: string } | undefined;
 	const patch = details?.patch ?? details?.diff;
