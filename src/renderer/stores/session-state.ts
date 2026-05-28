@@ -221,7 +221,14 @@ function applyEvent(
 				const messages = event.messages
 					.map(toChatMessage)
 					.reduce(updateMessage, slice.messages);
-				next = { ...slice, messages, isStreaming: false, activeTools: {} };
+				// Only stop streaming if agent won't auto-retry.
+				// When willRetry=true, agent_start fires again shortly.
+				next = {
+					...slice,
+					messages,
+					isStreaming: event.willRetry ? true : false,
+					activeTools: event.willRetry ? slice.activeTools : {},
+				};
 				break;
 			}
 			case "message_start":
@@ -238,9 +245,9 @@ function applyEvent(
 						incoming.content,
 					);
 				}
-				if (event.type === "message_end" && incoming.role === "assistant") {
-					next.isStreaming = false;
-				}
+				// Do NOT set isStreaming=false on message_end(assistant).
+				// The agent may still be running tool calls in a multi-turn loop.
+				// Only agent_end truly terminates the streaming session.
 				if (event.type === "message_start" && incoming.role === "assistant") {
 					next.isStreaming = true;
 				}
