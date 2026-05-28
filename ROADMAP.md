@@ -82,7 +82,7 @@ cover all session replacement paths.
 
 These are the controls users reach for during normal work.
 
-### B1 · Command palette (Cmd+K) — **M**
+### B1 · Command palette (Cmd+K) — **M** — Done
 Single-shortcut launcher for:
 
 - switch / create workspace
@@ -95,8 +95,11 @@ Single-shortcut launcher for:
 New `components/command-palette/CommandPalette.tsx` plus a global `Cmd+K`
 shortcut in `lib/keyboard.ts`. RPC: `get_commands`, `get_available_models`.
 
-**Done when**: pressing `Cmd+K` opens an overlay with grouped actions and
-fuzzy-search; selecting routes via the existing handlers.
+**Done**: `⌘K` opens a Radix Dialog-based overlay with fuzzy-search filtering,
+grouped actions (Workspace, Session, Interface, Model, Thinking, Commands),
+keyboard navigation (↑↓ + Enter), highlighted matches, and item badges.
+Models and slash commands are fetched via RPC on open. 15 tests cover rendering,
+filtering, action dispatch, keyboard nav, and RPC integration.
 
 ---
 

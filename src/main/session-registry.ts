@@ -10,6 +10,7 @@ import {
 	createAgentSessionServices,
 	SessionManager,
 } from "@earendil-works/pi-coding-agent";
+import { createPlanTrackerTool } from "./plan-tracker-tool.js";
 import { getSharedServices } from "./shared-services.js";
 import { getWorkspace } from "./workspace-store.js";
 
@@ -61,6 +62,7 @@ class SessionRegistryImpl {
 				services,
 				sessionManager: options.sessionManager,
 				sessionStartEvent: options.sessionStartEvent,
+				customTools: [createPlanTrackerTool()],
 			});
 			return { ...result, services, diagnostics: services.diagnostics };
 		};

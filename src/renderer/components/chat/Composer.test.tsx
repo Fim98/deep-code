@@ -19,6 +19,7 @@ describe("Composer", () => {
 					isStreaming: false,
 					activeTools: {},
 					pendingSubmissions: [],
+					planTracker: { tasks: [] },
 					queue: { steering: [], followUp: [] },
 				},
 			},

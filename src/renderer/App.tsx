@@ -12,6 +12,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Composer } from "@/components/chat/Composer";
 import { MessageTimeline } from "@/components/chat/MessageTimeline";
+import { CommandPalette } from "@/components/command-palette/CommandPalette";
 import { MainArea } from "@/components/layout/MainArea";
 import { Sidebar, SidebarItem, SidebarSection } from "@/components/layout/Sidebar";
 import { BashPanel } from "@/components/panels/BashPanel";
@@ -40,6 +41,7 @@ export function App() {
 	const [bashOpen, setBashOpen] = useState(false);
 	const [renamingId, setRenamingId] = useState<string | null>(null);
 	const [settingsOpen, setSettingsOpen] = useState(false);
+	const [paletteOpen, setPaletteOpen] = useState(false);
 
 	const { hydrate, attach, setCurrent } = useSessions();
 	const slice = useSessions((s) => (activeSid ? s.bySession[activeSid] : null));
@@ -56,6 +58,11 @@ export function App() {
 
 	const shortcuts = useMemo(
 		() => [
+			{
+				key: "k",
+				meta: true,
+				handler: () => setPaletteOpen((o) => !o),
+			},
 			{
 				key: "n",
 				meta: true,
@@ -194,6 +201,22 @@ export function App() {
 		<div className="flex h-full w-full bg-background">
 			<ToastHost />
 			<SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+			<CommandPalette
+				open={paletteOpen}
+				onOpenChange={setPaletteOpen}
+				workspaces={workspaces}
+				activeWorkspaceId={activeWs}
+				sessions={activeWs ? (sessionsByWs[activeWs] ?? []) : []}
+				activeSessionId={activeSid}
+				activePiSessionId={activePiSid}
+				bashOpen={bashOpen}
+				settingsOpen={settingsOpen}
+				onSelectWorkspace={selectWorkspace}
+				onAddWorkspace={addWorkspace}
+				onOpenSession={openSession}
+				onToggleBash={() => setBashOpen((o) => !o)}
+				onToggleSettings={() => setSettingsOpen((o) => !o)}
+			/>
 			<Sidebar>
 				<SidebarSection
 					title="Workspaces"

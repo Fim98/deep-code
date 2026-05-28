@@ -53,12 +53,22 @@ export interface PendingSubmission {
 	createdAt: number;
 }
 
+export interface PlanTrackerTask {
+	name: string;
+	status: "pending" | "in_progress" | "complete";
+}
+
+export interface PlanTrackerState {
+	tasks: PlanTrackerTask[];
+}
+
 interface SessionSlice {
 	messages: ChatMessage[];
 	state: RpcSessionState | null;
 	isStreaming: boolean;
 	activeTools: Record<string, ToolExecutionState>;
 	pendingSubmissions: PendingSubmission[];
+	planTracker: PlanTrackerState;
 	queue: {
 		steering: string[];
 		followUp: string[];
@@ -81,6 +91,7 @@ const emptySlice = (): SessionSlice => ({
 	isStreaming: false,
 	activeTools: {},
 	pendingSubmissions: [],
+	planTracker: { tasks: [] },
 	queue: { steering: [], followUp: [] },
 });
 
@@ -134,6 +145,7 @@ export const useSessions = create<Store>((set, get) => ({
 					isStreaming: state?.isStreaming ?? false,
 					activeTools: {},
 					pendingSubmissions: [],
+					planTracker: derivePlanTracker(messages),
 					queue: { steering: [], followUp: [] },
 				},
 			},
@@ -188,6 +200,7 @@ function applyEvent(
 	set((s) => {
 		const slice = s.bySession[sid] ?? emptySlice();
 		let next: SessionSlice = slice;
+		let messagesChanged = false;
 		switch (event.type) {
 			case "queue_update": {
 				const queued = new Set([...event.steering, ...event.followUp]);
@@ -215,6 +228,7 @@ function applyEvent(
 					isStreaming: !!event.willRetry,
 					activeTools: event.willRetry ? slice.activeTools : {},
 				};
+				messagesChanged = true;
 				break;
 			}
 			case "message_start":
@@ -237,6 +251,7 @@ function applyEvent(
 				if (event.type === "message_start" && incoming.role === "assistant") {
 					next.isStreaming = true;
 				}
+				messagesChanged = incoming.role === "toolResult" || event.type === "message_end";
 				break;
 			}
 			case "turn_end": {
@@ -258,6 +273,7 @@ function applyEvent(
 					}
 					next.messages = withResults;
 				}
+				messagesChanged = true;
 				break;
 			}
 			case "tool_execution_start":
@@ -273,6 +289,9 @@ function applyEvent(
 				// Other AgentEvent / custom event types: ignore for now.
 				break;
 			}
+		}
+		if (messagesChanged) {
+			next.planTracker = derivePlanTracker(next.messages);
 		}
 		return { bySession: { ...s.bySession, [sid]: next } };
 	});
@@ -359,4 +378,22 @@ function updateToolState(
 			updatedAt: now,
 		},
 	};
+}
+
+/**
+ * Derive plan tracker state from messages.
+ * Scans toolResult messages for plan_tracker and returns the latest state.
+ */
+function derivePlanTracker(messages: ChatMessage[]): PlanTrackerState {
+	// Walk backwards to find the most recent plan_tracker result
+	for (let i = messages.length - 1; i >= 0; i--) {
+		const msg = messages[i];
+		if (msg.role === "toolResult" && msg.toolName === "plan_tracker" && !msg.isError) {
+			const details = msg.details as { tasks?: PlanTrackerTask[]; error?: string } | undefined;
+			if (details?.tasks && !details.error) {
+				return { tasks: details.tasks };
+			}
+		}
+	}
+	return { tasks: [] };
 }

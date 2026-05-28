@@ -104,6 +104,11 @@ Object.defineProperty(window, "ResizeObserver", {
 });
 
 // ---------------------------------------------------------------------------
+// Stub Element.prototype.scrollIntoView (jsdom does not implement it)
+// ---------------------------------------------------------------------------
+Element.prototype.scrollIntoView = vi.fn();
+
+// ---------------------------------------------------------------------------
 // Suppress noisy console.error in jsdom (optional, Radix portals etc.)
 // ---------------------------------------------------------------------------
 const origError = console.error;
