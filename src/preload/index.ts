@@ -23,6 +23,7 @@ const sessions = {
 	close: (sessionId: string) => ipcRenderer.invoke("pi:session:close", sessionId),
 	delete: (args: { workspaceId: string; sessionPath: string }) =>
 		ipcRenderer.invoke("pi:session:delete", args),
+	tree: (sessionId: string) => ipcRenderer.invoke("pi:session:tree", sessionId),
 };
 
 const rpc = {

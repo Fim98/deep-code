@@ -174,7 +174,7 @@ dist directly (already on `^0.75.5`), pin runtime deps so
 
 ---
 
-### C2 · Fork / branch tree visualization — **M**
+### C2 · Fork / branch tree visualization — **M** — Done
 pi tracks session branches (`getEntries`, `getTree`, `fork`, `clone`).
 Today there's no way to fork or visualize branches in deepcode.
 
@@ -184,9 +184,12 @@ session (or as a popover under the session header). Build a tree from
 "Fork from here" button on any user message → RPC `fork` with the
 entry id → opens the new session.
 
-**Done when**: clicking a past user message reveals "Fork from here",
-which creates a sibling branch; the branches panel lists both with the
-active one highlighted.
+**Done**: Added `BranchesPanel` popover in session header showing branch
+count and fork points. "Fork" button appears on hover over each user
+message in the timeline. Main-process `pi:session:tree` IPC serializes
+`SessionManager.getTree()` for the renderer. Forking calls RPC `fork`
+command then re-hydrates the session. `sessions.tree()` added to preload
+bridge and renderer `PiBridge` types.
 
 ---
 
@@ -324,5 +327,6 @@ above.
 4. ~~**B2** attachments (M)~~ — **Done** (drag/drop/paste/file picker + 26 tests).
 5. ~~**B3** Settings dialog v2 (M)~~ — **Done** (4-tab layout + SettingsManager IPC + 18 tests).
 6. ~~**C1** electron-builder packaging (M)~~ — **Done** (.dmg/.zip for mac arm64+x64, linux AppImage config).
+7. ~~**C2** Fork / branch tree (M)~~ — **Done** (BranchesPanel + inline fork buttons).
 
 After this sprint, deepcode is closer to a real alpha than a dev demo.

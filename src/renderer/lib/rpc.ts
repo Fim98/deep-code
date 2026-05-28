@@ -26,6 +26,21 @@ export interface OpenSessionResult {
 	piSessionId: string;
 }
 
+export interface SessionTreeNode {
+	id: string;
+	type: string;
+	parentId: string | null;
+	timestamp: string;
+	children: SessionTreeNode[];
+	label?: string;
+	text?: string;
+}
+
+export interface SessionTreeData {
+	tree: SessionTreeNode[];
+	leafId: string | null;
+}
+
 export interface DesktopSettings {
 	defaultProvider: string | undefined;
 	defaultModel: string | undefined;
@@ -58,6 +73,7 @@ export interface PiBridge {
 		open: (opts: { workspaceId: string; sessionFile?: string }) => Promise<OpenSessionResult>;
 		close: (sessionId: string) => Promise<void>;
 		delete: (args: { workspaceId: string; sessionPath: string }) => Promise<void>;
+		tree: (sessionId: string) => Promise<SessionTreeData>;
 	};
 	rpc: {
 		send: <C extends RpcCommand>(sessionId: string, command: C) => Promise<RpcResponse>;

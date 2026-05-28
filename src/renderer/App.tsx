@@ -10,6 +10,7 @@ import {
 	Trash2,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { BranchesPanel } from "@/components/chat/BranchesPanel";
 import { Composer } from "@/components/chat/Composer";
 import { MessageTimeline } from "@/components/chat/MessageTimeline";
 import { PlanTrackerWidget } from "@/components/chat/PlanTrackerWidget";
@@ -285,6 +286,11 @@ export function App() {
 													: undefined
 											}
 											modelContextWindow={(slice?.state?.model as any)?.contextWindow}
+										/>
+										<span className="text-muted-foreground/40">·</span>
+										<BranchesPanel
+											sessionId={activeSid}
+											onForked={() => refreshSessions(activeWs!)}
 										/>
 									</>
 								) : null}

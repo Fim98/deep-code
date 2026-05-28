@@ -32,6 +32,7 @@ const mockPi = {
 		open: vi.fn().mockResolvedValue({}),
 		close: vi.fn().mockResolvedValue(undefined),
 		delete: vi.fn().mockResolvedValue(undefined),
+		tree: vi.fn().mockResolvedValue({ tree: [], leafId: null }),
 	},
 	rpc: {
 		send: vi.fn().mockResolvedValue({ success: true }),

@@ -3,12 +3,13 @@ import {
 	FilePen,
 	FilePlus,
 	FileText,
+	GitFork,
 	Search,
 	Sparkles,
 	Terminal,
 	Wrench,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
 	Conversation,
 	ConversationContent,
@@ -17,6 +18,8 @@ import {
 } from "@/components/ai-elements/conversation";
 import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
 import { Shimmer } from "@/components/ai-elements/shimmer";
+import { pi } from "@/lib/rpc";
+import { emitToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import {
 	type ChatMessage,
@@ -70,7 +73,12 @@ interface ActivityGroup {
 }
 
 type TimelineItem =
-	| { type: "user"; key: string; message: Extract<ChatMessage, { role: "user" }> }
+	| {
+			type: "user";
+			key: string;
+			message: Extract<ChatMessage, { role: "user" }>;
+			userIndex: number;
+	  }
 	| {
 			type: "assistantTurn";
 			key: string;
@@ -90,6 +98,48 @@ export function MessageTimeline({ sessionId }: Props) {
 	const isStreaming = slice?.isStreaming ?? false;
 	const activeTools = slice?.activeTools ?? {};
 	const pendingSubmissions = slice?.pendingSubmissions ?? [];
+	const hydrate = useSessions((s) => s.hydrate);
+
+	// Fetch fork messages for "Fork from here" buttons
+	const [forkMessages, setForkMessages] = useState<Array<{ entryId: string; text: string }>>([]);
+	useEffect(() => {
+		if (messages.length === 0) return;
+		pi.rpc.send(sessionId, { type: "get_fork_messages" }).then((resp) => {
+			if (resp.success && resp.command === "get_fork_messages") {
+				setForkMessages(resp.data.messages);
+			}
+		});
+	}, [sessionId, messages.length]);
+
+	// Build a map of user message index -> entryId for fork buttons
+	const forkEntryIds = useMemo(() => {
+		let userIdx = 0;
+		const map = new Map<number, string>();
+		for (const msg of messages) {
+			if (msg.role === "user") {
+				const forkMsg = forkMessages[userIdx];
+				if (forkMsg) map.set(userIdx, forkMsg.entryId);
+				userIdx++;
+			}
+		}
+		return map;
+	}, [messages, forkMessages]);
+
+	const handleFork = useCallback(
+		async (entryId: string) => {
+			try {
+				const resp = await pi.rpc.send(sessionId, { type: "fork", entryId });
+				if (resp.success && resp.command === "fork") {
+					await hydrate(sessionId);
+				} else if (!resp.success) {
+					emitToast(resp.error);
+				}
+			} catch (e) {
+				emitToast(`Fork failed: ${e instanceof Error ? e.message : String(e)}`);
+			}
+		},
+		[sessionId, hydrate],
+	);
 	const queuedMessages = useMemo(
 		() => [
 			...((slice?.queue.steering ?? []).map((content, index) => ({
@@ -158,6 +208,8 @@ export function MessageTimeline({ sessionId }: Props) {
 									item.type === "assistantTurn" &&
 									item.lastIndex === lastAssistantIdx
 								}
+								forkEntryIds={forkEntryIds}
+								onFork={handleFork}
 							/>
 						))}
 						{pendingSubmissions.map((submission) => (
@@ -183,13 +235,20 @@ function TimelineRow({
 	toolResults,
 	activeTools,
 	isStreamingLast,
+	forkEntryIds,
+	onFork,
 }: {
 	item: TimelineItem;
 	toolResults: Map<string, ToolResultInfo>;
 	activeTools: Record<string, ToolExecutionState>;
 	isStreamingLast: boolean;
+	forkEntryIds: Map<number, string>;
+	onFork: (entryId: string) => void;
 }) {
-	if (item.type === "user") return <UserRow content={item.message.content} />;
+	if (item.type === "user") {
+		const entryId = forkEntryIds.get(item.userIndex);
+		return <UserRow content={item.message.content} forkEntryId={entryId} onFork={onFork} />;
+	}
 	if (item.type === "assistantTurn") {
 		return (
 			<AssistantRow
@@ -216,7 +275,7 @@ function TimelineRow({
 function PendingSubmissionTurn({ submission }: { submission: PendingSubmission }) {
 	return (
 		<>
-			<UserRow content={submission.content} />
+			<UserRow content={submission.content} forkEntryId={undefined} onFork={undefined} />
 			<Message from="assistant">
 				<MessageContent className="flex flex-col gap-3.5">
 					<ActivityPanel activities={[]} elapsed="0s" isStreaming hasFinalText={false} />
@@ -242,7 +301,15 @@ function QueuedMessageRow({ content, type }: { content: string; type: "steering"
 	);
 }
 
-function UserRow({ content }: { content: string | unknown[] }) {
+function UserRow({
+	content,
+	forkEntryId,
+	onFork,
+}: {
+	content: string | unknown[];
+	forkEntryId?: string;
+	onFork?: (entryId: string) => void;
+}) {
 	const text =
 		typeof content === "string"
 			? content
@@ -256,21 +323,41 @@ function UserRow({ content }: { content: string | unknown[] }) {
 			: (content as Part[]).filter((p): p is Part & { type: "image" } => p?.type === "image");
 	return (
 		<Message from="user">
-			<MessageContent className="flex flex-col items-stretch gap-3">
-				{images.map((img, i) => (
-					<img
-						key={i}
-						alt=""
-						src={`data:${img.mimeType};base64,${img.data}`}
-						className="max-h-72 self-end rounded-[18px] border border-white/25 object-contain"
-					/>
-				))}
-				{text ? (
-					<div className="min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
-						{text}
-					</div>
+			<div className="group/user relative">
+				<MessageContent className="flex flex-col items-stretch gap-3">
+					{images.map((img, i) => (
+						<img
+							key={i}
+							alt=""
+							src={`data:${img.mimeType};base64,${img.data}`}
+							className="max-h-72 self-end rounded-[18px] border border-white/25 object-contain"
+						/>
+					))}
+					{text ? (
+						<div className="min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+							{text}
+						</div>
+					) : null}
+				</MessageContent>
+				{forkEntryId && onFork ? (
+					<button
+						type="button"
+						onClick={() => onFork(forkEntryId)}
+						className={cn(
+							"absolute -right-1 bottom-1 z-10 flex items-center gap-1 rounded-full",
+							"bg-card px-2 py-1 text-[10px] font-medium text-primary/70",
+							"border border-primary/20 shadow-sm",
+							"opacity-0 transition-opacity duration-150",
+							"group-hover/user:opacity-100 hover:text-primary",
+							"focus:opacity-100 focus:outline-none",
+						)}
+						title="Fork from here"
+					>
+						<GitFork className="size-3" />
+						Fork
+					</button>
 				) : null}
-			</MessageContent>
+			</div>
 		</Message>
 	);
 }
@@ -280,6 +367,7 @@ function buildTimelineItems(
 	claimedToolResultIds: Set<string>,
 ): TimelineItem[] {
 	const items: TimelineItem[] = [];
+	let userIndex = 0;
 	for (let index = 0; index < messages.length; index++) {
 		const message = messages[index];
 		if (message.role === "user") {
@@ -287,7 +375,9 @@ function buildTimelineItems(
 				type: "user",
 				key: `user-${message.timestamp}-${index}`,
 				message,
+				userIndex,
 			});
+			userIndex++;
 			continue;
 		}
 		if (message.role === "assistant") {

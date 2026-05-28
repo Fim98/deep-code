@@ -18,6 +18,43 @@ export const RPC_EVENT_CHANNEL = "pi:event";
 
 type ThemeSource = "system" | "light" | "dark";
 
+// Serialized form of SessionTreeNode for IPC transfer
+interface SerializedTreeNode {
+	id: string;
+	type: string;
+	parentId: string | null;
+	timestamp: string;
+	children: SerializedTreeNode[];
+	label?: string;
+	// For user messages
+	text?: string;
+}
+
+function serializeTree(nodes: any[]): SerializedTreeNode[] {
+	return nodes.map((node) => {
+		const entry = node.entry;
+		const serialized: SerializedTreeNode = {
+			id: entry.id,
+			type: entry.type,
+			parentId: entry.parentId,
+			timestamp: entry.timestamp,
+			children: serializeTree(node.children ?? []),
+			label: node.label,
+		};
+		// Extract text from user messages
+		if (entry.type === "message" && entry.message?.role === "user") {
+			const content = entry.message.content;
+			if (typeof content === "string") {
+				serialized.text = content;
+			} else if (Array.isArray(content)) {
+				const textParts = content.filter((p: any) => p?.type === "text").map((p: any) => p.text);
+				serialized.text = textParts.join("\n");
+			}
+		}
+		return serialized;
+	});
+}
+
 export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined): void {
 	ipcMain.handle("pi:workspace:list", () => listWorkspaces());
 	ipcMain.handle("pi:workspace:get-active", () => getActiveWorkspaceId());
@@ -78,6 +115,14 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 		const session = sessionRegistry.get(sessionId);
 		const runtime = sessionRegistry.getRuntime(sessionId);
 		return dispatchRpc(session, command, runtime);
+	});
+
+	ipcMain.handle("pi:session:tree", (_e, sessionId: string) => {
+		const session = sessionRegistry.get(sessionId);
+		const tree = session.sessionManager.getTree();
+		const leafId = session.sessionManager.getLeafId();
+		// Serialize SessionTreeNode[] to a JSON-safe format
+		return { tree: serializeTree(tree), leafId };
 	});
 
 	ipcMain.handle("pi:ping", () => "pong");
