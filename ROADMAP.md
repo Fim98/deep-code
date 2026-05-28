@@ -272,12 +272,16 @@ with localStorage override. Language picker in Settings → General.
 
 ---
 
-### D4 · Inline diff editor — **M**
+### D4 · Inline diff editor — **M** — Deferred
 For edit/write tool calls, let the user approve / tweak the proposed
 diff before pi applies it. Requires a preview-then-confirm RPC, which
 pi exposes via the extension system (`BeforeToolCallContext` returns
 allow/deny/modified args). Could ship deepcode as a built-in pi
 extension that intercepts edit/write.
+
+**Status**: Deferred — requires deep integration with pi's extension
+system (BeforeToolCallContext hook). Existing DiffViewer component
+can render patches but needs tool call interception layer.
 
 ---
 
@@ -307,9 +311,12 @@ added to preload bridge and renderer types.
 
 ## P4 — Long tail
 
-### E1 · pty interactive terminal — **L**
+### E1 · pty interactive terminal — **L** — Deferred
 Embed `node-pty` (already in opencode's deps) and an xterm.js viewport
 to give a real shell inside the bash panel.
+
+**Status**: Deferred — requires adding node-pty native module + xterm.js
+renderer dependency. Current bash panel runs one-shot commands via RPC.
 
 ### E2 · Multi-window — **M** — Done
 Each `BrowserWindow` keeps its own `activeWorkspaceId` + `activeSessionId`
