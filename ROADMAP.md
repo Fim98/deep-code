@@ -150,16 +150,6 @@ Preload and renderer types updated. 18 tests cover all tabs and interactions.
 
 ---
 
-### B4 · Session and message search — **M**
-
-With long histories the sidebar becomes a wall. Add per-workspace session
-search and in-session `Cmd+F` message search.
-
-**Done when**: sidebar search filters by name/message text; in-session search
-highlights matches and Enter cycles results.
-
----
-
 ## P2 — Shipping surface
 
 ### C1 · electron-builder packaging — **M**
@@ -327,6 +317,6 @@ above.
 3. ~~**B1** command palette (M)~~ — **Done** (⌘K overlay with fuzzy search + 15 tests).
 4. ~~**B2** attachments (M)~~ — **Done** (drag/drop/paste/file picker + 26 tests).
 5. ~~**B3** Settings dialog v2 (M)~~ — **Done** (4-tab layout + SettingsManager IPC + 18 tests).
-6. **B4** Session & message search (M).
+6. **C1** electron-builder packaging (M).
 
 After this sprint, deepcode is closer to a real alpha than a dev demo.
