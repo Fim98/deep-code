@@ -349,5 +349,8 @@ above.
 6. ~~**C1** electron-builder packaging (M)~~ — **Done** (.dmg/.zip for mac arm64+x64, linux AppImage config).
 7. ~~**C2** Fork / branch tree (M)~~ — **Done** (BranchesPanel + inline fork buttons).
 8. ~~**C3** Auto-updater (M)~~ — **Done** (electron-updater + toast + settings UI).
+9. ~~**D1** Bash ANSI colors (S)~~ — **Done** (ansi.tsx parser + BashPanel integration).
+10. ~~**D5** Slash command palette (S)~~ — **Done** (Composer `/` popup + 5 tests).
+11. ~~**D6** Session sharing (S)~~ — **Done** (Share button + export_html + save dialog).
 
 After this sprint, deepcode is closer to a real alpha than a dev demo.
