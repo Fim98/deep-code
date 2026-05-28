@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { app, BrowserWindow, nativeImage, nativeTheme } from "electron";
 import { registerIpcHandlers } from "./ipc.js";
+import { destroyUpdater, initAutoUpdater } from "./updater.js";
 
 const isDev = !app.isPackaged;
 const defaultAppIcon = "app-icon-apple.png";
@@ -80,6 +81,7 @@ async function createWindow(): Promise<BrowserWindow> {
 
 app.whenReady().then(async () => {
 	registerIpcHandlers(() => mainWindow);
+	initAutoUpdater();
 	const icon = getNativeIcon();
 	if (process.platform === "darwin" && icon) app.dock?.setIcon(icon);
 	await createWindow();
@@ -90,5 +92,6 @@ app.whenReady().then(async () => {
 });
 
 app.on("window-all-closed", () => {
+	destroyUpdater();
 	if (process.platform !== "darwin") app.quit();
 });

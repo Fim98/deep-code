@@ -5,6 +5,7 @@ import { dispatchRpc } from "./dispatch-rpc.js";
 import { deleteSessionFile, listSessionsForCwd } from "./session-fs.js";
 import { sessionRegistry } from "./session-registry.js";
 import { getAgentDirPath, getDesktopSettings, setDesktopSetting } from "./settings.js";
+import { quitAndInstall, scheduleCheck } from "./updater.js";
 import {
 	addWorkspace,
 	getActiveWorkspaceId,
@@ -136,6 +137,14 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 	ipcMain.handle("pi:app:version", () => {
 		const { app } = require("electron");
 		return app.getVersion();
+	});
+
+	// Auto-updater
+	ipcMain.handle("pi:update:check", () => {
+		scheduleCheck();
+	});
+	ipcMain.handle("pi:update:install", () => {
+		quitAndInstall();
 	});
 
 	ipcMain.handle("pi:auth:list", () => listConfiguredProviders());

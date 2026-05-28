@@ -68,6 +68,19 @@ const appInfo = {
 	version: () => ipcRenderer.invoke("pi:app:version"),
 };
 
+const updater = {
+	check: () => ipcRenderer.invoke("pi:update:check"),
+	install: () => ipcRenderer.invoke("pi:update:install"),
+	onState: (cb: (state: { status: string; version?: string; error?: string }) => void) => {
+		const handler = (
+			_e: Electron.IpcRendererEvent,
+			state: { status: string; version?: string; error?: string },
+		) => cb(state);
+		ipcRenderer.on("pi:update:state", handler);
+		return () => ipcRenderer.off("pi:update:state", handler);
+	},
+};
+
 const api = {
 	ping: (): Promise<string> => ipcRenderer.invoke("pi:ping"),
 	workspaces,
@@ -77,6 +90,7 @@ const api = {
 	auth,
 	settings,
 	appInfo,
+	updater,
 } as const;
 
 contextBridge.exposeInMainWorld("pi", api);

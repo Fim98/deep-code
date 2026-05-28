@@ -98,6 +98,24 @@ export interface PiBridge {
 	appInfo: {
 		version: () => Promise<string>;
 	};
+	updater: {
+		check: () => Promise<void>;
+		install: () => Promise<void>;
+		onState: (cb: (state: UpdateState) => void) => () => void;
+	};
+}
+
+export interface UpdateState {
+	status:
+		| "idle"
+		| "checking"
+		| "available"
+		| "not-available"
+		| "error"
+		| "downloading"
+		| "downloaded";
+	version?: string;
+	error?: string;
 }
 
 export interface ProviderEntry {

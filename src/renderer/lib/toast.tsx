@@ -1,6 +1,14 @@
 import { Toaster, toast } from "sonner";
 
-export function emitToast(message: string, kind: "error" | "info" = "error") {
+export interface ToastOptions {
+	action?: { label: string; onClick: () => void };
+}
+
+export function emitToast(message: string, kind: "error" | "info" | ToastOptions = "error") {
+	if (typeof kind === "object") {
+		toast.info(message, kind.action ? { action: kind.action } : undefined);
+		return;
+	}
 	if (kind === "error") {
 		toast.error(message);
 		return;

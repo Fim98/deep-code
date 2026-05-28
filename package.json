@@ -50,6 +50,7 @@
 		"class-variance-authority": "^0.7.1",
 		"clsx": "2.1.1",
 		"electron-store": "10.0.1",
+		"electron-updater": "^6.8.3",
 		"lucide-react": "0.479.0",
 		"motion": "12.40.0",
 		"nanoid": "3.3.12",
@@ -64,10 +65,10 @@
 		"zustand": "5.0.13"
 	},
 	"devDependencies": {
-		"@tailwindcss/postcss": "^4.3.0",
 		"@biomejs/biome": "^2.4.16",
 		"@commitlint/cli": "^21.0.1",
 		"@commitlint/config-conventional": "^21.0.1",
+		"@tailwindcss/postcss": "^4.3.0",
 		"@testing-library/jest-dom": "^6.9.1",
 		"@testing-library/react": "^16.3.2",
 		"@testing-library/user-event": "^14.6.1",

@@ -224,5 +224,37 @@ describe("SettingsDialog", () => {
 			expect(await screen.findByText("Pi Documentation")).toBeInTheDocument();
 			expect(screen.getByText("GitHub")).toBeInTheDocument();
 		});
+
+		it("shows Updates section with check button", async () => {
+			const user = userEvent.setup();
+			await act(async () => {
+				render(<SettingsDialog open={true} onOpenChange={vi.fn()} />);
+			});
+
+			await act(async () => {
+				await user.click(screen.getByText("About"));
+			});
+
+			expect(await screen.findByText("Updates")).toBeInTheDocument();
+			expect(screen.getByText("Check for Updates")).toBeInTheDocument();
+		});
+
+		it("calls updater.check when Check for Updates is clicked", async () => {
+			const user = userEvent.setup();
+			await act(async () => {
+				render(<SettingsDialog open={true} onOpenChange={vi.fn()} />);
+			});
+
+			await act(async () => {
+				await user.click(screen.getByText("About"));
+			});
+
+			const checkButton = screen.getByText("Check for Updates");
+			await act(async () => {
+				await user.click(checkButton);
+			});
+
+			expect(mockPi.updater.check).toHaveBeenCalled();
+		});
 	});
 });

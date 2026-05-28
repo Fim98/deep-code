@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { useKeyboardShortcuts } from "@/lib/keyboard";
-import { pi } from "@/lib/rpc";
+import { pi, type UpdateState } from "@/lib/rpc";
 import { emitToast, installGlobalErrorToasts, ToastHost } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { useSessions } from "@/stores/session-state";
@@ -52,6 +52,20 @@ export function App() {
 	useEffect(() => {
 		installGlobalErrorToasts();
 		void refreshWorkspaces();
+	}, []);
+
+	// Auto-updater: listen for state changes
+	useEffect(() => {
+		const unsub = pi.updater.onState((state: UpdateState) => {
+			if (state.status === "downloaded") {
+				emitToast(`Update ${state.version ?? ""} ready. Restart to install.`, {
+					action: { label: "Restart", onClick: () => void pi.updater.install() },
+				});
+			} else if (state.status === "error") {
+				// Silently ignore — updates are non-critical
+			}
+		});
+		return unsub;
 	}, []);
 
 	useEffect(() => {

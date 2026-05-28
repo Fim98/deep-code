@@ -193,7 +193,7 @@ bridge and renderer `PiBridge` types.
 
 ---
 
-### C3 · Auto-updater — **M**
+### C3 · Auto-updater — **M** — Done
 Once C1 ships notarized builds, wire `electron-updater` so users get
 patches without re-downloading.
 
@@ -201,8 +201,14 @@ patches without re-downloading.
 non-blocking toast when an update is ready, install on quit. Channel
 selection (stable/beta) in Settings → General.
 
-**Done when**: shipping a new version bumps users on next launch with a
-single click.
+**Done**: `electron-updater` wired into the main process:
+- `src/main/updater.ts`: initializes on app ready, checks on startup + every 6h
+- Emits state events (checking, available, downloading, downloaded, error) to renderer
+- Non-blocking toast with "Restart" action when update is downloaded
+- Settings → About tab: "Check for Updates" button + live status display
+- Preload bridge: `updater.{check, install, onState}`
+- Gracefully no-ops in dev mode (`app.isPackaged` guard)
+- Channel selection deferred to after notarization is set up
 
 ---
 

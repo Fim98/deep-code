@@ -72,6 +72,11 @@ const mockPi = {
 	appInfo: {
 		version: vi.fn().mockResolvedValue("0.0.0-test"),
 	},
+	updater: {
+		check: vi.fn().mockResolvedValue(undefined),
+		install: vi.fn().mockResolvedValue(undefined),
+		onState: vi.fn().mockReturnValue(() => {}),
+	},
 };
 
 Object.defineProperty(window, "pi", {

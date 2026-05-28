@@ -446,6 +446,8 @@ function ModelsTab() {
 function AboutTab() {
 	const [version, setVersion] = useState("…");
 	const [agentDir, setAgentDir] = useState("…");
+	const [updateStatus, setUpdateStatus] = useState<string>("idle");
+	const [checking, setChecking] = useState(false);
 
 	useEffect(() => {
 		pi.appInfo
@@ -456,7 +458,34 @@ function AboutTab() {
 			.agentDir()
 			.then(setAgentDir)
 			.catch(() => setAgentDir("unknown"));
+
+		const unsub = pi.updater.onState((state) => {
+			setUpdateStatus(state.status);
+			if (state.status !== "checking") setChecking(false);
+		});
+		return unsub;
 	}, []);
+
+	async function handleCheck() {
+		setChecking(true);
+		setUpdateStatus("checking");
+		try {
+			await pi.updater.check();
+		} catch {
+			setUpdateStatus("error");
+			setChecking(false);
+		}
+	}
+
+	const statusLabel: Record<string, string> = {
+		idle: "",
+		checking: "Checking for updates…",
+		available: "Update available, downloading…",
+		"not-available": "You're up to date",
+		error: "Update check failed",
+		downloading: "Downloading update…",
+		downloaded: "Update ready — restart to install",
+	};
 
 	return (
 		<div className="space-y-8">
@@ -466,6 +495,46 @@ function AboutTab() {
 					<div className="space-y-3">
 						<InfoRow label="Version" value={version} />
 						<InfoRow label="Agent directory" value={agentDir} mono />
+					</div>
+				</div>
+			</section>
+
+			<section className="space-y-4">
+				<SectionHeader title="Updates" />
+				<div className="flex items-center justify-between rounded-[18px] border border-border/60 bg-card px-5 py-4 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
+					<div className="min-w-0">
+						<div className="text-[13px] font-medium text-foreground">
+							{statusLabel[updateStatus] || "Check for updates"}
+						</div>
+						{updateStatus === "downloaded" ? (
+							<div className="mt-0.5 text-[11px] text-muted-foreground">
+								Click restart to apply the latest version.
+							</div>
+						) : null}
+					</div>
+					<div className="flex shrink-0 gap-2">
+						{updateStatus === "downloaded" ? (
+							<Button
+								type="button"
+								size="sm"
+								variant="primary"
+								className="rounded-full"
+								onClick={() => void pi.updater.install()}
+							>
+								Restart
+							</Button>
+						) : (
+							<Button
+								type="button"
+								size="sm"
+								variant="secondary"
+								className="rounded-full"
+								disabled={checking}
+								onClick={handleCheck}
+							>
+								{checking ? "Checking…" : "Check for Updates"}
+							</Button>
+						)}
 					</div>
 				</div>
 			</section>
