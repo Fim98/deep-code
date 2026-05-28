@@ -376,5 +376,6 @@ above.
 11. ~~**D6** Session sharing (S)~~ — **Done** (Share button + export_html + save dialog).
 12. ~~**D2** Accent presets (S)~~ — **Done** (5 presets + picker + 8 tests).
 13. ~~**D3** i18n zh-CN + en (M)~~ — **Done** (function-based i18n + 150+ keys + 9 tests).
+14. ~~**E3** Crash/error log viewer (S)~~ — **Done** (ring buffer + LogViewerDialog + 8 tests).
 
 After this sprint, deepcode is closer to a real alpha than a dev demo.
