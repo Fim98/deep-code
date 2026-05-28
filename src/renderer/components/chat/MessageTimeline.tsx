@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
 	ChevronRight,
 	FilePen,
+	FilePlus,
 	FileText,
 	Search,
 	Sparkles,
@@ -52,7 +53,14 @@ type Part =
 	| ToolCallPart
 	| { type: "image"; data: string; mimeType: string };
 
-type ActivityKind = "thinking" | "command" | "edit" | "read" | "search" | "other";
+type ActivityKind =
+	| "thinking"
+	| "command"
+	| "edit"
+	| "write"
+	| "read"
+	| "search"
+	| "other";
 type ActivityStatus = "pending" | "running" | "done" | "error";
 
 interface ActivityItem {
@@ -61,7 +69,7 @@ interface ActivityItem {
 	label: string;
 	status: ActivityStatus;
 	toolName?: string;
-	action?: "read" | "create" | "edit" | "run" | "search" | "think" | "process";
+	action?: "read" | "write" | "edit" | "run" | "search" | "think" | "process";
 	diffStat?: string;
 }
 
@@ -577,7 +585,15 @@ function buildActivities(
 }
 
 function groupActivities(items: ActivityItem[]): ActivityGroup[] {
-	const order: ActivityKind[] = ["thinking", "edit", "command", "read", "search", "other"];
+	const order: ActivityKind[] = [
+		"thinking",
+		"edit",
+		"write",
+		"command",
+		"read",
+		"search",
+		"other",
+	];
 	return order
 		.map((kind) => {
 			const groupItems = items.filter((item) => item.kind === kind);
@@ -625,8 +641,8 @@ function formatItemLabel(item: ActivityItem, withAction = false) {
 		case "think":
 		case "thinking":
 			return "正在思考";
-		case "create":
-			return `正在创建 ${label}`;
+		case "write":
+			return `正在写入 ${label}`;
 		case "edit":
 			return `正在编辑 ${label}`;
 		case "run":
@@ -649,6 +665,8 @@ function runningPrefix(kind: ActivityKind) {
 			return "正在运行";
 		case "edit":
 			return "正在编辑";
+		case "write":
+			return "正在写入";
 		case "read":
 			return "正在读取";
 		case "search":
@@ -666,6 +684,8 @@ function donePrefix(kind: ActivityKind) {
 			return "已运行";
 		case "edit":
 			return "已编辑";
+		case "write":
+			return "已写入";
 		case "read":
 			return "已读取";
 		case "search":
@@ -682,6 +702,7 @@ function unitForKind(kind: ActivityKind) {
 		case "command":
 			return "条命令";
 		case "edit":
+		case "write":
 		case "read":
 			return "个文件";
 		case "search":
@@ -692,60 +713,44 @@ function unitForKind(kind: ActivityKind) {
 }
 
 function kindForTool(name: string, args: Record<string, unknown>): ActivityKind {
-	const lower = name.toLowerCase();
-	if ("command" in args || lower.includes("bash") || lower.includes("shell") || lower.includes("exec")) {
-		return "command";
+	switch (name) {
+		case "bash":
+			return "command";
+		case "edit":
+			return "edit";
+		case "write":
+			return "write";
+		case "read":
+		case "ls":
+			return "read";
+		case "grep":
+		case "find":
+			return "search";
+		default:
+			return "other";
 	}
-	if (
-		lower.includes("edit") ||
-		lower.includes("patch") ||
-		lower.includes("write") ||
-		lower.includes("create") ||
-		lower.includes("apply")
-	) {
-		return "edit";
-	}
-	if (
-		lower.includes("grep") ||
-		lower.includes("search") ||
-		"query" in args ||
-		"pattern" in args
-	) {
-		return "search";
-	}
-	if (
-		lower.includes("read") ||
-		lower.includes("view") ||
-		lower.includes("cat") ||
-		lower.includes("ls") ||
-		lower.includes("list") ||
-		"path" in args ||
-		"file" in args
-	) {
-		return "read";
-	}
-	return "other";
 }
 
 function actionForTool(
 	name: string,
 	args: Record<string, unknown>,
 ): ActivityItem["action"] {
-	const lower = name.toLowerCase();
-	if ("command" in args || lower.includes("bash") || lower.includes("shell") || lower.includes("exec")) {
-		return "run";
+	switch (name) {
+		case "bash":
+			return "run";
+		case "edit":
+			return "edit";
+		case "write":
+			return "write";
+		case "read":
+		case "ls":
+			return "read";
+		case "grep":
+		case "find":
+			return "search";
+		default:
+			return "process";
 	}
-	if (lower.includes("create") || lower.includes("write")) return "create";
-	if (lower.includes("edit") || lower.includes("patch") || lower.includes("apply")) {
-		return "edit";
-	}
-	if (lower.includes("grep") || lower.includes("search") || "query" in args || "pattern" in args) {
-		return "search";
-	}
-	if ("path" in args || "file" in args || lower.includes("read") || lower.includes("view") || lower.includes("cat")) {
-		return "read";
-	}
-	return "process";
 }
 
 function statusForTool(
@@ -822,6 +827,8 @@ function iconForKind(kind: ActivityKind) {
 			return Terminal;
 		case "edit":
 			return FilePen;
+		case "write":
+			return FilePlus;
 		case "read":
 			return FileText;
 		case "search":
