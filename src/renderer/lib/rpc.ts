@@ -83,6 +83,9 @@ export interface PiBridge {
 		get: () => Promise<LogEntry[]>;
 		clear: () => Promise<void>;
 	};
+	fileTree: {
+		list: (dirPath: string) => Promise<FileTreeNode[]>;
+	};
 	rpc: {
 		send: <C extends RpcCommand>(sessionId: string, command: C) => Promise<RpcResponse>;
 		subscribe: (sessionId: string, cb: (event: AgentSessionEvent) => void) => () => void;
@@ -131,6 +134,12 @@ export interface LogEntry {
 	source: string;
 	message: string;
 	stack?: string;
+}
+
+export interface FileTreeNode {
+	name: string;
+	path: string;
+	type: "file" | "directory";
 }
 
 export interface ProviderEntry {

@@ -236,4 +236,14 @@ export const en: Record<string, string> = {
 	"logs.clearFailed": "Failed to clear logs: {{error}}",
 	"logs.showStack": "show stack",
 	"logs.hideStack": "hide stack",
+
+	// ─── File tree ────────────────────────────────────────────────────────────
+	"fileTree.title": "Files",
+	"fileTree.loading": "Loading\u2026",
+	"fileTree.empty": "No files found",
+	"fileTree.dirEmpty": "Empty",
+	"fileTree.refresh": "Refresh",
+	"fileTree.close": "Close file tree",
+	"fileTree.toggle": "Toggle file tree",
+	"fileTree.copiedPath": "Copied {{path}}",
 };

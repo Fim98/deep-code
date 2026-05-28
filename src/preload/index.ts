@@ -39,6 +39,13 @@ const logs = {
 	clear: () => ipcRenderer.invoke("pi:logs:clear") as Promise<void>,
 };
 
+const fileTree = {
+	list: (dirPath: string) =>
+		ipcRenderer.invoke("pi:file-tree:list", dirPath) as Promise<
+			Array<{ name: string; path: string; type: "file" | "directory" }>
+		>,
+};
+
 const rpc = {
 	send: (sessionId: string, command: unknown) => ipcRenderer.invoke("pi:rpc", sessionId, command),
 	subscribe: (sessionId: string, cb: (event: unknown) => void) => {
@@ -106,6 +113,7 @@ const api = {
 	updater,
 	shell: shellApi,
 	logs,
+	fileTree,
 } as const;
 
 contextBridge.exposeInMainWorld("pi", api);

@@ -232,4 +232,14 @@ export const zhCN: Record<string, string> = {
 	"logs.clearFailed": "清除日志失败：{{error}}",
 	"logs.showStack": "显示堆栈",
 	"logs.hideStack": "隐藏堆栈",
+
+	// ─── File tree ────────────────────────────────────────────────────────────
+	"fileTree.title": "文件",
+	"fileTree.loading": "加载中\u2026",
+	"fileTree.empty": "未找到文件",
+	"fileTree.dirEmpty": "空目录",
+	"fileTree.refresh": "刷新",
+	"fileTree.close": "关闭文件树",
+	"fileTree.toggle": "切换文件树",
+	"fileTree.copiedPath": "已复制 {{path}}",
 };

@@ -212,7 +212,7 @@ selection (stable/beta) in Settings → General.
 
 ---
 
-### C4 · File tree sidebar — **L**
+### C4 · File tree sidebar — **L** — Done
 Optional secondary sidebar (right side, toggleable) showing the
 workspace cwd. Click a file → ask the agent to read it (pre-fills the
 composer with `Read @path` or similar), double-click → open in the
@@ -222,8 +222,12 @@ system editor.
 gitignore filter via the `ignore` package already in pi). React panel
 with virtualized tree (react-arborist or hand-rolled).
 
-**Done when**: toggling the file tree shows the active workspace; clicks
-work as described; large repos (10k files) don't freeze the UI.
+**Done**: `src/main/file-tree.ts` — lazy directory walker using
+`fs.readdir` with skip-list (node_modules, .git, etc.) and 2000-entry
+cap. `FileTree` React component with collapsible directories, file type
+icons, lazy-loading on expand. Click copies relative path to clipboard.
+Toggleable right sidebar in main layout. IPC: `pi:file-tree:list`.
+6 tests cover directory listing, skip patterns, and sorting.
 
 ---
 
@@ -377,5 +381,6 @@ above.
 12. ~~**D2** Accent presets (S)~~ — **Done** (5 presets + picker + 8 tests).
 13. ~~**D3** i18n zh-CN + en (M)~~ — **Done** (function-based i18n + 150+ keys + 9 tests).
 14. ~~**E3** Crash/error log viewer (S)~~ — **Done** (ring buffer + LogViewerDialog + 8 tests).
+15. ~~**C4** File tree sidebar (L)~~ — **Done** (lazy-loaded directory walker + collapsible tree + 6 tests).
 
 After this sprint, deepcode is closer to a real alpha than a dev demo.

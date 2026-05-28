@@ -16,6 +16,7 @@ import { Composer } from "@/components/chat/Composer";
 import { MessageTimeline } from "@/components/chat/MessageTimeline";
 import { PlanTrackerWidget } from "@/components/chat/PlanTrackerWidget";
 import { CommandPalette } from "@/components/command-palette/CommandPalette";
+import { FileTree } from "@/components/file-tree/FileTree";
 import { MainArea } from "@/components/layout/MainArea";
 import { Sidebar, SidebarItem, SidebarSection } from "@/components/layout/Sidebar";
 import { BashPanel } from "@/components/panels/BashPanel";
@@ -399,6 +400,19 @@ export function App() {
 					/>
 				)}
 			</MainArea>
+			{activeWorkspace ? (
+				<FileTree
+					rootPath={activeWorkspace.path}
+					onFileClick={(path) => {
+						// Copy the relative path for easy pasting into composer
+						const relative = path.startsWith(activeWorkspace.path)
+							? path.slice(activeWorkspace.path.length + 1)
+							: path;
+						void navigator.clipboard.writeText(relative);
+						emitToast(`Copied ${relative}`, "info");
+					}}
+				/>
+			) : null}
 		</div>
 	);
 }

@@ -3,6 +3,7 @@ import { type BrowserWindow, dialog, ipcMain, nativeTheme, shell } from "electro
 import { listConfiguredProviders, listKnownProviders, removeProvider, setApiKey } from "./auth.js";
 import { dispatchRpc } from "./dispatch-rpc.js";
 import { clearLogs, getLogs } from "./error-log.js";
+import { listDirectory } from "./file-tree.js";
 import { deleteSessionFile, listSessionsForCwd } from "./session-fs.js";
 import { sessionRegistry } from "./session-registry.js";
 import { getAgentDirPath, getDesktopSettings, setDesktopSetting } from "./settings.js";
@@ -180,6 +181,11 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 	ipcMain.handle("pi:logs:get", () => getLogs());
 	ipcMain.handle("pi:logs:clear", () => {
 		clearLogs();
+	});
+
+	// File tree
+	ipcMain.handle("pi:file-tree:list", async (_e, dirPath: string) => {
+		return listDirectory(dirPath);
 	});
 
 	ipcMain.handle("pi:auth:list", () => listConfiguredProviders());
