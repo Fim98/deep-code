@@ -1,7 +1,14 @@
 import { useState, type KeyboardEvent } from "react";
 import { Send, Square } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import {
+	PromptInput,
+	PromptInputBody,
+	PromptInputFooter,
+	PromptInputSubmit,
+	PromptInputTextarea,
+	PromptInputTools,
+	type PromptInputMessage,
+} from "@/components/ai-elements/prompt-input";
 import { pi } from "@/lib/rpc";
 
 interface Props {
@@ -12,8 +19,8 @@ interface Props {
 export function Composer({ sessionId, isStreaming }: Props) {
 	const [text, setText] = useState("");
 
-	async function submit() {
-		const content = text.trim();
+	async function submit(message?: PromptInputMessage) {
+		const content = (message?.text ?? text).trim();
 		if (!content) {
 			if (isStreaming) {
 				await pi.rpc.send(sessionId, { type: "abort" });
@@ -35,37 +42,42 @@ export function Composer({ sessionId, isStreaming }: Props) {
 	}
 
 	return (
-		<form
-			onSubmit={(e) => {
-				e.preventDefault();
-				void submit();
-			}}
-			className="mx-auto w-full max-w-3xl rounded-[32px] border border-border/60 bg-card/95 p-3 shadow-md backdrop-blur-xl transition-all duration-200 focus-within:border-primary/40 focus-within:shadow-lg focus-within:shadow-primary/5"
-		>
-			<Textarea
-				aria-label="Message"
-				value={text}
-				onChange={(e) => setText(e.target.value)}
-				onKeyDown={onKeyDown}
-				placeholder={isStreaming ? "Steer the agent..." : "Ask pi anything..."}
-				className="max-h-44 min-h-[60px] w-full text-[14px]"
-			/>
-			<div className="mt-2 flex items-center gap-3 px-1">
+		<PromptInput onSubmit={(message) => void submit(message)}>
+			<PromptInputBody>
+				<PromptInputTextarea
+					aria-label="Message"
+					value={text}
+					onChange={(e) => setText(e.target.value)}
+					onKeyDown={onKeyDown}
+					placeholder={isStreaming ? "Steer the agent..." : "Ask pi anything..."}
+				/>
+			</PromptInputBody>
+			<PromptInputFooter>
 				<div className="flex-1 text-[11px] text-muted-foreground">
 					{isStreaming
 						? "Send to steer · empty submit to abort"
 						: "Enter to send · Shift+Enter for new line"}
 				</div>
-				<Button
-					type="submit"
-					size="sm"
-					variant={isStreaming && !text.trim() ? "destructive-soft" : "primary"}
-					disabled={!text.trim() && !isStreaming}
-				>
-					{isStreaming && !text.trim() ? <Square className="size-3.5" /> : <Send className="size-3.5" />}
-					{isStreaming && !text.trim() ? "Abort" : isStreaming ? "Steer" : "Send"}
-				</Button>
-			</div>
-		</form>
+				<PromptInputTools className="flex-none">
+					<PromptInputSubmit
+						size="sm"
+						variant={isStreaming && !text.trim() ? "destructive-soft" : "primary"}
+						disabled={!text.trim() && !isStreaming}
+						status={isStreaming ? "streaming" : "ready"}
+					>
+						{isStreaming && !text.trim() ? (
+							<Square className="size-3.5" />
+						) : (
+							<Send className="size-3.5" />
+						)}
+						{isStreaming && !text.trim()
+							? "Abort"
+							: isStreaming
+								? "Steer"
+								: "Send"}
+					</PromptInputSubmit>
+				</PromptInputTools>
+			</PromptInputFooter>
+		</PromptInput>
 	);
 }
