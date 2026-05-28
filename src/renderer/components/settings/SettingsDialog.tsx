@@ -40,6 +40,7 @@ import { type DesktopSettings, type ProviderEntry, pi } from "@/lib/rpc";
 import { emitToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { ACCENT_PRESETS, useAccent } from "@/stores/accent";
+import { type ThemeChoice, useTheme } from "@/stores/theme";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -145,26 +146,7 @@ function GeneralTab() {
 					label="Theme"
 					description="Choose light, dark, or follow your system preference"
 				>
-					<div className="flex gap-1.5">
-						{(["system", "light", "dark"] as const).map((opt) => {
-							const Icon = opt === "system" ? Monitor : opt === "light" ? Sun : Moon;
-							return (
-								<button
-									key={opt}
-									onClick={() => {
-										void pi.theme.setSource(opt);
-									}}
-									className={cn(
-										"flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium capitalize transition-colors",
-										"bg-foreground/[0.04] text-foreground/60 hover:bg-foreground/[0.08] hover:text-foreground",
-									)}
-								>
-									<Icon className="size-3.5" />
-									{opt}
-								</button>
-							);
-						})}
-					</div>
+					<ThemeButtonGroup />
 				</SettingRow>
 				<SettingRow label="Accent color" description="Choose a primary color for the interface">
 					<AccentPicker />
@@ -594,6 +576,34 @@ function AboutTab() {
 }
 
 // ─── Shared sub-components ───────────────────────────────────────────────────
+
+function ThemeButtonGroup() {
+	const { choice, setChoice } = useTheme();
+	const options: { value: ThemeChoice; label: string; icon: typeof Monitor }[] = [
+		{ value: "system", label: "System", icon: Monitor },
+		{ value: "light", label: "Light", icon: Sun },
+		{ value: "dark", label: "Dark", icon: Moon },
+	];
+	return (
+		<div className="flex gap-1.5">
+			{options.map(({ value, label, icon: Icon }) => (
+				<button
+					key={value}
+					onClick={() => setChoice(value)}
+					className={cn(
+						"flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium capitalize transition-colors",
+						choice === value
+							? "bg-primary/10 text-primary"
+							: "bg-foreground/[0.04] text-foreground/60 hover:bg-foreground/[0.08] hover:text-foreground",
+					)}
+				>
+					<Icon className="size-3.5" />
+					{label}
+				</button>
+			))}
+		</div>
+	);
+}
 
 function AccentPicker() {
 	const { activeId, setAccent } = useAccent();

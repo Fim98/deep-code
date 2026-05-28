@@ -169,9 +169,9 @@ describe("SettingsDialog", () => {
 			});
 
 			expect(screen.getByText("Theme")).toBeInTheDocument();
-			expect(screen.getByText("system")).toBeInTheDocument();
-			expect(screen.getByText("light")).toBeInTheDocument();
-			expect(screen.getByText("dark")).toBeInTheDocument();
+			expect(screen.getByText("System")).toBeInTheDocument();
+			expect(screen.getByText("Light")).toBeInTheDocument();
+			expect(screen.getByText("Dark")).toBeInTheDocument();
 		});
 
 		it("shows keyboard shortcuts", async () => {
