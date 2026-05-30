@@ -41,10 +41,9 @@ describe("SettingsDialog", () => {
 			render(<SettingsDialog open={true} onOpenChange={vi.fn()} />);
 		});
 		expect(screen.getByText("Settings")).toBeInTheDocument();
-		// Tab buttons
+		// Tab buttons — Models tab has been removed
 		expect(screen.getByText("General")).toBeInTheDocument();
 		expect(screen.getByText("Providers")).toBeInTheDocument();
-		expect(screen.getByText("Models")).toBeInTheDocument();
 		expect(screen.getByText("About")).toBeInTheDocument();
 	});
 
@@ -68,20 +67,7 @@ describe("SettingsDialog", () => {
 			await user.click(screen.getByText("Providers"));
 		});
 
-		expect(await screen.findByText("Configured Providers")).toBeInTheDocument();
-	});
-
-	it("switches to Models tab", async () => {
-		const user = userEvent.setup();
-		await act(async () => {
-			render(<SettingsDialog open={true} onOpenChange={vi.fn()} />);
-		});
-
-		await act(async () => {
-			await user.click(screen.getByText("Models"));
-		});
-
-		expect(await screen.findByText("Enabled Models")).toBeInTheDocument();
+		expect(await screen.findByText("Connected")).toBeInTheDocument();
 	});
 
 	it("switches to About tab", async () => {
@@ -117,7 +103,7 @@ describe("SettingsDialog", () => {
 
 			await openProvidersTab();
 
-			expect(await screen.findByText("No credentials configured yet.")).toBeInTheDocument();
+			expect(await screen.findByText("No providers connected yet")).toBeInTheDocument();
 		});
 
 		it("shows configured providers", async () => {
@@ -153,8 +139,8 @@ describe("SettingsDialog", () => {
 
 			await screen.findByText("OpenAI");
 
-			const removeButton = screen.getByLabelText("Remove");
-			await user.click(removeButton);
+			const removeButtons = screen.getAllByLabelText("Remove");
+			await user.click(removeButtons[0]!);
 
 			expect(mockPi.auth.remove).toHaveBeenCalledWith("openai");
 		});
@@ -181,7 +167,7 @@ describe("SettingsDialog", () => {
 
 			expect(screen.getByText("Command palette")).toBeInTheDocument();
 			expect(screen.getByText("New session")).toBeInTheDocument();
-			expect(screen.getByText("Toggle bash panel")).toBeInTheDocument();
+			expect(screen.getByText("Toggle sidebar")).toBeInTheDocument();
 		});
 
 		it("shows auto-compaction toggle", async () => {

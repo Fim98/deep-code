@@ -1,4 +1,5 @@
 import {
+	Check,
 	Cog,
 	ExternalLink,
 	Eye,
@@ -7,7 +8,6 @@ import {
 	FolderOpen,
 	Info,
 	Key,
-	LayoutGrid,
 	Monitor,
 	Moon,
 	Plus,
@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { LogViewerDialog } from "@/components/log-viewer/LogViewerDialog";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -44,10 +43,9 @@ import { type ThemeChoice, useTheme } from "@/stores/theme";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const MODELS_DOCS_URL = "https://pi.dev/docs/latest/models";
 const AUTH_CONFIG_PATH = "~/.pi/agent/auth.json";
 
-type TabId = "general" | "providers" | "models" | "about";
+type TabId = "general" | "providers" | "about";
 
 // ─── Main Dialog ─────────────────────────────────────────────────────────────
 
@@ -63,7 +61,6 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
 	const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
 		{ id: "general", label: t("settings.tab.general"), icon: <Cog className="size-4" /> },
 		{ id: "providers", label: t("settings.tab.providers"), icon: <Key className="size-4" /> },
-		{ id: "models", label: t("settings.tab.models"), icon: <LayoutGrid className="size-4" /> },
 		{ id: "about", label: t("settings.tab.about"), icon: <Info className="size-4" /> },
 	];
 
@@ -88,19 +85,19 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
 				<div className="flex min-h-0 flex-1">
 					{/* Left rail */}
 					<nav className="flex w-[180px] shrink-0 flex-col gap-0.5 border-r border-border/30 p-3">
-						{TABS.map((t) => (
+						{TABS.map((item) => (
 							<button
-								key={t.id}
-								onClick={() => setTab(t.id)}
+								key={item.id}
+								onClick={() => setTab(item.id)}
 								className={cn(
 									"flex cursor-pointer items-center gap-2.5 rounded-[12px] px-3 py-2 text-left text-[13px] font-medium transition-colors duration-100",
-									tab === t.id
+									tab === item.id
 										? "bg-primary/10 text-primary"
 										: "text-foreground/60 hover:bg-foreground/[0.04] hover:text-foreground",
 								)}
 							>
-								{t.icon}
-								{t.label}
+								{item.icon}
+								{item.label}
 							</button>
 						))}
 					</nav>
@@ -109,7 +106,6 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
 						<div className="px-7 py-6">
 							{tab === "general" && <GeneralTab />}
 							{tab === "providers" && <ProvidersTab />}
-							{tab === "models" && <ModelsTab />}
 							{tab === "about" && <AboutTab />}
 						</div>
 					</ScrollArea>
@@ -285,48 +281,86 @@ function GeneralTab() {
 
 const oauthProviderIds = new Set(["anthropic", "openai-codex", "github-copilot"]);
 
-const providerHints: Record<string, { label: string; hint: string; env?: string }> = {
+interface ProviderHint {
+	label: string;
+	description: string;
+	env?: string;
+	color: string;
+	icon: string;
+}
+
+const providerHints: Record<string, ProviderHint> = {
 	anthropic: {
 		label: "Anthropic",
-		hint: "Claude models. Supports /login for Claude Pro/Max or API key auth.",
+		description: "Claude models — Pro, Max, or API key",
 		env: "ANTHROPIC_API_KEY",
+		color: "#D97757",
+		icon: "A",
 	},
-	openai: { label: "OpenAI", hint: "GPT models through OpenAI APIs.", env: "OPENAI_API_KEY" },
+	openai: {
+		label: "OpenAI",
+		description: "GPT-4o and o-series models",
+		env: "OPENAI_API_KEY",
+		color: "#10A37F",
+		icon: "O",
+	},
 	google: {
-		label: "Google Gemini",
-		hint: "Gemini via Google Generative AI.",
+		label: "Google",
+		description: "Gemini via Google Generative AI",
 		env: "GEMINI_API_KEY",
+		color: "#4285F4",
+		icon: "G",
 	},
 	"openai-codex": {
 		label: "OpenAI Codex",
-		hint: "ChatGPT Plus/Pro subscription provider. Use /login.",
+		description: "ChatGPT Plus/Pro subscription",
+		color: "#10A37F",
+		icon: "O",
 	},
 	openrouter: {
 		label: "OpenRouter",
-		hint: "One key for many hosted model routes.",
+		description: "One key for many hosted models",
 		env: "OPENROUTER_API_KEY",
+		color: "#6944FF",
+		icon: "R",
 	},
 	"vercel-ai-gateway": {
-		label: "Vercel AI Gateway",
-		hint: "Gateway routing for supported model providers.",
+		label: "Vercel AI",
+		description: "Gateway routing for models",
 		env: "AI_GATEWAY_API_KEY",
+		color: "#000000",
+		icon: "▲",
 	},
-	deepseek: { label: "DeepSeek", hint: "DeepSeek hosted models.", env: "DEEPSEEK_API_KEY" },
-	"github-copilot": { label: "GitHub Copilot", hint: "Copilot subscription provider. Use /login." },
+	deepseek: {
+		label: "DeepSeek",
+		description: "DeepSeek hosted models",
+		env: "DEEPSEEK_API_KEY",
+		color: "#4D6BFE",
+		icon: "D",
+	},
+	"github-copilot": {
+		label: "GitHub Copilot",
+		description: "Copilot subscription",
+		color: "#24292F",
+		icon: "G",
+	},
 	moonshotai: {
 		label: "Moonshot AI",
-		hint: "Kimi models through Moonshot.",
+		description: "Kimi models through Moonshot",
 		env: "MOONSHOT_API_KEY",
+		color: "#5B5BF7",
+		icon: "M",
 	},
 	"moonshotai-cn": {
-		label: "Moonshot AI CN",
-		hint: "Kimi models in the China region.",
+		label: "Moonshot CN",
+		description: "Kimi models (China region)",
 		env: "MOONSHOT_API_KEY",
+		color: "#5B5BF7",
+		icon: "M",
 	},
 };
 
 function ProvidersTab() {
-	const { t } = useI18n();
 	const [configured, setConfigured] = useState<ProviderEntry[]>([]);
 	const [known, setKnown] = useState<string[]>([]);
 	const [loading, setLoading] = useState(false);
@@ -352,6 +386,7 @@ function ProvidersTab() {
 		try {
 			await pi.auth.remove(provider);
 			await refresh();
+			emitToast(`${providerLabel(provider)} removed`, "info");
 		} catch (e) {
 			emitToast(formatError(e));
 		}
@@ -361,6 +396,7 @@ function ProvidersTab() {
 		try {
 			await pi.auth.setKey(provider, key);
 			await refresh();
+			emitToast(`${providerLabel(provider)} added`, "info");
 		} catch (e) {
 			emitToast(formatError(e));
 			throw e;
@@ -375,106 +411,298 @@ function ProvidersTab() {
 
 	return (
 		<div className="space-y-6">
-			<section className="space-y-4">
-				<SectionHeader
-					title={t("settings.configuredProviders")}
-					description={t("settings.providersDescription", { path: AUTH_CONFIG_PATH })}
-				/>
-				<div className="grid gap-3">
-					{loading && configured.length === 0 ? (
-						<EmptyHint text={t("settings.loadingProviders")} />
-					) : configured.length === 0 ? (
-						<EmptyHint text={t("settings.noProviders")} />
-					) : (
-						configured.map((entry) => (
-							<ConfiguredRow
+			{/* Connected providers */}
+			<section className="space-y-3">
+				<SectionHeader title="Connected" />
+				{loading && configured.length === 0 ? (
+					<LoadingProviders />
+				) : configured.length === 0 ? (
+					<div className="rounded-[16px] border border-dashed border-border/60 bg-foreground/[0.01] px-5 py-6 text-center text-[13px] text-muted-foreground">
+						No providers connected yet
+					</div>
+				) : (
+					<div className="space-y-2">
+						{configured.map((entry) => (
+							<ConnectedProviderRow
 								key={entry.provider}
 								entry={entry}
 								onRemove={() => handleRemove(entry.provider)}
 							/>
-						))
-					)}
-				</div>
+						))}
+					</div>
+				)}
 			</section>
-			<PresetProviderForm providers={availableProviders} onSave={handleSave} />
-		</div>
-	);
-}
 
-// ─── Models Tab ──────────────────────────────────────────────────────────────
+			{/* Add provider */}
+			{availableProviders.length > 0 && (
+				<section className="space-y-3">
+					<SectionHeader title="Add provider" />
+					<AddProviderForm providers={availableProviders} onSave={handleSave} />
+				</section>
+			)}
 
-function ModelsTab() {
-	const { t } = useI18n();
-	const [settings, setSettings] = useState<DesktopSettings | null>(null);
-	const [editText, setEditText] = useState("");
-
-	useEffect(() => {
-		pi.settings.get().then((s) => {
-			setSettings(s);
-			setEditText((s.enabledModels ?? []).join("\n"));
-		});
-	}, []);
-
-	async function saveEnabledModels() {
-		const patterns = editText
-			.split("\n")
-			.map((l) => l.trim())
-			.filter(Boolean);
-		try {
-			await pi.settings.set("enabledModels", patterns.length > 0 ? patterns : undefined);
-			const next = await pi.settings.get();
-			setSettings(next);
-			emitToast(t("settings.modelFiltersSaved"), "info");
-		} catch (e) {
-			emitToast(formatError(e));
-		}
-	}
-
-	return (
-		<div className="space-y-8">
+			{/* OAuth hint */}
 			<section className="space-y-3">
-				<SectionHeader
-					title={t("settings.enabledModels")}
-					description={t("settings.enabledModelsDescription")}
-				/>
-				<div className="rounded-[18px] border border-border/60 bg-card p-4 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
-					<textarea
-						value={editText}
-						onChange={(e) => setEditText(e.target.value)}
-						placeholder="anthropic/claude-sonnet-4-20250514&#10;openai/gpt-4o"
-						className="min-h-[120px] w-full resize-y rounded-[12px] border border-border/40 bg-background px-3 py-2.5 font-mono text-[12px] text-foreground placeholder:text-muted-foreground/50 focus:border-primary/40 focus:outline-none"
-					/>
-					<div className="mt-3 flex justify-end">
-						<Button
-							size="sm"
-							variant="primary"
-							onClick={saveEnabledModels}
-							className="rounded-full"
-						>
-							{t("settings.save")}
-						</Button>
+				<div className="rounded-[16px] border border-border/40 bg-foreground/[0.015] px-4 py-3.5">
+					<div className="flex items-start gap-3">
+						<div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-[10px] bg-primary/10">
+							<ShieldCheck className="size-3.5 text-primary" />
+						</div>
+						<div className="min-w-0">
+							<div className="text-[12px] font-medium text-foreground">OAuth support</div>
+							<div className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+								For Anthropic, OpenAI Codex, and GitHub Copilot — send{" "}
+								<span className="rounded bg-foreground/[0.06] px-1 py-0.5 font-mono text-[10px]">
+									/login
+								</span>{" "}
+								in chat to authenticate with your subscription. Credentials stored in{" "}
+								<span className="font-mono text-[10px]">{AUTH_CONFIG_PATH}</span>.
+							</div>
+						</div>
 					</div>
 				</div>
 			</section>
 
-			<CustomModelsHint />
-
+			{/* Config hint */}
 			<section className="space-y-3">
-				<SectionHeader title={t("settings.imageHandling")} />
-				<SettingRow
-					label={t("settings.blockImages")}
-					description={t("settings.blockImagesDescription")}
-				>
-					<ToggleSwitch
-						checked={settings?.blockImages ?? false}
-						onChange={async (v) => {
-							await pi.settings.set("blockImages", v);
-							const next = await pi.settings.get();
-							setSettings(next);
-						}}
-					/>
-				</SettingRow>
+				<div className="flex items-center justify-between gap-3 rounded-[16px] border border-border/40 bg-foreground/[0.015] px-4 py-3">
+					<div className="min-w-0 text-[11px] leading-relaxed text-muted-foreground">
+						Custom providers, local models, and proxies can be configured in{" "}
+						<span className="font-mono text-[10px]">~/.pi/agent/models.json</span>.
+					</div>
+					<Button
+						type="button"
+						variant="secondary"
+						size="sm"
+						className="shrink-0 rounded-full"
+						onClick={() => window.open("https://pi.dev/docs/latest/models", "_blank")}
+					>
+						<ExternalLink className="size-3.5" />
+						Docs
+					</Button>
+				</div>
 			</section>
+		</div>
+	);
+}
+
+function LoadingProviders() {
+	return (
+		<div className="flex items-center justify-center rounded-[16px] border border-border/40 bg-card px-5 py-8">
+			<div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+				<div className="size-3.5 animate-spin rounded-full border-2 border-muted-foreground/20 border-t-primary/60" />
+				Loading…
+			</div>
+		</div>
+	);
+}
+
+function ConnectedProviderRow({
+	entry,
+	onRemove,
+}: {
+	entry: ProviderEntry;
+	onRemove: () => Promise<void>;
+}) {
+	const { t } = useI18n();
+	const hint = providerHints[entry.provider];
+	const isOAuth = entry.type === "oauth";
+
+	return (
+		<div className="group flex items-center gap-3 rounded-[16px] border border-border/40 bg-card px-4 py-3 shadow-[0_1px_4px_rgba(0,0,0,0.02)] transition-colors hover:border-border/60">
+			{/* Brand icon */}
+			<div
+				className="flex size-9 shrink-0 items-center justify-center rounded-[12px] text-[13px] font-bold text-white"
+				style={{ backgroundColor: hint?.color ?? "#888" }}
+			>
+				{hint?.icon ?? entry.provider.charAt(0).toUpperCase()}
+			</div>
+
+			{/* Info */}
+			<div className="min-w-0 flex-1">
+				<div className="flex items-center gap-2">
+					<span className="text-[13px] font-medium text-foreground">
+						{hint?.label ?? entry.provider}
+					</span>
+					{isOAuth ? (
+						<span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+							<Check className="size-2.5" />
+							OAuth
+						</span>
+					) : (
+						<span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+							<Key className="size-2.5" />
+							API key
+						</span>
+					)}
+				</div>
+				<div className="mt-0.5 truncate text-[11px] text-muted-foreground">
+					{isOAuth ? t("settings.oauthHint") : entry.maskedKey}
+				</div>
+			</div>
+
+			{/* Remove */}
+			<button
+				type="button"
+				onClick={onRemove}
+				aria-label={t("settings.removeProvider")}
+				className="flex size-7 shrink-0 items-center justify-center rounded-[10px] text-muted-foreground/50 opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+			>
+				<Trash2 className="size-3.5" />
+			</button>
+		</div>
+	);
+}
+
+function AddProviderForm({
+	providers,
+	onSave,
+}: {
+	providers: string[];
+	onSave: (provider: string, key: string) => Promise<void>;
+}) {
+	const [provider, setProvider] = useState(providers[0] ?? "");
+	const [key, setKey] = useState("");
+	const [reveal, setReveal] = useState(false);
+	const [saving, setSaving] = useState(false);
+	const [success, setSuccess] = useState(false);
+
+	useEffect(() => {
+		if (providers.length === 0) {
+			setProvider("");
+			return;
+		}
+		if (!providers.includes(provider)) setProvider(providers[0]);
+	}, [provider, providers]);
+
+	const hint = providerHints[provider];
+	const supportsOAuth = oauthProviderIds.has(provider);
+
+	async function submit() {
+		if (!provider || !key.trim()) return;
+		setSaving(true);
+		try {
+			await onSave(provider, key.trim());
+			setKey("");
+			setSuccess(true);
+			setTimeout(() => setSuccess(false), 2000);
+		} finally {
+			setSaving(false);
+		}
+	}
+
+	return (
+		<div className="rounded-[18px] border border-border/50 bg-card p-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
+			<form
+				onSubmit={(e) => {
+					e.preventDefault();
+					void submit();
+				}}
+				className="space-y-4"
+			>
+				{/* Provider select + brand preview */}
+				<div className="flex items-center gap-3">
+					<div
+						className="flex size-10 shrink-0 items-center justify-center rounded-[14px] text-[14px] font-bold text-white transition-colors duration-200"
+						style={{ backgroundColor: hint?.color ?? "#888" }}
+					>
+						{hint?.icon ?? "?"}
+					</div>
+					<div className="min-w-0 flex-1">
+						<Select value={provider} onValueChange={setProvider}>
+							<SelectTrigger className="text-[13px]">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								{providers.map((item) => (
+									<SelectItem key={item} value={item}>
+										<div className="flex items-center gap-2">
+											<span
+												className="inline-block size-2 rounded-full"
+												style={{
+													backgroundColor: providerHints[item]?.color ?? "#888",
+												}}
+											/>
+											{providerLabel(item)}
+										</div>
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
+				</div>
+
+				{/* Provider description */}
+				{hint && (
+					<div className="text-[11px] leading-relaxed text-muted-foreground">
+						{hint.description}
+					</div>
+				)}
+
+				{/* OAuth hint */}
+				{supportsOAuth ? (
+					<div className="rounded-[14px] bg-primary/8 px-4 py-3 text-[12px] leading-relaxed text-primary">
+						This provider supports OAuth. Send{" "}
+						<span className="rounded bg-primary/10 px-1.5 py-0.5 font-mono text-[11px]">
+							/login
+						</span>{" "}
+						in chat and select this provider to authenticate.
+					</div>
+				) : (
+					/* API key input */
+					<div className="space-y-1.5">
+						<label
+							htmlFor="add-provider-key"
+							className="text-[11px] font-medium text-muted-foreground"
+						>
+							API key or environment variable name
+						</label>
+						<div className="flex items-center gap-2">
+							<Input
+								id="add-provider-key"
+								value={key}
+								onChange={(e) => setKey(e.target.value)}
+								type={reveal ? "text" : "password"}
+								placeholder={hint?.env ?? "sk-… or OPENAI_API_KEY"}
+								className="text-[13px]"
+							/>
+							<button
+								type="button"
+								onClick={() => setReveal((v) => !v)}
+								className="flex size-9 shrink-0 items-center justify-center rounded-[12px] text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+								aria-label={reveal ? "Hide API key" : "Show API key"}
+							>
+								{reveal ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+							</button>
+						</div>
+					</div>
+				)}
+
+				{/* Submit */}
+				{!supportsOAuth && (
+					<div className="flex justify-end">
+						<Button
+							type="submit"
+							size="sm"
+							variant="primary"
+							disabled={!provider || !key.trim() || saving}
+							className={cn("rounded-full gap-1.5", saving && "opacity-60")}
+						>
+							{success ? (
+								<>
+									<Check className="size-3.5" />
+									Added
+								</>
+							) : (
+								<>
+									<Plus className="size-3.5" />
+									{saving ? "Adding…" : "Add provider"}
+								</>
+							)}
+						</Button>
+					</div>
+				)}
+			</form>
 		</div>
 	);
 }
@@ -798,211 +1026,6 @@ function ShortcutRow({ keys, label }: { keys: string[]; label: string }) {
 					</span>
 				))}
 			</div>
-		</div>
-	);
-}
-
-function EmptyHint({ text }: { text: string }) {
-	return (
-		<div className="rounded-[24px] border border-dashed border-border/60 bg-card/60 px-5 py-6 text-center text-[13px] text-muted-foreground">
-			{text}
-		</div>
-	);
-}
-
-function ConfiguredRow({
-	entry,
-	onRemove,
-}: {
-	entry: ProviderEntry;
-	onRemove: () => Promise<void>;
-}) {
-	const { t } = useI18n();
-	return (
-		<div className="rounded-[24px] border border-border/60 bg-card px-5 py-4 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
-			<div className="flex items-center gap-4">
-				<div className="flex size-10 shrink-0 items-center justify-center rounded-[16px] bg-foreground/[0.04] text-muted-foreground">
-					{entry.type === "oauth" ? <ShieldCheck className="size-4" /> : <Key className="size-4" />}
-				</div>
-				<div className="min-w-0 flex-1">
-					<div className="flex min-w-0 items-center gap-2">
-						<div className="truncate text-[15px] font-medium text-foreground">
-							{providerLabel(entry.provider)}
-						</div>
-						<Badge variant={entry.type === "oauth" ? "success" : "primary"}>
-							{entry.type === "oauth" ? "OAuth" : "API key"}
-						</Badge>
-					</div>
-					<div className="mt-1 truncate text-[12px] text-muted-foreground">
-						<span className="font-mono">{entry.provider}</span>
-						<span className="px-1.5 text-muted-foreground/50">·</span>
-						{entry.type === "oauth" ? t("settings.oauthHint") : entry.maskedKey}
-					</div>
-				</div>
-				<Button
-					type="button"
-					size="icon-sm"
-					variant="ghost"
-					onClick={onRemove}
-					aria-label={t("settings.removeProvider")}
-					className="size-8 rounded-[14px] hover:text-destructive"
-				>
-					<Trash2 className="size-3.5" />
-				</Button>
-			</div>
-		</div>
-	);
-}
-
-function PresetProviderForm({
-	providers,
-	onSave,
-}: {
-	providers: string[];
-	onSave: (provider: string, key: string) => Promise<void>;
-}) {
-	const { t } = useI18n();
-	const [provider, setProvider] = useState(providers[0] ?? "");
-	const [key, setKey] = useState("");
-	const [reveal, setReveal] = useState(false);
-	const [saving, setSaving] = useState(false);
-
-	useEffect(() => {
-		if (providers.length === 0) {
-			setProvider("");
-			return;
-		}
-		if (!providers.includes(provider)) setProvider(providers[0]);
-	}, [provider, providers]);
-
-	const hint = providerHints[provider];
-	const supportsOAuth = oauthProviderIds.has(provider);
-
-	async function submit() {
-		if (!provider || !key.trim()) return;
-		setSaving(true);
-		try {
-			await onSave(provider, key.trim());
-			setKey("");
-		} finally {
-			setSaving(false);
-		}
-	}
-
-	return (
-		<section className="space-y-4">
-			<SectionHeader
-				title="Add Provider"
-				description="Choose a preset provider. Use /login in chat for OAuth providers, or store an API key here."
-			/>
-			<div className="rounded-[24px] border border-border/60 bg-card p-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
-				{providers.length === 0 ? (
-					<div className="text-[13px] leading-6 text-muted-foreground">
-						{t("settings.allConfigured")}
-					</div>
-				) : (
-					<form
-						onSubmit={(e) => {
-							e.preventDefault();
-							void submit();
-						}}
-						className="space-y-4"
-					>
-						<div className="grid gap-3 sm:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-							<div className="space-y-1.5">
-								<div className="px-1 text-[11px] font-medium text-muted-foreground">Provider</div>
-								<Select value={provider} onValueChange={setProvider}>
-									<SelectTrigger className="text-[13px]">
-										<SelectValue placeholder="Select provider" />
-									</SelectTrigger>
-									<SelectContent>
-										{providers.map((item) => (
-											<SelectItem key={item} value={item}>
-												{providerLabel(item)}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-							</div>
-							<div className="space-y-1.5">
-								<label
-									htmlFor="provider-api-key"
-									className="px-1 text-[11px] font-medium text-muted-foreground"
-								>
-									API key or env name
-								</label>
-								<div className="flex items-center gap-2">
-									<Input
-										id="provider-api-key"
-										value={key}
-										onChange={(e) => setKey(e.target.value)}
-										type={reveal ? "text" : "password"}
-										placeholder={hint?.env ?? "API key or ENV_VAR_NAME"}
-										className="text-[13px]"
-									/>
-									<Button
-										type="button"
-										size="icon"
-										variant="ghost"
-										onClick={() => setReveal((v) => !v)}
-										aria-label={reveal ? "Hide API key" : "Show API key"}
-									>
-										{reveal ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-									</Button>
-								</div>
-							</div>
-						</div>
-						<div
-							className={cn(
-								"rounded-[18px] px-4 py-3 text-[12px] leading-5",
-								supportsOAuth
-									? "bg-primary-soft text-primary"
-									: "bg-foreground/[0.025] text-muted-foreground",
-							)}
-						>
-							<span className="font-medium text-foreground">{providerLabel(provider)}.</span>{" "}
-							{hint?.hint ?? "Preset provider."}
-							{supportsOAuth ? (
-								<>
-									{" "}
-									For OAuth, send <span className="font-mono">/login</span> in chat and select this
-									provider.
-								</>
-							) : null}
-						</div>
-						<div className="flex justify-end">
-							<Button
-								type="submit"
-								size="md"
-								disabled={!provider || !key.trim() || saving}
-								className={cn("rounded-[18px]", saving && "opacity-60")}
-							>
-								<Plus className="size-4" />
-								{t("settings.saveApiKey")}
-							</Button>
-						</div>
-					</form>
-				)}
-			</div>
-		</section>
-	);
-}
-
-function CustomModelsHint() {
-	const { t } = useI18n();
-	return (
-		<div className="flex items-center justify-between gap-4 rounded-[24px] border border-border/60 bg-card px-5 py-4 text-[13px] leading-6 text-muted-foreground shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
-			<div className="min-w-0">{t("settings.customModelsHint")}</div>
-			<Button
-				type="button"
-				variant="secondary"
-				size="sm"
-				className="shrink-0 rounded-full"
-				onClick={() => window.open(MODELS_DOCS_URL, "_blank")}
-			>
-				<ExternalLink className="size-3.5" />
-				{t("settings.docs")}
-			</Button>
 		</div>
 	);
 }
