@@ -32,7 +32,7 @@ export function MessageContent({ className, ...props }: HTMLAttributes<HTMLDivEl
 			className={cn(
 				"min-w-0 max-w-full text-[14px] leading-6 text-foreground",
 				"group-data-[role=user]/message:w-fit",
-				"group-data-[role=user]/message:max-w-[76%]",
+				"group-data-[role=user]/message:max-w-[80%]",
 				"group-data-[role=user]/message:rounded-[22px] group-data-[role=user]/message:rounded-br-[10px]",
 				"group-data-[role=user]/message:bg-primary group-data-[role=user]/message:px-4 group-data-[role=user]/message:py-2.5",
 				"group-data-[role=user]/message:text-primary-foreground group-data-[role=user]/message:shadow-[0_10px_30px_rgba(91,91,247,0.12)]",

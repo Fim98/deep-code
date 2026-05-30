@@ -440,7 +440,7 @@ function UserRow({
 			: (content as Part[]).filter((p): p is Part & { type: "image" } => p?.type === "image");
 	return (
 		<Message from="user">
-			<div className="group/user relative">
+			<div className="group/user relative w-fit max-w-[80%]">
 				<MessageContent className="flex flex-col items-stretch gap-3">
 					{images.map((img, i) => (
 						<img
