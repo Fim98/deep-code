@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { app, BrowserWindow, nativeImage, nativeTheme } from "electron";
+import { app, BrowserWindow, nativeImage, nativeTheme, shell } from "electron";
 import { installErrorHandlers } from "./error-log.js";
 import { registerIpcHandlers } from "./ipc.js";
 import { ptyManager } from "./pty-manager.js";
@@ -60,6 +60,14 @@ export async function createWindow(): Promise<BrowserWindow> {
 	});
 
 	win.once("ready-to-show", () => win.show());
+
+	// Open all external links in the system default browser
+	win.webContents.setWindowOpenHandler(({ url }) => {
+		if (url.startsWith("http://") || url.startsWith("https://")) {
+			shell.openExternal(url);
+		}
+		return { action: "deny" };
+	});
 
 	if (isDev && process.env.ELECTRON_RENDERER_URL) {
 		await win.loadURL(process.env.ELECTRON_RENDERER_URL);
