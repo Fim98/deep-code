@@ -344,6 +344,7 @@ const providerHints: Record<string, ProviderHint> = {
 };
 
 function ProvidersTab() {
+	const { t } = useI18n();
 	const [configured, setConfigured] = useState<ProviderEntry[]>([]);
 	const [known, setKnown] = useState<string[]>([]);
 	const [loading, setLoading] = useState(false);
@@ -359,7 +360,7 @@ function ProvidersTab() {
 			setConfigured(c);
 			setKnown(k);
 		} catch (e) {
-			emitToast(`Failed to load providers: ${formatError(e)}`);
+			emitToast(t("settings.providerLoadFailed", { error: formatError(e) }));
 		} finally {
 			setLoading(false);
 		}
@@ -369,7 +370,7 @@ function ProvidersTab() {
 		try {
 			await pi.auth.remove(provider);
 			await refresh();
-			emitToast(`${providerLabel(provider)} removed`, "info");
+			emitToast(t("settings.providerRemovedToast", { name: providerLabel(provider) }), "info");
 		} catch (e) {
 			emitToast(formatError(e));
 		}
@@ -379,7 +380,7 @@ function ProvidersTab() {
 		try {
 			await pi.auth.setKey(provider, key);
 			await refresh();
-			emitToast(`${providerLabel(provider)} added`, "info");
+			emitToast(t("settings.providerAddedToast", { name: providerLabel(provider) }), "info");
 		} catch (e) {
 			emitToast(formatError(e));
 			throw e;
@@ -396,12 +397,12 @@ function ProvidersTab() {
 		<div className="space-y-6">
 			{/* Connected providers */}
 			<section className="space-y-3">
-				<SectionHeader title="Connected" />
+				<SectionHeader title={t("settings.configuredProviders")} />
 				{loading && configured.length === 0 ? (
 					<LoadingProviders />
 				) : configured.length === 0 ? (
 					<div className="rounded-[16px] border border-dashed border-border/60 bg-foreground/[0.01] px-5 py-6 text-center text-[13px] text-muted-foreground">
-						No providers connected yet
+						{t("settings.noProviders")}
 					</div>
 				) : (
 					<div className="space-y-2">
@@ -419,7 +420,7 @@ function ProvidersTab() {
 			{/* Add provider */}
 			{availableProviders.length > 0 && (
 				<section className="space-y-3">
-					<SectionHeader title="Add provider" />
+					<SectionHeader title={t("settings.addProvider")} />
 					<AddProviderForm providers={availableProviders} onSave={handleSave} />
 				</section>
 			)}
@@ -428,8 +429,7 @@ function ProvidersTab() {
 			<section className="space-y-3">
 				<div className="flex items-center justify-between gap-3 rounded-[16px] border border-border/40 bg-foreground/[0.015] px-4 py-3">
 					<div className="min-w-0 text-[11px] leading-relaxed text-muted-foreground">
-						Custom providers, local models, and proxies can be configured in{" "}
-						<span className="font-mono text-[10px]">~/.pi/agent/models.json</span>.
+						{t("settings.providerConfigHint", { path: "~/.pi/agent/models.json" })}
 					</div>
 					<Button
 						type="button"
@@ -439,7 +439,7 @@ function ProvidersTab() {
 						onClick={() => window.open("https://pi.dev/docs/latest/models", "_blank")}
 					>
 						<ExternalLink className="size-3.5" />
-						Docs
+						{t("settings.docs")}
 					</Button>
 				</div>
 			</section>
@@ -448,11 +448,12 @@ function ProvidersTab() {
 }
 
 function LoadingProviders() {
+	const { t } = useI18n();
 	return (
 		<div className="flex items-center justify-center rounded-[16px] border border-border/40 bg-card px-5 py-8">
 			<div className="flex items-center gap-2 text-[12px] text-muted-foreground">
 				<div className="size-3.5 animate-spin rounded-full border-2 border-muted-foreground/20 border-t-primary/60" />
-				Loading…
+				{t("settings.loadingProviders")}
 			</div>
 		</div>
 	);
@@ -486,7 +487,7 @@ function ConnectedProviderRow({
 					</span>
 					<span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
 						<Key className="size-2.5" />
-						API key
+						{t("settings.apiKey")}
 					</span>
 				</div>
 				<div className="mt-0.5 truncate text-[11px] text-muted-foreground">{entry.maskedKey}</div>
@@ -512,6 +513,7 @@ function AddProviderForm({
 	providers: string[];
 	onSave: (provider: string, key: string) => Promise<void>;
 }) {
+	const { t } = useI18n();
 	const [provider, setProvider] = useState(providers[0] ?? "");
 	const [key, setKey] = useState("");
 	const [reveal, setReveal] = useState(false);
@@ -595,7 +597,7 @@ function AddProviderForm({
 						htmlFor="add-provider-key"
 						className="text-[11px] font-medium text-muted-foreground"
 					>
-						API key or environment variable name
+						{t("settings.apiKeyLabel")}
 					</label>
 					<div className="flex items-center gap-2">
 						<Input
@@ -610,7 +612,7 @@ function AddProviderForm({
 							type="button"
 							onClick={() => setReveal((v) => !v)}
 							className="flex size-9 shrink-0 items-center justify-center rounded-[12px] text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
-							aria-label={reveal ? "Hide API key" : "Show API key"}
+							aria-label={reveal ? t("settings.hideApiKey") : t("settings.showApiKey")}
 						>
 							{reveal ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
 						</button>
@@ -629,12 +631,12 @@ function AddProviderForm({
 						{success ? (
 							<>
 								<Check className="size-3.5" />
-								Added
+								{t("settings.providerAdded")}
 							</>
 						) : (
 							<>
 								<Plus className="size-3.5" />
-								{saving ? "Adding…" : "Add provider"}
+								{saving ? t("settings.providerAdding") : t("settings.addProvider")}
 							</>
 						)}
 					</Button>

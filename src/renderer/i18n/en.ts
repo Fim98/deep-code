@@ -163,19 +163,19 @@ export const en: Record<string, string> = {
 	"settings.newLine": "New line",
 
 	// Providers
-	"settings.configuredProviders": "Configured Providers",
+	"settings.configuredProviders": "Connected",
 	"settings.providersDescription":
 		"Credentials are stored in {{path}}. Use /login to add supported providers.",
-	"settings.noProviders": "No credentials configured yet.",
-	"settings.loadingProviders": "Loading providers...",
+	"settings.noProviders": "No providers connected yet",
+	"settings.loadingProviders": "Loading…",
 	"settings.allConfigured": "All preset providers are already configured.",
-	"settings.addProvider": "Add Provider",
+	"settings.addProvider": "Add provider",
 	"settings.addProviderDescription":
 		"Choose a preset provider. Use /login in chat for OAuth providers, or store an API key here.",
 	"settings.provider": "Provider",
 	"settings.selectProvider": "Select provider",
-	"settings.apiKeyLabel": "API key or env name",
-	"settings.apiKeyPlaceholder": "API key or ENV_VAR_NAME",
+	"settings.apiKeyLabel": "API key or environment variable name",
+	"settings.apiKeyPlaceholder": "sk-… or OPENAI_API_KEY",
 	"settings.saveApiKey": "Save API key",
 	"settings.showApiKey": "Show API key",
 	"settings.hideApiKey": "Hide API key",
@@ -184,6 +184,14 @@ export const en: Record<string, string> = {
 		"Custom providers, local models, and proxies use models.json. See the Pi models documentation for setup details.",
 	"settings.docs": "Docs",
 	"settings.oauthHint": "Managed by /login",
+	"settings.apiKey": "API key",
+	"settings.providerAdding": "Adding…",
+	"settings.providerAdded": "Added",
+	"settings.providerAddedToast": "{{name}} added",
+	"settings.providerRemovedToast": "{{name}} removed",
+	"settings.providerLoadFailed": "Failed to load providers: {{error}}",
+	"settings.providerConfigHint":
+		"Custom providers, local models, and proxies can be configured in {{path}}.",
 	"settings.presetProvider": "Preset provider.",
 
 	// Models

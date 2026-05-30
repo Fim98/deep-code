@@ -161,10 +161,10 @@ export const zhCN: Record<string, string> = {
 	"settings.newLine": "换行",
 
 	// Providers
-	"settings.configuredProviders": "已配置的提供商",
+	"settings.configuredProviders": "已连接",
 	"settings.providersDescription": "凭证存储在 {{path}} 中。使用 /login 添加支持的提供商。",
-	"settings.noProviders": "尚未配置任何凭证。",
-	"settings.loadingProviders": "加载提供商中…",
+	"settings.noProviders": "尚未连接任何提供商",
+	"settings.loadingProviders": "加载中…",
 	"settings.allConfigured": "所有预设提供商均已配置。",
 	"settings.addProvider": "添加提供商",
 	"settings.addProviderDescription":
@@ -172,7 +172,7 @@ export const zhCN: Record<string, string> = {
 	"settings.provider": "提供商",
 	"settings.selectProvider": "选择提供商",
 	"settings.apiKeyLabel": "API 密钥或环境变量名",
-	"settings.apiKeyPlaceholder": "API 密钥或 ENV_VAR_NAME",
+	"settings.apiKeyPlaceholder": "sk-… 或 OPENAI_API_KEY",
 	"settings.saveApiKey": "保存 API 密钥",
 	"settings.showApiKey": "显示 API 密钥",
 	"settings.hideApiKey": "隐藏 API 密钥",
@@ -182,6 +182,13 @@ export const zhCN: Record<string, string> = {
 	"settings.docs": "文档",
 	"settings.oauthHint": "由 /login 管理",
 	"settings.presetProvider": "预设提供商。",
+	"settings.apiKey": "API 密钥",
+	"settings.providerAdding": "添加中…",
+	"settings.providerAdded": "已添加",
+	"settings.providerAddedToast": "{{name}} 已添加",
+	"settings.providerRemovedToast": "{{name}} 已移除",
+	"settings.providerLoadFailed": "加载提供商失败：{{error}}",
+	"settings.providerConfigHint": "自定义提供商、本地模型和代理可在 {{path}} 中配置。",
 
 	// Models
 	"settings.enabledModels": "启用的模型",
