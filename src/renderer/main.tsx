@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { App } from "./App";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { initI18n } from "./lib/i18n";
 import { initAccent } from "./stores/accent";
 import { installExtensionUIWatcher } from "./stores/extension-ui";
@@ -17,6 +18,8 @@ if (!root) throw new Error("root element not found");
 
 ReactDOM.createRoot(root).render(
 	<React.StrictMode>
-		<App />
+		<ErrorBoundary>
+			<App />
+		</ErrorBoundary>
 	</React.StrictMode>,
 );

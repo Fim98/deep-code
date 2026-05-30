@@ -4,7 +4,7 @@ import { listConfiguredProviders, listKnownProviders, removeProvider, setApiKey 
 import { dispatchRpc } from "./dispatch-rpc.js";
 import { clearLogs, getLogs } from "./error-log.js";
 import type { ExtensionUIResponse } from "./extension-ui-bridge.js";
-import { listDirectory } from "./file-tree.js";
+import { listDirectory, readFileContent } from "./file-tree.js";
 import { createWindow } from "./index.js";
 import { ptyManager } from "./pty-manager.js";
 import { deleteSessionFile, listSessionsForCwd } from "./session-fs.js";
@@ -176,6 +176,9 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 	ipcMain.handle("pi:shell:show-item", (_e, path: string) => {
 		shell.showItemInFolder(path);
 	});
+	ipcMain.handle("pi:shell:open-path", async (_e, path: string) => {
+		return shell.openPath(path);
+	});
 
 	// Settings
 	ipcMain.handle("pi:settings:get", () => getDesktopSettings());
@@ -216,6 +219,9 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 	// File tree
 	ipcMain.handle("pi:file-tree:list", async (_e, dirPath: string) => {
 		return listDirectory(dirPath);
+	});
+	ipcMain.handle("pi:file-tree:read", async (_e, filePath: string) => {
+		return readFileContent(filePath);
 	});
 
 	// Session statistics

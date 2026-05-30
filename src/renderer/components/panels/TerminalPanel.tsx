@@ -226,6 +226,7 @@ export function TerminalPanel({ cwd, expanded, onToggle, onClose }: Props) {
 		const doFit = () => {
 			if (activeTabId && expanded) {
 				try {
+					// biome-ignore lint/suspicious/noFocusedTests: xterm.js fit() method, not a test
 					fitAddonRef.current.get(activeTabId)?.fit();
 				} catch {
 					// ignore

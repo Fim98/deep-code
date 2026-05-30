@@ -6,13 +6,13 @@ import {
 	FolderOpen,
 	FolderPlus,
 	MessageSquarePlus,
-	PanelRightClose,
-	PanelRightOpen,
+	PanelLeft,
+	PanelRight,
 	Search,
 	Settings as SettingsIcon,
 	Share2,
 	Sparkles,
-	Terminal,
+	SquareTerminal,
 	Trash2,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -23,6 +23,7 @@ import { PlanTrackerWidget } from "@/components/chat/PlanTrackerWidget";
 import { CommandPalette } from "@/components/command-palette/CommandPalette";
 import { Dashboard } from "@/components/dashboard/Dashboard";
 import { ExtensionUIHost } from "@/components/extension-ui/ExtensionUIHost";
+import { FilePreview } from "@/components/file-tree/FilePreview";
 import { FileTree } from "@/components/file-tree/FileTree";
 import { MainArea } from "@/components/layout/MainArea";
 import { Sidebar, SidebarItem, SidebarSection } from "@/components/layout/Sidebar";
@@ -40,6 +41,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { ResizeHandle } from "@/components/ui/resize-handle";
 import { Spinner } from "@/components/ui/spinner";
 import { useI18n } from "@/lib/i18n";
 import { useKeyboardShortcuts } from "@/lib/keyboard";
@@ -64,11 +66,15 @@ export function App() {
 	const [paletteOpen, setPaletteOpen] = useState(false);
 	const [dashboardOpen, setDashboardOpen] = useState(false);
 	const [fileTreeOpen, setFileTreeOpen] = useState(false);
+	const [previewFile, setPreviewFile] = useState<string | null>(null);
+	const [previewWidth, setPreviewWidth] = useState(480);
+	const [sidebarOpen, setSidebarOpen] = useState(true);
 	const [sessionFilter, setSessionFilter] = useState("");
 	const [deleteTarget, setDeleteTarget] = useState<{
 		workspaceId: string;
 		session: SessionInfo;
 	} | null>(null);
+	const [removeWsTarget, setRemoveWsTarget] = useState<Workspace | null>(null);
 
 	const { hydrate, attach, setCurrent } = useSessions();
 	const slice = useSessions((s) => (activeSid ? s.bySession[activeSid] : null));
@@ -123,6 +129,13 @@ export function App() {
 				key: "b",
 				meta: true,
 				handler: () => {
+					setSidebarOpen((o) => !o);
+				},
+			},
+			{
+				key: "j",
+				meta: true,
+				handler: () => {
 					if (activeSid) setBashOpen((o) => !o);
 				},
 			},
@@ -144,6 +157,14 @@ export function App() {
 	}
 
 	async function selectWorkspace(id: string) {
+		// Close current session before switching workspace
+		if (activeSid) {
+			try {
+				await pi.sessions.close(activeSid);
+			} catch {
+				// Ignore — best effort cleanup
+			}
+		}
 		await pi.workspaces.setActive(id);
 		setActiveWs(id);
 		await refreshSessions(id);
@@ -162,6 +183,14 @@ export function App() {
 		if (!activeWs) return;
 		// Close dashboard when opening a session (mutually exclusive views)
 		setDashboardOpen(false);
+		// Close current session before opening a new one
+		if (activeSid) {
+			try {
+				await pi.sessions.close(activeSid);
+			} catch {
+				// Ignore — best effort cleanup
+			}
+		}
 		try {
 			const result = await pi.sessions.open({
 				workspaceId: activeWs,
@@ -206,6 +235,14 @@ export function App() {
 		const { workspaceId, session: s } = deleteTarget;
 		setDeleteTarget(null);
 		try {
+			// Close session if it's currently open
+			if (s.id === activePiSid && activeSid) {
+				try {
+					await pi.sessions.close(activeSid);
+				} catch {
+					// Ignore close errors
+				}
+			}
 			await pi.sessions.delete({ workspaceId, sessionPath: s.path });
 			setSessionsByWs((prev) => ({
 				...prev,
@@ -218,6 +255,35 @@ export function App() {
 			await refreshSessions(workspaceId);
 		} catch (e) {
 			emitToast(t("toast.deleteFailed", { error: e instanceof Error ? e.message : String(e) }));
+		}
+	}
+
+	async function confirmRemoveWorkspace() {
+		if (!removeWsTarget) return;
+		const ws = removeWsTarget;
+		setRemoveWsTarget(null);
+		try {
+			// Close active session if it belongs to this workspace
+			if (activeWs === ws.id && activeSid) {
+				try {
+					await pi.sessions.close(activeSid);
+				} catch {
+					// Ignore
+				}
+				setActiveSid(null);
+				setActivePiSid(null);
+			}
+			await pi.workspaces.remove(ws.id);
+			setSessionsByWs((prev) => {
+				const next = { ...prev };
+				delete next[ws.id];
+				return next;
+			});
+			await refreshWorkspaces();
+		} catch (e) {
+			emitToast(
+				t("toast.removeWorkspaceFailed", { error: e instanceof Error ? e.message : String(e) }),
+			);
 		}
 	}
 
@@ -339,6 +405,48 @@ export function App() {
 				</DialogContent>
 			</Dialog>
 
+			{/* Remove workspace confirmation dialog */}
+			<Dialog
+				open={!!removeWsTarget}
+				onOpenChange={(open) => {
+					if (!open) setRemoveWsTarget(null);
+				}}
+			>
+				<DialogContent className="max-w-[400px] rounded-[24px] p-0">
+					<div className="flex flex-col items-center px-8 pt-8">
+						<div className="mb-5 flex size-12 items-center justify-center rounded-full bg-destructive/10">
+							<AlertTriangle className="size-5 text-destructive" />
+						</div>
+						<DialogHeader className="text-center">
+							<DialogTitle className="text-[18px] font-semibold tracking-tight">
+								{t("sidebar.removeWorkspace")}
+							</DialogTitle>
+							<DialogDescription className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
+								{t("sidebar.removeWorkspaceConfirm", { name: removeWsTarget?.name ?? "" })}
+							</DialogDescription>
+						</DialogHeader>
+					</div>
+					<DialogFooter className="flex-row gap-3 border-t border-border/50 px-8 py-5">
+						<Button
+							variant="ghost"
+							size="md"
+							className="flex-1 rounded-full text-[14px]"
+							onClick={() => setRemoveWsTarget(null)}
+						>
+							{t("sidebar.cancel")}
+						</Button>
+						<Button
+							variant="destructive"
+							size="md"
+							className="flex-1 rounded-full text-[14px]"
+							onClick={confirmRemoveWorkspace}
+						>
+							{t("sidebar.remove")}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
 			<SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
 			<CommandPalette
 				open={paletteOpen}
@@ -356,7 +464,22 @@ export function App() {
 				onToggleBash={() => setBashOpen((o) => !o)}
 				onToggleSettings={() => setSettingsOpen((o) => !o)}
 			/>
-			<Sidebar>
+			<Sidebar
+				collapsed={!sidebarOpen}
+				footer={
+					<button
+						type="button"
+						onClick={() => setSettingsOpen(true)}
+						className={cn(
+							"flex w-full cursor-pointer items-center gap-2.5 rounded-[14px] px-3 py-2.5 text-left text-[13px] font-medium transition-colors duration-150",
+							"text-foreground/70 hover:bg-foreground/[0.04] hover:text-foreground",
+						)}
+					>
+						<SettingsIcon className="size-4" />
+						{t("header.settings")}
+					</button>
+				}
+			>
 				{/* Dashboard toggle */}
 				<div className="px-1 pt-4 pb-2">
 					<button
@@ -418,6 +541,7 @@ export function App() {
 								onSubmitRename={renameSession}
 								onCancelRename={() => setRenamingId(null)}
 								onDeleteSession={(session) => setDeleteTarget({ workspaceId: w.id, session })}
+								onRemoveWorkspace={() => setRemoveWsTarget(w)}
 							/>
 						))
 					)}
@@ -475,7 +599,21 @@ export function App() {
 											) : null}
 										</div>
 									</div>
-									<div className="ml-auto flex items-center gap-1">
+									<div className="ml-auto flex items-center gap-0.5">
+										<button
+											type="button"
+											onClick={() => setSidebarOpen((o) => !o)}
+											aria-label={sidebarOpen ? t("sidebar.hide") : t("sidebar.show")}
+											title={sidebarOpen ? t("sidebar.hide") : t("sidebar.show")}
+											className={cn(
+												"flex size-8 cursor-pointer items-center justify-center rounded-[10px] transition-colors",
+												!sidebarOpen
+													? "bg-foreground/[0.08] text-foreground"
+													: "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
+											)}
+										>
+											<PanelLeft className="size-4" />
+										</button>
 										{activeSid ? (
 											<>
 												<Button
@@ -483,7 +621,7 @@ export function App() {
 													variant="ghost"
 													aria-label={t("header.copy")}
 													onClick={copyLastMessage}
-													className="h-9 rounded-full px-3 text-[13px] font-medium"
+													className="h-8 rounded-full px-2.5 text-[13px] font-medium"
 												>
 													<Copy className="size-3.5" />
 													{t("header.copy")}
@@ -493,23 +631,53 @@ export function App() {
 													variant="ghost"
 													aria-label={t("header.share")}
 													onClick={exportSession}
-													className="h-9 rounded-full px-3 text-[13px] font-medium"
+													className="h-8 rounded-full px-2.5 text-[13px] font-medium"
 												>
 													<Share2 className="size-3.5" />
 													{t("header.share")}
 												</Button>
 											</>
 										) : null}
-										<Button
-											size="sm"
-											variant="primary"
-											onClick={() => setSettingsOpen(true)}
-											aria-label={t("header.settings")}
-											className="h-9 rounded-full px-4 text-[13px] font-medium"
-										>
-											<SettingsIcon className="size-3.5" />
-											{t("header.settings")}
-										</Button>
+										<div className="mx-1 h-5 w-px bg-border/60" />
+										{activeSid ? (
+											<button
+												type="button"
+												onClick={() => setBashOpen((o) => !o)}
+												aria-label={t("settings.toggleBash")}
+												title={t("bash.title")}
+												className={cn(
+													"flex size-8 cursor-pointer items-center justify-center rounded-[10px] transition-colors",
+													bashOpen
+														? "bg-foreground/[0.08] text-foreground"
+														: "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
+												)}
+											>
+												<SquareTerminal className="size-4" />
+											</button>
+										) : null}
+										{activeWorkspace ? (
+											<button
+												type="button"
+												onClick={() => {
+													if (fileTreeOpen || previewFile) {
+														setFileTreeOpen(false);
+														setPreviewFile(null);
+													} else {
+														setFileTreeOpen(true);
+													}
+												}}
+												aria-label={t("fileTree.toggle")}
+												title={t("fileTree.title")}
+												className={cn(
+													"flex size-8 cursor-pointer items-center justify-center rounded-[10px] transition-colors",
+													fileTreeOpen || previewFile
+														? "bg-foreground/[0.08] text-foreground"
+														: "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
+												)}
+											>
+												<PanelRight className="size-4" />
+											</button>
+										) : null}
 									</div>
 								</>
 							}
@@ -537,52 +705,28 @@ export function App() {
 							)}
 						</MainArea>
 					)}
-					{activeWorkspace ? (
-						<div className="flex h-full shrink-0 flex-col">
-							{/* Right rail header — both toggle buttons */}
-							<div className="flex h-11 shrink-0 items-center justify-end gap-0.5 px-1">
-								{activeSid ? (
-									<Button
-										size="icon"
-										variant={bashOpen ? "secondary" : "ghost"}
-										onClick={() => setBashOpen((o) => !o)}
-										aria-label={t("settings.toggleBash")}
-										title={t("bash.title")}
-									>
-										<Terminal className="size-4" />
-									</Button>
-								) : null}
-								<Button
-									size="icon"
-									variant={fileTreeOpen ? "secondary" : "ghost"}
-									onClick={() => setFileTreeOpen((o) => !o)}
-									aria-label={t("fileTree.toggle")}
-									title={t("fileTree.title")}
-								>
-									{fileTreeOpen ? (
-										<PanelRightClose className="size-4" />
-									) : (
-										<PanelRightOpen className="size-4" />
-									)}
-								</Button>
+
+					{/* Right rail: file preview + file tree */}
+					{activeWorkspace && previewFile ? (
+						<>
+							<ResizeHandle minWidth={280} maxWidth={900} onResize={setPreviewWidth} />
+							<div className="h-full shrink-0" style={{ width: previewWidth }}>
+								<FilePreview filePath={previewFile} onClose={() => setPreviewFile(null)} />
 							</div>
-							{/* File tree panel */}
-							{fileTreeOpen ? (
-								<div className="min-h-0 flex-1 overflow-hidden">
-									<FileTree
-										rootPath={activeWorkspace.path}
-										open={fileTreeOpen}
-										onOpenChange={setFileTreeOpen}
-										onFileClick={(path) => {
-											const relative = path.startsWith(activeWorkspace.path)
-												? path.slice(activeWorkspace.path.length + 1)
-												: path;
-											void navigator.clipboard.writeText(relative);
-											emitToast(t("toast.copied", { path: relative }), "info");
-										}}
-									/>
-								</div>
-							) : null}
+						</>
+					) : null}
+					{activeWorkspace && fileTreeOpen ? (
+						<div className="flex h-full shrink-0 flex-col border-l border-border/30 bg-card/50">
+							<div className="min-h-0 flex-1 overflow-hidden">
+								<FileTree
+									rootPath={activeWorkspace.path}
+									open={fileTreeOpen}
+									onOpenChange={setFileTreeOpen}
+									onFileClick={(path) => {
+										setPreviewFile(path);
+									}}
+								/>
+							</div>
 						</div>
 					) : null}
 				</div>
@@ -612,6 +756,7 @@ function WorkspaceWithSessions({
 	onSubmitRename,
 	onCancelRename,
 	onDeleteSession,
+	onRemoveWorkspace,
 }: {
 	workspace: Workspace;
 	active: boolean;
@@ -625,6 +770,7 @@ function WorkspaceWithSessions({
 	onSubmitRename: (session: SessionInfo, name: string) => Promise<void>;
 	onCancelRename: () => void;
 	onDeleteSession: (session: SessionInfo) => void;
+	onRemoveWorkspace: () => void;
 }) {
 	const { t } = useI18n();
 	const [expanded, setExpanded] = useState(active);
@@ -661,15 +807,32 @@ function WorkspaceWithSessions({
 				title2={workspace.path}
 				right={
 					active && (
-						<Button
-							size="icon-sm"
-							variant="ghost"
-							onClick={() => onOpenSession()}
-							aria-label={t("sidebar.newSession")}
-							className="size-6 text-primary opacity-0 group-hover/sidebar-item:opacity-100"
-						>
-							<MessageSquarePlus className="size-3.5" />
-						</Button>
+						<div className="flex items-center gap-0.5 opacity-0 group-hover/sidebar-item:opacity-100">
+							<Button
+								size="icon-sm"
+								variant="ghost"
+								onClick={(e) => {
+									e.stopPropagation();
+									onOpenSession();
+								}}
+								aria-label={t("sidebar.newSession")}
+								className="size-6 text-primary"
+							>
+								<MessageSquarePlus className="size-3.5" />
+							</Button>
+							<Button
+								size="icon-sm"
+								variant="ghost"
+								onClick={(e) => {
+									e.stopPropagation();
+									onRemoveWorkspace();
+								}}
+								aria-label={t("sidebar.removeWorkspace")}
+								className="size-6 text-muted-foreground hover:text-destructive"
+							>
+								<Trash2 className="size-3" />
+							</Button>
+						</div>
 					)
 				}
 			/>

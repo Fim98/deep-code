@@ -1,9 +1,11 @@
 import {
 	ChevronRight,
+	Copy,
 	FilePen,
 	FilePlus,
 	FileText,
 	GitFork,
+	RotateCcw,
 	Search,
 	Sparkles,
 	Terminal,
@@ -296,6 +298,8 @@ export function MessageTimeline({ sessionId }: Props) {
 								}
 								forkEntryIds={forkEntryIds}
 								onFork={handleFork}
+								sessionId={sessionId}
+								isStreaming={isStreaming}
 							/>
 						))}
 						{pendingSubmissions.map((submission) => (
@@ -323,6 +327,8 @@ function TimelineRow({
 	isStreamingLast,
 	forkEntryIds,
 	onFork,
+	sessionId,
+	isStreaming,
 }: {
 	item: TimelineItem;
 	toolResults: Map<string, ToolResultInfo>;
@@ -330,18 +336,41 @@ function TimelineRow({
 	isStreamingLast: boolean;
 	forkEntryIds: Map<number, string>;
 	onFork: (entryId: string) => void;
+	sessionId: string;
+	isStreaming: boolean;
 }) {
 	if (item.type === "user") {
 		const entryId = forkEntryIds.get(item.userIndex);
 		return <UserRow content={item.message.content} forkEntryId={entryId} onFork={onFork} />;
 	}
 	if (item.type === "assistantTurn") {
+		// Find the preceding user message for regeneration
+		const lastAssistantTs = item.messages[0]?.timestamp ?? 0;
+		const allMessages = useSessions.getState().bySession[sessionId]?.messages ?? [];
+		let precedingUserText: string | undefined;
+		for (let i = allMessages.length - 1; i >= 0; i--) {
+			const m = allMessages[i];
+			if (m.timestamp >= lastAssistantTs) continue;
+			if (m.role === "user") {
+				precedingUserText =
+					typeof m.content === "string"
+						? m.content
+						: (m.content as Part[])
+								.filter((p): p is Part & { type: "text" } => p?.type === "text")
+								.map((p) => p.text)
+								.join("\n");
+				break;
+			}
+		}
 		return (
 			<AssistantRow
 				messages={item.messages}
 				toolResults={toolResults}
 				activeTools={activeTools}
 				isStreaming={isStreamingLast}
+				sessionId={sessionId}
+				globalStreaming={isStreaming}
+				precedingUserText={precedingUserText}
 			/>
 		);
 	}
@@ -427,24 +456,50 @@ function UserRow({
 						</div>
 					) : null}
 				</MessageContent>
-				{forkEntryId && onFork ? (
-					<button
-						type="button"
-						onClick={() => onFork(forkEntryId)}
-						className={cn(
-							"absolute -right-1 bottom-1 z-10 flex items-center gap-1 rounded-full",
-							"bg-card px-2 py-1 text-[10px] font-medium text-primary/70",
-							"border border-primary/20 shadow-sm",
-							"opacity-0 transition-opacity duration-150",
-							"group-hover/user:opacity-100 hover:text-primary",
-							"focus:opacity-100 focus:outline-none",
-						)}
-						title={t("timeline.forkFromHere")}
-					>
-						<GitFork className="size-3" />
-						{t("branches.forkLabel")}
-					</button>
-				) : null}
+				{/* Action buttons — copy + fork */}
+				<div
+					className={cn(
+						"absolute -right-1 bottom-1 z-10 flex items-center gap-1",
+						"opacity-0 transition-opacity duration-150",
+						"group-hover/user:opacity-100",
+						"focus-within:opacity-100",
+					)}
+				>
+					{text ? (
+						<button
+							type="button"
+							onClick={() => {
+								void navigator.clipboard.writeText(text);
+								emitToast(t("timeline.copied"), "info");
+							}}
+							className={cn(
+								"flex items-center gap-1 rounded-full",
+								"bg-card px-2 py-1 text-[10px] font-medium text-muted-foreground",
+								"border border-border/40 shadow-sm",
+								"hover:text-foreground",
+							)}
+							title={t("timeline.copyMessage")}
+						>
+							<Copy className="size-3" />
+						</button>
+					) : null}
+					{forkEntryId && onFork ? (
+						<button
+							type="button"
+							onClick={() => onFork(forkEntryId)}
+							className={cn(
+								"flex items-center gap-1 rounded-full",
+								"bg-card px-2 py-1 text-[10px] font-medium text-primary/70",
+								"border border-primary/20 shadow-sm",
+								"hover:text-primary",
+							)}
+							title={t("timeline.forkFromHere")}
+						>
+							<GitFork className="size-3" />
+							{t("branches.forkLabel")}
+						</button>
+					) : null}
+				</div>
 			</div>
 		</Message>
 	);
@@ -509,12 +564,19 @@ function AssistantRow({
 	toolResults,
 	activeTools,
 	isStreaming,
+	sessionId,
+	globalStreaming,
+	precedingUserText,
 }: {
 	messages: Array<Extract<ChatMessage, { role: "assistant" }>>;
 	toolResults: Map<string, ToolResultInfo>;
 	activeTools: Record<string, ToolExecutionState>;
 	isStreaming: boolean;
+	sessionId: string;
+	globalStreaming: boolean;
+	precedingUserText?: string;
 }) {
+	const { t } = useI18n();
 	const parts = messages.flatMap((message) => (message.content ?? []) as Part[]);
 	const text = parts
 		.filter((p): p is Part & { type: "text" } => p.type === "text" && !!p.text)
@@ -537,23 +599,86 @@ function AssistantRow({
 	const model = lastMessage?.model;
 	const stopReason = lastMessage?.stopReason;
 
+	async function handleCopy() {
+		if (!text) return;
+		await navigator.clipboard.writeText(text);
+		emitToast(t("timeline.copied"), "info");
+	}
+
+	async function handleRegenerate() {
+		if (globalStreaming || !precedingUserText) return;
+		try {
+			// Re-send the preceding user message to get a fresh response
+			await pi.rpc.send(sessionId, {
+				type: "prompt",
+				message: precedingUserText,
+			} as any);
+		} catch (e) {
+			emitToast(
+				translate("toast.forkFailed", { error: e instanceof Error ? e.message : String(e) }),
+			);
+		}
+	}
+
 	return (
 		<Message from="assistant">
-			<MessageContent className="flex flex-col gap-3.5">
-				<ActivityPanel
-					activities={activities}
-					elapsed={elapsed}
-					isStreaming={isStreaming}
-					hasFinalText={hasFinalText}
-				/>
-				{hasFinalText ? <MessageResponse>{text}</MessageResponse> : null}
-				{model || stopReason ? (
-					<div className="text-[11px] font-medium text-muted-foreground/55">
-						{model ?? ""}
-						{stopReason && stopReason !== "stop" ? ` · ${stopReason}` : ""}
+			<div className="group/assistant relative min-w-0 max-w-full">
+				<MessageContent className="flex flex-col gap-3.5">
+					<ActivityPanel
+						activities={activities}
+						elapsed={elapsed}
+						isStreaming={isStreaming}
+						hasFinalText={hasFinalText}
+					/>
+					{hasFinalText ? <MessageResponse>{text}</MessageResponse> : null}
+					{model || stopReason ? (
+						<div className="text-[11px] font-medium text-muted-foreground/55">
+							{model ?? ""}
+							{stopReason && stopReason !== "stop" ? ` · ${stopReason}` : ""}
+						</div>
+					) : null}
+				</MessageContent>
+				{/* Action buttons — appear on hover when not streaming */}
+				{!isStreaming && hasFinalText ? (
+					<div
+						className={cn(
+							"absolute -right-1 bottom-1 z-10 flex items-center gap-1",
+							"opacity-0 transition-opacity duration-150",
+							"group-hover/assistant:opacity-100",
+							"focus-within:opacity-100",
+						)}
+					>
+						<button
+							type="button"
+							onClick={handleCopy}
+							className={cn(
+								"flex items-center gap-1 rounded-full",
+								"bg-card px-2 py-1 text-[10px] font-medium text-muted-foreground",
+								"border border-border/40 shadow-sm",
+								"hover:text-foreground",
+							)}
+							title={t("timeline.copyMessage")}
+						>
+							<Copy className="size-3" />
+						</button>
+						<button
+							type="button"
+							onClick={handleRegenerate}
+							disabled={globalStreaming || !precedingUserText}
+							className={cn(
+								"flex items-center gap-1 rounded-full",
+								"bg-card px-2 py-1 text-[10px] font-medium text-muted-foreground",
+								"border border-border/40 shadow-sm",
+								"hover:text-foreground",
+								"disabled:opacity-40 disabled:pointer-events-none",
+							)}
+							title={t("timeline.regenerate")}
+						>
+							<RotateCcw className="size-3" />
+						</button>
 					</div>
 				) : null}
-			</MessageContent>
+			</div>
 		</Message>
 	);
 }

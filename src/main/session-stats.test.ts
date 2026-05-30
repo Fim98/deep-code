@@ -19,7 +19,7 @@ async function importModule() {
 describe("session-stats", () => {
 	beforeEach(() => {
 		__testAgentDir = mkdtempSync(join(tmpdir(), "deepcode-stats-"));
-		mkdirSync(join(__testAgentDir, "sessions", "--test-workspace--"));
+		mkdirSync(join(__testAgentDir, "sessions", "--test-workspace--"), { recursive: true });
 	});
 
 	afterEach(() => {

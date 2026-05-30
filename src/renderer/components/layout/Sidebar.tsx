@@ -3,23 +3,42 @@ import { cn } from "@/lib/utils";
 
 interface Props {
 	children: React.ReactNode;
+	footer?: React.ReactNode;
+	collapsed?: boolean;
 }
 
-export function Sidebar({ children }: Props) {
+export function Sidebar({ children, footer, collapsed = false }: Props) {
 	return (
 		<aside
-			className="relative z-10 flex w-[280px] min-w-[280px] max-w-[280px] shrink-0 basis-[280px] flex-col overflow-hidden border-r border-border/50 bg-sidebar backdrop-blur-xl text-sidebar-foreground"
+			className={cn(
+				"relative z-10 flex shrink-0 basis-auto flex-col overflow-hidden border-r border-border/50 bg-sidebar backdrop-blur-xl text-sidebar-foreground transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+				collapsed ? "w-0 min-w-0" : "w-[280px] min-w-[280px] max-w-[280px]",
+			)}
 			style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
 		>
 			<div className="h-7 shrink-0" />
 			<ScrollArea className="min-h-0 flex-1 pb-5" viewportClassName="[&>div]:!block">
 				<div
-					className="w-full min-w-0 space-y-6 px-4"
+					className={cn(
+						"w-full min-w-0 space-y-6 px-4 transition-opacity duration-200",
+						collapsed ? "opacity-0 pointer-events-none" : "opacity-100",
+					)}
 					style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
 				>
 					{children}
 				</div>
 			</ScrollArea>
+			{footer ? (
+				<div
+					className={cn(
+						"shrink-0 border-t border-border/40 px-4 py-3 transition-opacity duration-200",
+						collapsed ? "opacity-0 pointer-events-none" : "opacity-100",
+					)}
+					style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+				>
+					{footer}
+				</div>
+			) : null}
 		</aside>
 	);
 }

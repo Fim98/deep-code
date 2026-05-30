@@ -154,6 +154,7 @@ export interface PiBridge {
 	};
 	shell: {
 		showItemInFolder: (path: string) => Promise<void>;
+		openPath: (path: string) => Promise<string>;
 	};
 	logs: {
 		get: () => Promise<LogEntry[]>;
@@ -161,6 +162,7 @@ export interface PiBridge {
 	};
 	fileTree: {
 		list: (dirPath: string) => Promise<FileTreeNode[]>;
+		read: (filePath: string) => Promise<FileReadResult>;
 	};
 	stats: {
 		get: () => Promise<StatsResult>;
@@ -245,6 +247,13 @@ export interface FileTreeNode {
 	name: string;
 	path: string;
 	type: "file" | "directory";
+}
+
+export interface FileReadResult {
+	content: string | null;
+	size: number;
+	reason?: "binary" | "too-large" | "not-found" | "read-error";
+	reasonDetail?: string;
 }
 
 export interface ProviderEntry {

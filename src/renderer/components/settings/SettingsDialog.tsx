@@ -270,7 +270,8 @@ function GeneralTab() {
 					<div className="space-y-2.5">
 						<ShortcutRow keys={["⌘", "K"]} label={t("settings.commandPalette")} />
 						<ShortcutRow keys={["⌘", "N"]} label={t("settings.newSession")} />
-						<ShortcutRow keys={["⌘", "B"]} label={t("settings.toggleBash")} />
+						<ShortcutRow keys={["⌘", "B"]} label={t("settings.toggleSidebar")} />
+						<ShortcutRow keys={["⌘", "J"]} label={t("settings.toggleBash")} />
 						<ShortcutRow keys={["Enter"]} label={t("settings.sendMessage")} />
 						<ShortcutRow keys={["Shift", "Enter"]} label={t("settings.newLine")} />
 					</div>

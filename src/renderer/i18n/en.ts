@@ -14,8 +14,14 @@ export const en: Record<string, string> = {
 	"sidebar.deleteConfirm":
 		'Delete session "{{name}}"?\n\nThis removes the session file from disk and cannot be undone.',
 	"sidebar.deleteLabel": "Delete session",
+	"sidebar.removeWorkspace": "Remove workspace",
+	"sidebar.removeWorkspaceConfirm":
+		'Remove workspace "{{name}}" from deepcode?\n\nThe project folder and its files will not be deleted.',
+	"sidebar.remove": "Remove",
 	"sidebar.cancel": "Cancel",
 	"sidebar.delete": "Delete",
+	"sidebar.hide": "Hide sidebar",
+	"sidebar.show": "Show sidebar",
 
 	// ─── Header ─────────────────────────────────────────────────────────────
 	"header.search": "Search",
@@ -151,6 +157,7 @@ export const en: Record<string, string> = {
 	"settings.shortcuts": "Keyboard Shortcuts",
 	"settings.commandPalette": "Command palette",
 	"settings.newSession": "New session",
+	"settings.toggleSidebar": "Toggle sidebar",
 	"settings.toggleBash": "Toggle bash panel",
 	"settings.sendMessage": "Send message",
 	"settings.newLine": "New line",
@@ -243,6 +250,7 @@ export const en: Record<string, string> = {
 	"toast.exportFailed": "Export failed: {{error}}",
 	"toast.failedToOpen": "Failed to open session: {{error}}",
 	"toast.deleteFailed": "Delete failed: {{error}}",
+	"toast.removeWorkspaceFailed": "Remove workspace failed: {{error}}",
 	"toast.renameFailed": "Rename failed: {{error}}",
 	"toast.forkFailed": "Fork failed: {{error}}",
 	"toast.copied": "Copied {{path}}",
@@ -266,6 +274,9 @@ export const en: Record<string, string> = {
 	"timeline.search": "Search",
 	"timeline.searchPlaceholder": "Search messages…",
 	"timeline.matches": "matches",
+	"timeline.copyMessage": "Copy",
+	"timeline.copied": "Copied to clipboard",
+	"timeline.regenerate": "Regenerate",
 
 	// Activity labels
 	"activity.processing": "Processing {{elapsed}}",

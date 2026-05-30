@@ -29,6 +29,7 @@ const sessions = {
 
 const shellApi = {
 	showItemInFolder: (path: string) => ipcRenderer.invoke("pi:shell:show-item", path),
+	openPath: (path: string) => ipcRenderer.invoke("pi:shell:open-path", path) as Promise<string>,
 };
 
 const logs = {
@@ -44,6 +45,13 @@ const fileTree = {
 		ipcRenderer.invoke("pi:file-tree:list", dirPath) as Promise<
 			Array<{ name: string; path: string; type: "file" | "directory" }>
 		>,
+	read: (filePath: string) =>
+		ipcRenderer.invoke("pi:file-tree:read", filePath) as Promise<{
+			content: string | null;
+			size: number;
+			reason?: "binary" | "too-large" | "not-found" | "read-error";
+			reasonDetail?: string;
+		}>,
 };
 
 const stats = {

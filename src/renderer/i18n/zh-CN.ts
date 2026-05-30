@@ -13,8 +13,14 @@ export const zhCN: Record<string, string> = {
 	"sidebar.filterSessions": "筛选会话…",
 	"sidebar.deleteConfirm": "删除会话「{{name}}」？\n\n这将永久删除磁盘上的会话文件，无法撤销。",
 	"sidebar.deleteLabel": "删除会话",
+	"sidebar.removeWorkspace": "移除工作区",
+	"sidebar.removeWorkspaceConfirm":
+		"从 deepcode 中移除工作区「{{name}}」？\n\n项目文件夹及其文件不会被删除。",
+	"sidebar.remove": "移除",
 	"sidebar.cancel": "取消",
 	"sidebar.delete": "删除",
+	"sidebar.hide": "隐藏侧边栏",
+	"sidebar.show": "显示侧边栏",
 
 	// ─── Header ─────────────────────────────────────────────────────────────
 	"header.search": "搜索",
@@ -149,6 +155,7 @@ export const zhCN: Record<string, string> = {
 	"settings.shortcuts": "键盘快捷键",
 	"settings.commandPalette": "命令面板",
 	"settings.newSession": "新建会话",
+	"settings.toggleSidebar": "切换侧边栏",
 	"settings.toggleBash": "切换终端面板",
 	"settings.sendMessage": "发送消息",
 	"settings.newLine": "换行",
@@ -239,6 +246,7 @@ export const zhCN: Record<string, string> = {
 	"toast.exportFailed": "导出失败：{{error}}",
 	"toast.failedToOpen": "打开会话失败：{{error}}",
 	"toast.deleteFailed": "删除失败：{{error}}",
+	"toast.removeWorkspaceFailed": "移除工作区失败：{{error}}",
 	"toast.renameFailed": "重命名失败：{{error}}",
 	"toast.forkFailed": "分叉失败：{{error}}",
 	"toast.copied": "已复制 {{path}}",
@@ -262,6 +270,9 @@ export const zhCN: Record<string, string> = {
 	"timeline.search": "搜索",
 	"timeline.searchPlaceholder": "搜索消息…",
 	"timeline.matches": "个匹配",
+	"timeline.copyMessage": "复制",
+	"timeline.copied": "已复制到剪贴板",
+	"timeline.regenerate": "重新生成",
 
 	// Activity labels
 	"activity.processing": "正在处理 {{elapsed}}",
