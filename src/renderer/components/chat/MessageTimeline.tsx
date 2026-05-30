@@ -439,8 +439,8 @@ function UserRow({
 			? []
 			: (content as Part[]).filter((p): p is Part & { type: "image" } => p?.type === "image");
 	return (
-		<Message from="user">
-			<div className="group/user relative ml-auto w-fit max-w-[80%]">
+		<Message from="user" className="group/user">
+			<div className="relative">
 				<MessageContent className="flex flex-col items-stretch gap-3">
 					{images.map((img, i) => (
 						<img
@@ -459,7 +459,7 @@ function UserRow({
 				{/* Action buttons — copy + fork */}
 				<div
 					className={cn(
-						"absolute -right-1 bottom-1 z-10 flex items-center gap-1",
+						"absolute -right-1 top-1/2 z-10 flex -translate-y-1/2 items-center gap-1",
 						"opacity-0 transition-opacity duration-150",
 						"group-hover/user:opacity-100",
 						"focus-within:opacity-100",
