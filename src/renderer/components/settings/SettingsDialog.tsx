@@ -11,7 +11,6 @@ import {
 	Monitor,
 	Moon,
 	Plus,
-	ShieldCheck,
 	Sun,
 	Trash2,
 } from "lucide-react";
@@ -42,8 +41,6 @@ import { ACCENT_PRESETS, useAccent } from "@/stores/accent";
 import { type ThemeChoice, useTheme } from "@/stores/theme";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-
-const AUTH_CONFIG_PATH = "~/.pi/agent/auth.json";
 
 type TabId = "general" | "providers" | "about";
 
@@ -279,8 +276,6 @@ function GeneralTab() {
 
 // ─── Providers Tab ───────────────────────────────────────────────────────────
 
-const oauthProviderIds = new Set(["anthropic", "openai-codex", "github-copilot"]);
-
 interface ProviderHint {
 	label: string;
 	description: string;
@@ -292,7 +287,7 @@ interface ProviderHint {
 const providerHints: Record<string, ProviderHint> = {
 	anthropic: {
 		label: "Anthropic",
-		description: "Claude models — Pro, Max, or API key",
+		description: "Claude models",
 		env: "ANTHROPIC_API_KEY",
 		color: "#D97757",
 		icon: "A",
@@ -310,12 +305,6 @@ const providerHints: Record<string, ProviderHint> = {
 		env: "GEMINI_API_KEY",
 		color: "#4285F4",
 		icon: "G",
-	},
-	"openai-codex": {
-		label: "OpenAI Codex",
-		description: "ChatGPT Plus/Pro subscription",
-		color: "#10A37F",
-		icon: "O",
 	},
 	openrouter: {
 		label: "OpenRouter",
@@ -337,12 +326,6 @@ const providerHints: Record<string, ProviderHint> = {
 		env: "DEEPSEEK_API_KEY",
 		color: "#4D6BFE",
 		icon: "D",
-	},
-	"github-copilot": {
-		label: "GitHub Copilot",
-		description: "Copilot subscription",
-		color: "#24292F",
-		icon: "G",
 	},
 	moonshotai: {
 		label: "Moonshot AI",
@@ -441,28 +424,6 @@ function ProvidersTab() {
 				</section>
 			)}
 
-			{/* OAuth hint */}
-			<section className="space-y-3">
-				<div className="rounded-[16px] border border-border/40 bg-foreground/[0.015] px-4 py-3.5">
-					<div className="flex items-start gap-3">
-						<div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-[10px] bg-primary/10">
-							<ShieldCheck className="size-3.5 text-primary" />
-						</div>
-						<div className="min-w-0">
-							<div className="text-[12px] font-medium text-foreground">OAuth support</div>
-							<div className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
-								For Anthropic, OpenAI Codex, and GitHub Copilot — send{" "}
-								<span className="rounded bg-foreground/[0.06] px-1 py-0.5 font-mono text-[10px]">
-									/login
-								</span>{" "}
-								in chat to authenticate with your subscription. Credentials stored in{" "}
-								<span className="font-mono text-[10px]">{AUTH_CONFIG_PATH}</span>.
-							</div>
-						</div>
-					</div>
-				</div>
-			</section>
-
 			{/* Config hint */}
 			<section className="space-y-3">
 				<div className="flex items-center justify-between gap-3 rounded-[16px] border border-border/40 bg-foreground/[0.015] px-4 py-3">
@@ -506,7 +467,6 @@ function ConnectedProviderRow({
 }) {
 	const { t } = useI18n();
 	const hint = providerHints[entry.provider];
-	const isOAuth = entry.type === "oauth";
 
 	return (
 		<div className="group flex items-center gap-3 rounded-[16px] border border-border/40 bg-card px-4 py-3 shadow-[0_1px_4px_rgba(0,0,0,0.02)] transition-colors hover:border-border/60">
@@ -524,21 +484,12 @@ function ConnectedProviderRow({
 					<span className="text-[13px] font-medium text-foreground">
 						{hint?.label ?? entry.provider}
 					</span>
-					{isOAuth ? (
-						<span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
-							<Check className="size-2.5" />
-							OAuth
-						</span>
-					) : (
-						<span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-							<Key className="size-2.5" />
-							API key
-						</span>
-					)}
+					<span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+						<Key className="size-2.5" />
+						API key
+					</span>
 				</div>
-				<div className="mt-0.5 truncate text-[11px] text-muted-foreground">
-					{isOAuth ? t("settings.oauthHint") : entry.maskedKey}
-				</div>
+				<div className="mt-0.5 truncate text-[11px] text-muted-foreground">{entry.maskedKey}</div>
 			</div>
 
 			{/* Remove */}
@@ -576,7 +527,6 @@ function AddProviderForm({
 	}, [provider, providers]);
 
 	const hint = providerHints[provider];
-	const supportsOAuth = oauthProviderIds.has(provider);
 
 	async function submit() {
 		if (!provider || !key.trim()) return;
@@ -639,69 +589,56 @@ function AddProviderForm({
 					</div>
 				)}
 
-				{/* OAuth hint */}
-				{supportsOAuth ? (
-					<div className="rounded-[14px] bg-primary/8 px-4 py-3 text-[12px] leading-relaxed text-primary">
-						This provider supports OAuth. Send{" "}
-						<span className="rounded bg-primary/10 px-1.5 py-0.5 font-mono text-[11px]">
-							/login
-						</span>{" "}
-						in chat and select this provider to authenticate.
-					</div>
-				) : (
-					/* API key input */
-					<div className="space-y-1.5">
-						<label
-							htmlFor="add-provider-key"
-							className="text-[11px] font-medium text-muted-foreground"
+				{/* API key input */}
+				<div className="space-y-1.5">
+					<label
+						htmlFor="add-provider-key"
+						className="text-[11px] font-medium text-muted-foreground"
+					>
+						API key or environment variable name
+					</label>
+					<div className="flex items-center gap-2">
+						<Input
+							id="add-provider-key"
+							value={key}
+							onChange={(e) => setKey(e.target.value)}
+							type={reveal ? "text" : "password"}
+							placeholder={hint?.env ?? "sk-… or OPENAI_API_KEY"}
+							className="text-[13px]"
+						/>
+						<button
+							type="button"
+							onClick={() => setReveal((v) => !v)}
+							className="flex size-9 shrink-0 items-center justify-center rounded-[12px] text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+							aria-label={reveal ? "Hide API key" : "Show API key"}
 						>
-							API key or environment variable name
-						</label>
-						<div className="flex items-center gap-2">
-							<Input
-								id="add-provider-key"
-								value={key}
-								onChange={(e) => setKey(e.target.value)}
-								type={reveal ? "text" : "password"}
-								placeholder={hint?.env ?? "sk-… or OPENAI_API_KEY"}
-								className="text-[13px]"
-							/>
-							<button
-								type="button"
-								onClick={() => setReveal((v) => !v)}
-								className="flex size-9 shrink-0 items-center justify-center rounded-[12px] text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
-								aria-label={reveal ? "Hide API key" : "Show API key"}
-							>
-								{reveal ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-							</button>
-						</div>
+							{reveal ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+						</button>
 					</div>
-				)}
+				</div>
 
 				{/* Submit */}
-				{!supportsOAuth && (
-					<div className="flex justify-end">
-						<Button
-							type="submit"
-							size="sm"
-							variant="primary"
-							disabled={!provider || !key.trim() || saving}
-							className={cn("rounded-full gap-1.5", saving && "opacity-60")}
-						>
-							{success ? (
-								<>
-									<Check className="size-3.5" />
-									Added
-								</>
-							) : (
-								<>
-									<Plus className="size-3.5" />
-									{saving ? "Adding…" : "Add provider"}
-								</>
-							)}
-						</Button>
-					</div>
-				)}
+				<div className="flex justify-end">
+					<Button
+						type="submit"
+						size="sm"
+						variant="primary"
+						disabled={!provider || !key.trim() || saving}
+						className={cn("rounded-full gap-1.5", saving && "opacity-60")}
+					>
+						{success ? (
+							<>
+								<Check className="size-3.5" />
+								Added
+							</>
+						) : (
+							<>
+								<Plus className="size-3.5" />
+								{saving ? "Adding…" : "Add provider"}
+							</>
+						)}
+					</Button>
+				</div>
 			</form>
 		</div>
 	);

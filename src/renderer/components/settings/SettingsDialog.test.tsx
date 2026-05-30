@@ -118,13 +118,15 @@ describe("SettingsDialog", () => {
 			expect(screen.getByText("sk-a…5678")).toBeInTheDocument();
 		});
 
-		it("shows OAuth badge for oauth providers", async () => {
-			mockPi.auth.list.mockResolvedValue([{ provider: "anthropic", type: "oauth" }]);
+		it("shows API key badge for configured providers", async () => {
+			mockPi.auth.list.mockResolvedValue([
+				{ provider: "anthropic", type: "api_key", maskedKey: "sk-test" },
+			]);
 			mockPi.auth.knownProviders.mockResolvedValue([]);
 
 			await openProvidersTab();
 
-			expect(await screen.findByText("OAuth")).toBeInTheDocument();
+			expect(await screen.findByText("API key")).toBeInTheDocument();
 		});
 
 		it("removes provider on delete click", async () => {
