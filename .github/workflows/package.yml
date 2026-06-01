@@ -5,24 +5,18 @@ on:
 
 jobs:
   package:
-    name: ${{ matrix.platform }}-${{ matrix.arch }}
+    name: ${{ matrix.platform }}
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - platform: mac
-            arch: x64
-            runner: macos-13
-          - platform: mac
-            arch: arm64
             runner: macos-14
           - platform: win
-            arch: x64
             runner: windows-latest
-          - platform: win
-            arch: arm64
-            runner: windows-latest
+          - platform: linux
+            runner: ubuntu-latest
 
     steps:
       - name: Checkout
@@ -44,11 +38,17 @@ jobs:
         run: npm run build
 
       - name: Package
-        run: npx electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --config electron-builder.config.ts --publish never
+        run: npx electron-builder --${{ matrix.platform }} --config electron-builder.config.ts --publish never
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: deepcode-${{ matrix.platform }}-${{ matrix.arch }}
-          path: release/**
+          name: deepcode-${{ matrix.platform }}
+          path: |
+            release/*.dmg
+            release/*.exe
+            release/*.AppImage
+            release/*.zip
+            release/*.blockmap
+            release/*.yml
           if-no-files-found: error

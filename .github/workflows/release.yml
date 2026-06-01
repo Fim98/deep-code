@@ -10,29 +10,17 @@ permissions:
 
 jobs:
   build:
-    name: Build & Release — ${{ matrix.platform }}-${{ matrix.arch }}
+    name: Build & Release — ${{ matrix.platform }}
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - platform: mac
-            arch: x64
-            runner: macos-13
-          - platform: mac
-            arch: arm64
             runner: macos-14
           - platform: win
-            arch: x64
-            runner: windows-latest
-          - platform: win
-            arch: arm64
             runner: windows-latest
           - platform: linux
-            arch: x64
-            runner: ubuntu-latest
-          - platform: linux
-            arch: arm64
             runner: ubuntu-latest
 
     steps:
@@ -58,13 +46,19 @@ jobs:
         run: npm run build
 
       - name: Package
-        run: npx electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --config electron-builder.config.ts --publish never
+        run: npx electron-builder --${{ matrix.platform }} --config electron-builder.config.ts --publish never
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: deepcode-${{ matrix.platform }}-${{ matrix.arch }}
-          path: release/**
+          name: deepcode-${{ matrix.platform }}
+          path: |
+            release/*.dmg
+            release/*.exe
+            release/*.AppImage
+            release/*.zip
+            release/*.blockmap
+            release/*.yml
           if-no-files-found: error
 
   release:
@@ -106,11 +100,11 @@ jobs:
             echo ""
             echo "| Platform | Architecture | Download |"
             echo "|----------|-------------|----------|"
-            echo "| macOS    | Apple Silicon | \`deepcode-*-darwin-arm64.dmg\` |"
-            echo "| macOS    | Intel         | \`deepcode-*-darwin-x64.dmg\` |"
+            echo "| macOS    | Apple Silicon | \`deepcode-*-mac-arm64.dmg\` |"
+            echo "| macOS    | Intel         | \`deepcode-*-mac-x64.dmg\` |"
             echo "| Windows  | x64           | \`deepcode-*-win-x64.exe\` |"
             echo "| Windows  | arm64         | \`deepcode-*-win-arm64.exe\` |"
-            echo "| Linux    | x64           | \`deepcode-*-linux-x64.AppImage\` |"
+            echo "| Linux    | x64           | \`deepcode-*-linux-x86_64.AppImage\` |"
             echo "| Linux    | arm64         | \`deepcode-*-linux-arm64.AppImage\` |"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
@@ -123,6 +117,12 @@ jobs:
           body: ${{ steps.notes.outputs.body }}
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
-          files: artifacts/**/*
+          files: |
+            artifacts/**/*.dmg
+            artifacts/**/*.exe
+            artifacts/**/*.AppImage
+            artifacts/**/*.zip
+            artifacts/**/*.blockmap
+            artifacts/**/*.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
