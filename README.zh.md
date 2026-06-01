@@ -18,6 +18,14 @@
 
 </div>
 
+<p align="center">
+  <img src="resources/dark-theme.png" alt="deepcode 深色主题" width="800" />
+</p>
+
+<p align="center">
+  <img src="resources/light-theme.png" alt="deepcode 浅色主题" width="390" /> <img src="resources/detail.png" alt="deepcode 详情视图" width="390" />
+</p>
+
 ---
 
 ## ✨ 功能特性

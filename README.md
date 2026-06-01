@@ -18,6 +18,14 @@
 
 </div>
 
+<p align="center">
+  <img src="resources/dark-theme.png" alt="deepcode dark theme" width="800" />
+</p>
+
+<p align="center">
+  <img src="resources/light-theme.png" alt="deepcode light theme" width="390" /> <img src="resources/detail.png" alt="deepcode detail view" width="390" />
+</p>
+
 ---
 
 ## ✨ Features

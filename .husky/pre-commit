@@ -1,3 +1,9 @@
 #!/usr/bin/env sh
-npm run check:staged
+
+# Only run biome check when staged files include biome-supported code
+STAGED_CODE=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx|js|jsx|cjs|mjs|json|css|html)$' | head -1)
+if [ -n "$STAGED_CODE" ]; then
+  npm run check:staged
+fi
+
 npm run typecheck
