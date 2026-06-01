@@ -32,12 +32,9 @@ const config: Configuration = {
 		"!vitest.config.*",
 		"!src/test/**",
 
-		// 排除文档和变更日志（约节省 10~20MB）
+		// 排除文档（约节省 10~20MB）
 		"!**/*.md",
 		"!**/*.mdx",
-		"!**/CHANGELOG*",
-		"!**/CHANGE_LOG*",
-		"!**/changelog*",
 
 		// 排除 JavaScript 源码映射（最大头之一！约节省 170MB）
 		"!**/*.js.map",
