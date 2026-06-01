@@ -1,0 +1,128 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build & Release — ${{ matrix.platform }}-${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: mac
+            arch: x64
+            runner: macos-13
+          - platform: mac
+            arch: arm64
+            runner: macos-14
+          - platform: win
+            arch: x64
+            runner: windows-latest
+          - platform: win
+            arch: arm64
+            runner: windows-latest
+          - platform: linux
+            arch: x64
+            runner: ubuntu-latest
+          - platform: linux
+            arch: arm64
+            runner: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm run test
+
+      - name: Build
+        run: npm run build
+
+      - name: Package
+        run: npx electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --config electron-builder.config.ts --publish never
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: deepcode-${{ matrix.platform }}-${{ matrix.arch }}
+          path: release/**
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Display artifact structure
+        run: ls -R artifacts
+
+      - name: Generate Release Notes
+        id: notes
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          PREV_TAG=$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || echo "")
+          if [ -z "$PREV_TAG" ]; then
+            NOTES=$(git log --pretty=format:"- %s (%h)" "$TAG")
+          else
+            NOTES=$(git log --pretty=format:"- %s (%h)" "${PREV_TAG}..${TAG}")
+          fi
+          {
+            echo "body<<EOF"
+            echo "## deepcode $TAG"
+            echo ""
+            echo "### What's Changed"
+            echo "$NOTES"
+            echo ""
+            echo "### Downloads"
+            echo ""
+            echo "| Platform | Architecture | Download |"
+            echo "|----------|-------------|----------|"
+            echo "| macOS    | Apple Silicon | \`deepcode-*-darwin-arm64.dmg\` |"
+            echo "| macOS    | Intel         | \`deepcode-*-darwin-x64.dmg\` |"
+            echo "| Windows  | x64           | \`deepcode-*-win-x64.exe\` |"
+            echo "| Windows  | arm64         | \`deepcode-*-win-arm64.exe\` |"
+            echo "| Linux    | x64           | \`deepcode-*-linux-x64.AppImage\` |"
+            echo "| Linux    | arm64         | \`deepcode-*-linux-arm64.AppImage\` |"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: deepcode ${{ github.ref_name }}
+          body: ${{ steps.notes.outputs.body }}
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          files: artifacts/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

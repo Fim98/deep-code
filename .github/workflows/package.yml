@@ -2,9 +2,6 @@ name: Package Desktop App
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - "v*"
 
 jobs:
   package:

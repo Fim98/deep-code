@@ -1,10 +1,26 @@
 {
 	"name": "deepcode",
 	"private": true,
-	"version": "0.0.0",
+	"version": "0.0.1",
 	"description": "Apple Music style Electron desktop client for the pi coding agent",
 	"author": "deepcode contributors",
 	"license": "MIT",
+	"homepage": "https://github.com/Fim98/deep-code#readme",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/Fim98/deep-code.git"
+	},
+	"bugs": {
+		"url": "https://github.com/Fim98/deep-code/issues"
+	},
+	"keywords": [
+		"electron",
+		"ai",
+		"coding-agent",
+		"desktop",
+		"pi",
+		"deepcode"
+	],
 	"type": "module",
 	"main": "./out/main/index.js",
 	"scripts": {

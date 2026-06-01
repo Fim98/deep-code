@@ -5,5 +5,26 @@ out-tsc/
 dist/
 release/
 *.log
+*.tsbuildinfo
+
 # heroui-agents-md
 .heroui-docs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Sentry
+.sentryclirc
