@@ -58,7 +58,7 @@ jobs:
             release/*.AppImage
             release/*.zip
             release/*.blockmap
-            release/*.yml
+            release/latest*.yml
           if-no-files-found: error
 
   release:
@@ -123,6 +123,6 @@ jobs:
             artifacts/**/*.AppImage
             artifacts/**/*.zip
             artifacts/**/*.blockmap
-            artifacts/**/*.yml
+            artifacts/**/latest*.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

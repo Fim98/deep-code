@@ -50,5 +50,5 @@ jobs:
             release/*.AppImage
             release/*.zip
             release/*.blockmap
-            release/*.yml
+            release/latest*.yml
           if-no-files-found: error
