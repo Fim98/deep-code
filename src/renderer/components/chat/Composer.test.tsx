@@ -441,8 +441,8 @@ describe("Composer", () => {
 			await new Promise((r) => setTimeout(r, 10));
 		});
 
-		expect(screen.getByText("a.png")).toBeInTheDocument();
-		expect(screen.getByText("b.jpg")).toBeInTheDocument();
+		expect(await screen.findByText("a.png")).toBeInTheDocument();
+		expect(await screen.findByText("b.jpg")).toBeInTheDocument();
 	});
 
 	// ── Slash commands ───────────────────────────────────────────────────
