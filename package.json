@@ -1,7 +1,7 @@
 {
 	"name": "deepcode",
 	"private": true,
-	"version": "0.0.3",
+	"version": "0.0.4",
 	"description": "Apple Music style Electron desktop client for the pi coding agent",
 	"author": "deepcode contributors",
 	"license": "MIT",

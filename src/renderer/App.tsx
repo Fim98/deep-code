@@ -219,7 +219,9 @@ export function App() {
 				attach(sessionId);
 				attachedSids.current.add(sessionId);
 			}
-			await refreshSessions(activeWs);
+			if (sessionFile) {
+				await refreshSessions(activeWs);
+			}
 		} catch (e) {
 			emitToast(t("toast.failedToOpen", { error: e instanceof Error ? e.message : String(e) }));
 		}
@@ -337,6 +339,59 @@ export function App() {
 	}
 
 	const activeWorkspace = workspaces.find((w) => w.id === activeWs);
+	const firstUserMessage = slice ? firstUserMessageText(slice.messages) : "";
+
+	useEffect(() => {
+		if (!activeWs || !activeSid || !activePiSid || !firstUserMessage) return;
+
+		const fallbackCwd = workspaces.find((w) => w.id === activeWs)?.path ?? "";
+		let cancelled = false;
+
+		const upsertCurrentSession = (state?: {
+			sessionFile?: string;
+			sessionId?: string;
+			sessionName?: string;
+			messageCount?: number;
+		}) => {
+			if (cancelled) return;
+			setSessionsByWs((prev) => {
+				const existing = prev[activeWs] ?? [];
+				const nextId = state?.sessionId ?? activePiSid;
+				const nextPath = state?.sessionFile ?? "";
+				const matched = existing.find(
+					(s) => s.id === nextId || (!!nextPath && s.path === nextPath) || s.id === activePiSid,
+				);
+				const item: SessionInfo = {
+					path: nextPath || matched?.path || "",
+					id: nextId,
+					cwd: matched?.cwd || fallbackCwd,
+					name: state?.sessionName ?? matched?.name,
+					parentSessionPath: matched?.parentSessionPath,
+					created: matched?.created ?? Date.now(),
+					modified: Date.now(),
+					messageCount: state?.messageCount ?? slice?.messages.length ?? matched?.messageCount ?? 0,
+					firstMessage: matched?.firstMessage || firstUserMessage,
+				};
+				const rest = existing.filter(
+					(s) => s.id !== activePiSid && s.id !== nextId && (!item.path || s.path !== item.path),
+				);
+				return { ...prev, [activeWs]: [item, ...rest] };
+			});
+		};
+
+		upsertCurrentSession(slice?.state ?? undefined);
+
+		void pi.rpc.send(activeSid, { type: "get_state" }).then((resp) => {
+			if (resp.success && resp.command === "get_state") {
+				upsertCurrentSession(resp.data);
+			}
+		});
+
+		return () => {
+			cancelled = true;
+		};
+	}, [activeWs, activeSid, activePiSid, firstUserMessage, slice, workspaces]);
+
 	const activeMessageCount = slice?.messages.length ?? 0;
 	const headerSubtitle = activeSid
 		? `${activeWorkspace?.name ?? ""} · ${
@@ -806,12 +861,14 @@ function WorkspaceWithSessions({
 					{sessions.length > 0 ? (
 						sessions.map((s) => (
 							<SessionRow
-								key={s.path}
+								key={s.path || s.id}
 								session={s}
 								active={s.id === activePiSid}
 								isRunning={s.id === activePiSid && activeSessionRunning}
 								renaming={renamingId === s.path}
-								onClick={() => onOpenSession(s.path)}
+								onClick={() => {
+									if (s.id !== activePiSid && s.path) onOpenSession(s.path);
+								}}
 								onStartRename={() => onStartRename(s.path)}
 								onSubmitRename={async (name) => {
 									onCancelRename();
@@ -926,7 +983,7 @@ function SessionRow({
 	}
 
 	const sessionTitle =
-		session.name ?? (truncate(session.firstMessage, 36) || t("sidebar.untitled"));
+		session.name?.trim() || truncate(session.firstMessage, 36) || t("sidebar.untitled");
 
 	return (
 		<div
@@ -996,6 +1053,26 @@ function SessionRow({
 function truncate(text: string, n: number): string {
 	const trimmed = text.replace(/\s+/g, " ").trim();
 	return trimmed.length > n ? `${trimmed.slice(0, n - 1)}…` : trimmed;
+}
+
+function firstUserMessageText(messages: Array<{ role: string; content?: unknown }>): string {
+	const first = messages.find((m) => m.role === "user");
+	return first ? messageContentText(first.content) : "";
+}
+
+function messageContentText(content: unknown): string {
+	if (typeof content === "string") return content;
+	if (!Array.isArray(content)) return "";
+	return content
+		.filter(
+			(part): part is { type: "text"; text: string } =>
+				!!part &&
+				typeof part === "object" &&
+				(part as { type?: unknown }).type === "text" &&
+				typeof (part as { text?: unknown }).text === "string",
+		)
+		.map((part) => part.text)
+		.join("\n");
 }
 
 function filterSessions(sessions: SessionInfo[], query: string): SessionInfo[] {
