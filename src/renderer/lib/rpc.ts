@@ -164,9 +164,6 @@ export interface PiBridge {
 		list: (dirPath: string) => Promise<FileTreeNode[]>;
 		read: (filePath: string) => Promise<FileReadResult>;
 	};
-	stats: {
-		get: () => Promise<StatsResult>;
-	};
 	pty: {
 		spawn: (opts?: { cwd?: string; cols?: number; rows?: number }) => Promise<{
 			id: string;
@@ -260,44 +257,6 @@ export interface ProviderEntry {
 	provider: string;
 	type: "api_key" | "oauth";
 	maskedKey?: string;
-}
-
-// ─── Stats types ─────────────────────────────────────────────────────────────
-
-export interface ModelStat {
-	cost: number;
-	tokens: number;
-	inputTokens: number;
-	outputTokens: number;
-	cacheReadTokens: number;
-	cacheWriteTokens: number;
-	requests: number;
-}
-
-export interface DailyStat {
-	date: string;
-	totalCost: number;
-	totalTokens: number;
-	inputTokens: number;
-	outputTokens: number;
-	cacheReadTokens: number;
-	cacheWriteTokens: number;
-	requests: number;
-	models: Record<string, ModelStat>;
-}
-
-export interface StatsResult {
-	days: DailyStat[];
-	totalCost: number;
-	totalTokens: number;
-	totalRequests: number;
-	totalInputTokens: number;
-	totalOutputTokens: number;
-	totalCacheReadTokens: number;
-	totalCacheWriteTokens: number;
-	models: Record<string, ModelStat>;
-	workspaces: string[];
-	sessionCount: number;
 }
 
 declare global {

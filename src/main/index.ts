@@ -14,6 +14,13 @@ const windowIconByPlatform: Partial<Record<NodeJS.Platform, string>> = {
 };
 const windows = new Set<BrowserWindow>();
 
+function revealWindow(win: BrowserWindow) {
+	if (win.isDestroyed()) return;
+	if (win.isMinimized()) win.restore();
+	if (!win.isVisible()) win.show();
+	win.focus();
+}
+
 function findResourcePath(fileName: string) {
 	const basePaths = isDev
 		? [process.cwd(), app.getAppPath()]
@@ -50,7 +57,7 @@ export async function createWindow(): Promise<BrowserWindow> {
 		vibrancy: "sidebar",
 		visualEffectState: "active",
 		backgroundColor: nativeTheme.shouldUseDarkColors ? "#1c1c1e" : "#f5f5f7",
-		show: false,
+		show: true,
 		webPreferences: {
 			preload: join(__dirname, "../preload/index.cjs"),
 			contextIsolation: true,
@@ -59,7 +66,9 @@ export async function createWindow(): Promise<BrowserWindow> {
 		},
 	});
 
-	win.once("ready-to-show", () => win.show());
+	win.once("ready-to-show", () => revealWindow(win));
+	win.webContents.once("did-finish-load", () => revealWindow(win));
+	const showFallback = setTimeout(() => revealWindow(win), 1500);
 
 	// Open all external links in the system default browser
 	win.webContents.setWindowOpenHandler(({ url }) => {
@@ -87,6 +96,7 @@ export async function createWindow(): Promise<BrowserWindow> {
 
 	windows.add(win);
 	win.on("closed", () => {
+		clearTimeout(showFallback);
 		nativeTheme.off("updated", refreshBg);
 		windows.delete(win);
 	});
@@ -107,7 +117,9 @@ app.whenReady().then(async () => {
 	await createWindow();
 
 	app.on("activate", async () => {
-		if (BrowserWindow.getAllWindows().length === 0) await createWindow();
+		const win = getAnyWindow();
+		if (win) revealWindow(win);
+		else await createWindow();
 	});
 });
 

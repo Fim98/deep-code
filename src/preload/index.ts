@@ -54,10 +54,6 @@ const fileTree = {
 		}>,
 };
 
-const stats = {
-	get: () => ipcRenderer.invoke("pi:stats:get"),
-};
-
 const pty = {
 	spawn: (opts?: { cwd?: string; cols?: number; rows?: number }) =>
 		ipcRenderer.invoke("pi:pty:spawn", opts) as Promise<{
@@ -179,7 +175,6 @@ const api = {
 	shell: shellApi,
 	logs,
 	fileTree,
-	stats,
 	pty,
 	window: windowManagement,
 	telemetry,

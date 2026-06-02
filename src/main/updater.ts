@@ -1,12 +1,14 @@
+import { createRequire } from "node:module";
 import { app, BrowserWindow } from "electron";
-import * as ElectronUpdater from "electron-updater";
+import type { AppUpdater, UpdateInfo } from "electron-updater";
 
-const { autoUpdater } = ElectronUpdater;
-type UpdateInfo = ElectronUpdater.UpdateInfo;
+const require = createRequire(import.meta.url);
 
 const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours
 
 let checkTimer: ReturnType<typeof setInterval> | undefined;
+let autoUpdater: AppUpdater | undefined;
+let initialized = false;
 
 interface UpdateState {
 	status:
@@ -32,34 +34,54 @@ function emit(state: UpdateState) {
 	}
 }
 
+function getAutoUpdater(): AppUpdater | undefined {
+	if (autoUpdater) return autoUpdater;
+	try {
+		const updaterModule = require("electron-updater") as { autoUpdater?: AppUpdater };
+		autoUpdater = updaterModule.autoUpdater;
+		return autoUpdater;
+	} catch (err) {
+		emit({
+			status: "error",
+			error: err instanceof Error ? err.message : String(err),
+		});
+		return undefined;
+	}
+}
+
 export function initAutoUpdater(): void {
 	// Don't run in dev mode
 	if (!app.isPackaged) return;
+	if (initialized) return;
 
-	autoUpdater.autoDownload = true;
-	autoUpdater.autoInstallOnAppQuit = true;
+	const updater = getAutoUpdater();
+	if (!updater) return;
+	initialized = true;
 
-	autoUpdater.on("checking-for-update", () => {
+	updater.autoDownload = true;
+	updater.autoInstallOnAppQuit = true;
+
+	updater.on("checking-for-update", () => {
 		emit({ status: "checking" });
 	});
 
-	autoUpdater.on("update-available", (info: UpdateInfo) => {
+	updater.on("update-available", (info: UpdateInfo) => {
 		emit({ status: "available", version: info.version });
 	});
 
-	autoUpdater.on("update-not-available", () => {
+	updater.on("update-not-available", () => {
 		emit({ status: "not-available" });
 	});
 
-	autoUpdater.on("error", (err: Error) => {
+	updater.on("error", (err: Error) => {
 		emit({ status: "error", error: err.message });
 	});
 
-	autoUpdater.on("download-progress", () => {
+	updater.on("download-progress", () => {
 		emit({ status: "downloading" });
 	});
 
-	autoUpdater.on("update-downloaded", (info: UpdateInfo) => {
+	updater.on("update-downloaded", (info: UpdateInfo) => {
 		emit({ status: "downloaded", version: info.version });
 	});
 
@@ -70,13 +92,17 @@ export function initAutoUpdater(): void {
 
 export function scheduleCheck(): void {
 	if (!app.isPackaged) return;
-	autoUpdater.checkForUpdates().catch(() => {
+	const updater = getAutoUpdater();
+	if (!updater) return;
+	updater.checkForUpdates().catch(() => {
 		// Silently ignore — we emit error state above
 	});
 }
 
 export function quitAndInstall(): void {
-	autoUpdater.quitAndInstall();
+	const updater = getAutoUpdater();
+	if (!updater) return;
+	updater.quitAndInstall();
 }
 
 export function onUpdateState(fn: (state: UpdateState) => void): () => void {

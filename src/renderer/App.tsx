@@ -1,6 +1,5 @@
 import {
 	AlertTriangle,
-	BarChart3,
 	Copy,
 	Folder,
 	FolderOpen,
@@ -21,7 +20,6 @@ import { Composer } from "@/components/chat/Composer";
 import { MessageTimeline } from "@/components/chat/MessageTimeline";
 import { PlanTrackerWidget } from "@/components/chat/PlanTrackerWidget";
 import { CommandPalette } from "@/components/command-palette/CommandPalette";
-import { Dashboard } from "@/components/dashboard/Dashboard";
 import { ExtensionUIHost } from "@/components/extension-ui/ExtensionUIHost";
 import { FilePreview } from "@/components/file-tree/FilePreview";
 import { FileTree } from "@/components/file-tree/FileTree";
@@ -64,7 +62,6 @@ export function App() {
 	const [renamingId, setRenamingId] = useState<string | null>(null);
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const [paletteOpen, setPaletteOpen] = useState(false);
-	const [dashboardOpen, setDashboardOpen] = useState(false);
 	const [fileTreeOpen, setFileTreeOpen] = useState(false);
 	const [previewFile, setPreviewFile] = useState<string | null>(null);
 	const [previewWidth, setPreviewWidth] = useState(480);
@@ -181,8 +178,6 @@ export function App() {
 
 	async function openSession(sessionFile?: string) {
 		if (!activeWs) return;
-		// Close dashboard when opening a session (mutually exclusive views)
-		setDashboardOpen(false);
 		// Close current session before opening a new one
 		if (activeSid) {
 			try {
@@ -480,23 +475,6 @@ export function App() {
 					</button>
 				}
 			>
-				{/* Dashboard toggle */}
-				<div className="px-1 pt-4 pb-2">
-					<button
-						type="button"
-						onClick={() => setDashboardOpen(true)}
-						className={cn(
-							"flex w-full cursor-pointer items-center gap-2.5 rounded-[14px] px-3 py-2.5 text-left text-[13px] font-medium transition-colors duration-150",
-							dashboardOpen
-								? "bg-primary/10 text-primary"
-								: "text-foreground/70 hover:bg-foreground/[0.04] hover:text-foreground",
-						)}
-					>
-						<BarChart3 className="size-4" />
-						{t("dashboard.openDashboard")}
-					</button>
-				</div>
-
 				<SidebarSection
 					title={t("sidebar.workspaces")}
 					action={
@@ -550,161 +528,148 @@ export function App() {
 
 			<div className="flex min-w-0 flex-1 flex-col">
 				<div className="flex min-h-0 flex-1">
-					{dashboardOpen ? (
-						<MainArea
-							header={
-								<div className="text-[20px] font-semibold tracking-tight text-foreground">
-									{t("dashboard.title")}
-								</div>
-							}
-							footer={null}
-						>
-							<Dashboard />
-						</MainArea>
-					) : (
-						<MainArea
-							header={
-								<>
-									<div className="min-w-0">
-										{activeSid && slice?.state?.sessionName ? (
-											<div className="truncate text-[20px] font-semibold leading-tight tracking-tight text-foreground">
-												{slice.state.sessionName}
-											</div>
-										) : null}
-										<div className="mt-1 flex items-center gap-2 text-[12px] text-muted-foreground">
-											<span>{headerSubtitle}</span>
-											{activeSid ? (
-												<>
-													<span className="text-muted-foreground/40">·</span>
-													<ModelPicker
-														sessionId={activeSid}
-														model={slice?.state?.model as any}
-														thinkingLevel={slice?.state?.thinkingLevel as any}
-													/>
-													<ContextBar
-														sessionId={activeSid}
-														modelId={
-															slice?.state?.model
-																? `${(slice.state.model as any).provider}/${(slice.state.model as any).id}`
-																: undefined
-														}
-														modelContextWindow={(slice?.state?.model as any)?.contextWindow}
-													/>
-													<span className="text-muted-foreground/40">·</span>
-													<BranchesPanel
-														sessionId={activeSid}
-														onForked={() => refreshSessions(activeWs!)}
-													/>
-												</>
-											) : null}
+					<MainArea
+						header={
+							<>
+								<div className="min-w-0">
+									{activeSid && slice?.state?.sessionName ? (
+										<div className="truncate text-[20px] font-semibold leading-tight tracking-tight text-foreground">
+											{slice.state.sessionName}
 										</div>
+									) : null}
+									<div className="mt-1 flex items-center gap-2 text-[12px] text-muted-foreground">
+										<span>{headerSubtitle}</span>
+										{activeSid ? (
+											<>
+												<span className="text-muted-foreground/40">·</span>
+												<ModelPicker
+													sessionId={activeSid}
+													model={slice?.state?.model as any}
+													thinkingLevel={slice?.state?.thinkingLevel as any}
+												/>
+												<ContextBar
+													sessionId={activeSid}
+													modelId={
+														slice?.state?.model
+															? `${(slice.state.model as any).provider}/${(slice.state.model as any).id}`
+															: undefined
+													}
+													modelContextWindow={(slice?.state?.model as any)?.contextWindow}
+												/>
+												<span className="text-muted-foreground/40">·</span>
+												<BranchesPanel
+													sessionId={activeSid}
+													onForked={() => refreshSessions(activeWs!)}
+												/>
+											</>
+										) : null}
 									</div>
-									<div className="ml-auto flex items-center gap-0.5">
+								</div>
+								<div className="ml-auto flex items-center gap-0.5">
+									<button
+										type="button"
+										onClick={() => setSidebarOpen((o) => !o)}
+										aria-label={sidebarOpen ? t("sidebar.hide") : t("sidebar.show")}
+										title={sidebarOpen ? t("sidebar.hide") : t("sidebar.show")}
+										className={cn(
+											"flex size-8 cursor-pointer items-center justify-center rounded-[10px] transition-colors",
+											!sidebarOpen
+												? "bg-foreground/[0.08] text-foreground"
+												: "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
+										)}
+									>
+										<PanelLeft className="size-4" />
+									</button>
+									{activeSid ? (
+										<>
+											<Button
+												size="sm"
+												variant="ghost"
+												aria-label={t("header.copy")}
+												onClick={copyLastMessage}
+												className="h-8 rounded-full px-2.5 text-[13px] font-medium"
+											>
+												<Copy className="size-3.5" />
+												{t("header.copy")}
+											</Button>
+											<Button
+												size="sm"
+												variant="ghost"
+												aria-label={t("header.share")}
+												onClick={exportSession}
+												className="h-8 rounded-full px-2.5 text-[13px] font-medium"
+											>
+												<Share2 className="size-3.5" />
+												{t("header.share")}
+											</Button>
+										</>
+									) : null}
+									<div className="mx-1 h-5 w-px bg-border/60" />
+									{activeSid ? (
 										<button
 											type="button"
-											onClick={() => setSidebarOpen((o) => !o)}
-											aria-label={sidebarOpen ? t("sidebar.hide") : t("sidebar.show")}
-											title={sidebarOpen ? t("sidebar.hide") : t("sidebar.show")}
+											onClick={() => setBashOpen((o) => !o)}
+											aria-label={t("settings.toggleBash")}
+											title={t("bash.title")}
 											className={cn(
 												"flex size-8 cursor-pointer items-center justify-center rounded-[10px] transition-colors",
-												!sidebarOpen
+												bashOpen
 													? "bg-foreground/[0.08] text-foreground"
 													: "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
 											)}
 										>
-											<PanelLeft className="size-4" />
+											<SquareTerminal className="size-4" />
 										</button>
-										{activeSid ? (
-											<>
-												<Button
-													size="sm"
-													variant="ghost"
-													aria-label={t("header.copy")}
-													onClick={copyLastMessage}
-													className="h-8 rounded-full px-2.5 text-[13px] font-medium"
-												>
-													<Copy className="size-3.5" />
-													{t("header.copy")}
-												</Button>
-												<Button
-													size="sm"
-													variant="ghost"
-													aria-label={t("header.share")}
-													onClick={exportSession}
-													className="h-8 rounded-full px-2.5 text-[13px] font-medium"
-												>
-													<Share2 className="size-3.5" />
-													{t("header.share")}
-												</Button>
-											</>
-										) : null}
-										<div className="mx-1 h-5 w-px bg-border/60" />
-										{activeSid ? (
-											<button
-												type="button"
-												onClick={() => setBashOpen((o) => !o)}
-												aria-label={t("settings.toggleBash")}
-												title={t("bash.title")}
-												className={cn(
-													"flex size-8 cursor-pointer items-center justify-center rounded-[10px] transition-colors",
-													bashOpen
-														? "bg-foreground/[0.08] text-foreground"
-														: "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
-												)}
-											>
-												<SquareTerminal className="size-4" />
-											</button>
-										) : null}
-										{activeWorkspace ? (
-											<button
-												type="button"
-												onClick={() => {
-													if (fileTreeOpen || previewFile) {
-														setFileTreeOpen(false);
-														setPreviewFile(null);
-													} else {
-														setFileTreeOpen(true);
-													}
-												}}
-												aria-label={t("fileTree.toggle")}
-												title={t("fileTree.title")}
-												className={cn(
-													"flex size-8 cursor-pointer items-center justify-center rounded-[10px] transition-colors",
-													fileTreeOpen || previewFile
-														? "bg-foreground/[0.08] text-foreground"
-														: "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
-												)}
-											>
-												<PanelRight className="size-4" />
-											</button>
-										) : null}
-									</div>
-								</>
-							}
-							footer={
-								activeSid ? (
-									<div className="flex flex-col gap-2">
-										<PlanTrackerWidget sessionId={activeSid} />
-										<Composer sessionId={activeSid} isStreaming={slice?.isStreaming ?? false} />
-									</div>
-								) : null
-							}
-						>
-							{activeSid ? (
-								<div className="flex h-full flex-col">
-									<div className="min-h-0 flex-1">
-										<MessageTimeline sessionId={activeSid} />
-									</div>
+									) : null}
+									{activeWorkspace ? (
+										<button
+											type="button"
+											onClick={() => {
+												if (fileTreeOpen || previewFile) {
+													setFileTreeOpen(false);
+													setPreviewFile(null);
+												} else {
+													setFileTreeOpen(true);
+												}
+											}}
+											aria-label={t("fileTree.toggle")}
+											title={t("fileTree.title")}
+											className={cn(
+												"flex size-8 cursor-pointer items-center justify-center rounded-[10px] transition-colors",
+												fileTreeOpen || previewFile
+													? "bg-foreground/[0.08] text-foreground"
+													: "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
+											)}
+										>
+											<PanelRight className="size-4" />
+										</button>
+									) : null}
 								</div>
-							) : (
-								<NoSessionState
-									hasWorkspace={!!activeWorkspace}
-									onAddWorkspace={addWorkspace}
-									onNewSession={() => openSession()}
-								/>
-							)}
-						</MainArea>
-					)}
+							</>
+						}
+						footer={
+							activeSid ? (
+								<div className="flex flex-col gap-2">
+									<PlanTrackerWidget sessionId={activeSid} />
+									<Composer sessionId={activeSid} isStreaming={slice?.isStreaming ?? false} />
+								</div>
+							) : null
+						}
+					>
+						{activeSid ? (
+							<div className="flex h-full flex-col">
+								<div className="min-h-0 flex-1">
+									<MessageTimeline sessionId={activeSid} />
+								</div>
+							</div>
+						) : (
+							<NoSessionState
+								hasWorkspace={!!activeWorkspace}
+								onAddWorkspace={addWorkspace}
+								onNewSession={() => openSession()}
+							/>
+						)}
+					</MainArea>
 
 					{/* Right rail: file preview + file tree */}
 					{activeWorkspace && previewFile ? (

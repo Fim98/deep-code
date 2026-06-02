@@ -374,33 +374,6 @@ export const en: Record<string, string> = {
 
 	// ─── Telemetry ──────────────────────────────────────────────────────────
 	"telemetry.privacy": "Privacy",
-	// ─── Dashboard ────────────────────────────────────────────────────────────
-	"dashboard.title": "Usage Statistics",
-	"dashboard.subtitle": "{{sessions}} sessions across {{workspaces}} workspaces",
-	"dashboard.loading": "Loading statistics…",
-	"dashboard.empty": "No usage data yet",
-	"dashboard.emptyDescription": "Start chatting to see your token and cost statistics here.",
-	"dashboard.last7Days": "Last 7 days",
-	"dashboard.last30Days": "Last 30 days",
-	"dashboard.allTime": "All time",
-	"dashboard.allTimeLabel": " all time",
-	"dashboard.totalCost": "Total Cost",
-	"dashboard.totalTokens": "Total Tokens",
-	"dashboard.totalRequests": "Requests",
-	"dashboard.modelsUsed": "Models",
-	"dashboard.avgPerDay": "Avg ",
-	"dashboard.dailyUsage": "Daily Usage",
-	"dashboard.modelBreakdown": "Model Breakdown",
-	"dashboard.tokenBreakdown": "Token Breakdown",
-	"dashboard.input": "Input",
-	"dashboard.output": "Output",
-	"dashboard.cacheRead": "Cache Read",
-	"dashboard.cacheWrite": "Cache Write",
-	"dashboard.in": "in ",
-	"dashboard.out": "out ",
-	"dashboard.noDataForRange": "No data for this time range",
-	"dashboard.openDashboard": "Dashboard",
-
 	"telemetry.crashReports": "Send anonymous crash reports",
 	"telemetry.crashReportsDescription":
 		"Help improve deepcode by sending error data. No personal information is collected.",

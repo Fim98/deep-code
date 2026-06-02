@@ -369,33 +369,6 @@ export const zhCN: Record<string, string> = {
 
 	// ─── Telemetry ──────────────────────────────────────────────────────────
 	"telemetry.privacy": "隐私",
-	// ─── Dashboard ────────────────────────────────────────────────────────────
-	"dashboard.title": "使用统计",
-	"dashboard.subtitle": "{{sessions}} 个会话，跨 {{workspaces}} 个工作区",
-	"dashboard.loading": "正在加载统计数据…",
-	"dashboard.empty": "暂无使用数据",
-	"dashboard.emptyDescription": "开始聊天后，你的 token 和费用统计将显示在这里。",
-	"dashboard.last7Days": "近 7 天",
-	"dashboard.last30Days": "近 30 天",
-	"dashboard.allTime": "全部时间",
-	"dashboard.allTimeLabel": " 全部",
-	"dashboard.totalCost": "总费用",
-	"dashboard.totalTokens": "总 Token",
-	"dashboard.totalRequests": "请求数",
-	"dashboard.modelsUsed": "模型数",
-	"dashboard.avgPerDay": "日均 ",
-	"dashboard.dailyUsage": "每日用量",
-	"dashboard.modelBreakdown": "模型明细",
-	"dashboard.tokenBreakdown": "Token 明细",
-	"dashboard.input": "输入",
-	"dashboard.output": "输出",
-	"dashboard.cacheRead": "缓存读取",
-	"dashboard.cacheWrite": "缓存写入",
-	"dashboard.in": "输入 ",
-	"dashboard.out": "输出 ",
-	"dashboard.noDataForRange": "该时间段暂无数据",
-	"dashboard.openDashboard": "统计面板",
-
 	"telemetry.crashReports": "发送匿名崩溃报告",
 	"telemetry.crashReportsDescription": "通过发送错误数据帮助改进 deepcode。不会收集个人信息。",
 };

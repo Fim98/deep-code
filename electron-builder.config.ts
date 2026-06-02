@@ -1,4 +1,31 @@
-import type { Configuration } from "electron-builder";
+import { rm } from "node:fs/promises";
+import { join } from "node:path";
+import { Arch } from "builder-util";
+import type { AfterPackContext, Configuration } from "electron-builder";
+
+async function removeIfPresent(path: string) {
+	await rm(path, { force: true, recursive: true });
+}
+
+async function removeUnusedNativePackages(context: AfterPackContext) {
+	if (context.electronPlatformName !== "darwin") return;
+
+	const modulesDir = join(
+		context.appOutDir,
+		`${context.packager.appInfo.productFilename}.app`,
+		"Contents",
+		"Resources",
+		"app.asar.unpacked",
+		"node_modules",
+	);
+	const clipboardDir = join(modulesDir, "@mariozechner");
+
+	if (context.arch === Arch.arm64) {
+		await removeIfPresent(join(clipboardDir, "clipboard-darwin-x64"));
+	} else if (context.arch === Arch.x64) {
+		await removeIfPresent(join(clipboardDir, "clipboard-darwin-arm64"));
+	}
+}
 
 const config: Configuration = {
 	appId: "com.deepcode.app",
@@ -16,6 +43,8 @@ const config: Configuration = {
 	directories: {
 		output: "release",
 	},
+
+	afterPack: removeUnusedNativePackages,
 
 	// ---------- 全局文件过滤 ----------
 	files: [
@@ -98,6 +127,13 @@ const config: Configuration = {
 			"!node_modules/node-pty/third_party/**",
 			// 如果是 Apple Silicon，还可以排除 x64 的预编译
 			"!node_modules/node-pty/prebuilds/darwin-x64/**",
+
+			// pi-tui：mac 包不需要 Windows 原生扩展
+			"!node_modules/@earendil-works/pi-tui/native/win32/**",
+
+			// clipboard：mac 包不需要 Linux / Windows 原生扩展
+			"!node_modules/@mariozechner/clipboard-linux*/**",
+			"!node_modules/@mariozechner/clipboard-win32*/**",
 		],
 	},
 

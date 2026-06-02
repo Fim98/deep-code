@@ -9,7 +9,6 @@ import { createWindow } from "./index.js";
 import { ptyManager } from "./pty-manager.js";
 import { deleteSessionFile, listSessionsForCwd } from "./session-fs.js";
 import { sessionRegistry } from "./session-registry.js";
-import { getSessionStats } from "./session-stats.js";
 import { getAgentDirPath, getDesktopSettings, setDesktopSetting } from "./settings.js";
 import { isTelemetryEnabled, setTelemetryEnabled } from "./telemetry.js";
 import { quitAndInstall, scheduleCheck } from "./updater.js";
@@ -223,9 +222,6 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 	ipcMain.handle("pi:file-tree:read", async (_e, filePath: string) => {
 		return readFileContent(filePath);
 	});
-
-	// Session statistics
-	ipcMain.handle("pi:stats:get", () => getSessionStats());
 
 	ipcMain.handle("pi:auth:list", () => listConfiguredProviders());
 	ipcMain.handle("pi:auth:known-providers", () => listKnownProviders());
