@@ -51,13 +51,35 @@ import { useSessions } from "@/stores/session-state";
 type Workspace = Awaited<ReturnType<typeof pi.workspaces.list>>[number];
 type SessionInfo = Awaited<ReturnType<typeof pi.sessions.list>>[number];
 
+type SessionRuntimeActivity = {
+	isStreaming?: boolean;
+	pendingSubmissions?: Array<unknown>;
+	queue?: { steering?: Array<unknown>; followUp?: Array<unknown> };
+	activeTools?: Record<string, { status?: string }>;
+};
+
+const IDLE_SESSION_TTL_MS = 15 * 60 * 1000;
+const SESSION_REAPER_INTERVAL_MS = 60 * 1000;
+
+function isSessionBusy(slice: SessionRuntimeActivity | null | undefined): boolean {
+	if (!slice) return false;
+	if (slice.isStreaming) return true;
+	if ((slice.pendingSubmissions?.length ?? 0) > 0) return true;
+	if ((slice.queue?.steering?.length ?? 0) > 0) return true;
+	if ((slice.queue?.followUp?.length ?? 0) > 0) return true;
+	return Object.values(slice.activeTools ?? {}).some(
+		(tool) => tool.status === "running" || tool.status === "pending",
+	);
+}
+
 export function App() {
 	const { t } = useI18n();
 	const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
 	const [activeWs, setActiveWs] = useState<string | null>(null);
 	const [sessionsByWs, setSessionsByWs] = useState<Record<string, SessionInfo[]>>({});
-	const [activeSid, setActiveSid] = useState<string | null>(null);
-	const [activePiSid, setActivePiSid] = useState<string | null>(null);
+	const [activeSessionByWs, setActiveSessionByWs] = useState<
+		Record<string, { sessionId: string; piSessionId: string }>
+	>({});
 	const [bashOpen, setBashOpen] = useState(false);
 	const [renamingId, setRenamingId] = useState<string | null>(null);
 	const [settingsOpen, setSettingsOpen] = useState(false);
@@ -74,8 +96,15 @@ export function App() {
 	const [removeWsTarget, setRemoveWsTarget] = useState<Workspace | null>(null);
 
 	const { hydrate, attach, setCurrent } = useSessions();
-	const slice = useSessions((s) => (activeSid ? s.bySession[activeSid] : null));
-	const attachedSids = useRef(new Set<string>());
+	const sessionSubscriptions = useRef(new Map<string, () => void>());
+	const sessionActivity = useRef(new Map<string, { workspaceId: string; piSessionId: string; lastTouchedAt: number }>());
+	const recyclingSessions = useRef(new Set<string>());
+	const trackedSlices = useRef(new Map<string, unknown>());
+	const activeSession = activeWs ? activeSessionByWs[activeWs] ?? null : null;
+	const activeSid = activeSession?.sessionId ?? null;
+	const activePiSid = activeSession?.piSessionId ?? null;
+	const sessionSlices = useSessions((s) => s.bySession);
+	const slice = activeSid ? sessionSlices[activeSid] ?? null : null;
 
 	useEffect(() => {
 		installGlobalErrorToasts();
@@ -99,6 +128,16 @@ export function App() {
 	useEffect(() => {
 		setCurrent(activeSid);
 	}, [activeSid, setCurrent]);
+
+	useEffect(() => {
+		return () => {
+			for (const unsub of sessionSubscriptions.current.values()) unsub();
+			sessionSubscriptions.current.clear();
+			sessionActivity.current.clear();
+			trackedSlices.current.clear();
+			recyclingSessions.current.clear();
+		};
+	}, []);
 
 	const shortcuts = useMemo(
 		() => [
@@ -145,6 +184,12 @@ export function App() {
 		const [list, active] = await Promise.all([pi.workspaces.list(), pi.workspaces.getActive()]);
 		setWorkspaces(list);
 		setActiveWs(active);
+		setActiveSessionByWs((prev) => {
+			const nextEntries = Object.entries(prev).filter(([workspaceId]) =>
+				list.some((workspace) => workspace.id === workspaceId),
+			);
+			return Object.fromEntries(nextEntries);
+		});
 		await Promise.all(list.map((w) => refreshSessions(w.id)));
 	}
 
@@ -153,20 +198,39 @@ export function App() {
 		setSessionsByWs((prev) => ({ ...prev, [workspaceId]: list }));
 	}
 
-	async function selectWorkspace(id: string) {
-		// Close current session before switching workspace
-		if (activeSid) {
-			try {
-				await pi.sessions.close(activeSid);
-			} catch {
-				// Ignore — best effort cleanup
-			}
+	function touchSession(sessionId: string, workspaceId?: string, piSessionId?: string) {
+		const current = sessionActivity.current.get(sessionId);
+		if (!current && (!workspaceId || !piSessionId)) return;
+		sessionActivity.current.set(sessionId, {
+			workspaceId: workspaceId ?? current!.workspaceId,
+			piSessionId: piSessionId ?? current!.piSessionId,
+			lastTouchedAt: Date.now(),
+		});
+	}
+
+	function attachSession(sessionId: string) {
+		if (sessionSubscriptions.current.has(sessionId)) return;
+		const unsub = attach(sessionId);
+		sessionSubscriptions.current.set(sessionId, unsub);
+	}
+
+	async function closeDesktopSession(sessionId: string | null) {
+		if (!sessionId) return;
+		const unsub = sessionSubscriptions.current.get(sessionId);
+		if (unsub) {
+			unsub();
+			sessionSubscriptions.current.delete(sessionId);
 		}
+		sessionActivity.current.delete(sessionId);
+		trackedSlices.current.delete(sessionId);
+		recyclingSessions.current.delete(sessionId);
+		await pi.sessions.close(sessionId);
+	}
+
+	async function selectWorkspace(id: string) {
 		await pi.workspaces.setActive(id);
 		setActiveWs(id);
 		await refreshSessions(id);
-		setActiveSid(null);
-		setActivePiSid(null);
 	}
 
 	async function addWorkspace() {
@@ -176,30 +240,45 @@ export function App() {
 		await refreshWorkspaces();
 	}
 
-	async function openSession(sessionFile?: string) {
-		if (!activeWs) return;
-		// Close current session before opening a new one
-		if (activeSid) {
-			try {
-				await pi.sessions.close(activeSid);
-			} catch {
-				// Ignore — best effort cleanup
-			}
-		}
+	async function openSession(sessionFile?: string, workspaceIdArg?: string) {
+		const workspaceId = workspaceIdArg ?? activeWs;
+		if (!workspaceId) return;
 		try {
+			const existingActive = activeSessionByWs[workspaceId];
+			const existingSessions = sessionsByWs[workspaceId] ?? [];
+			const matchedSession = sessionFile
+				? existingSessions.find((session) => session.path === sessionFile)
+				: null;
+			if (sessionFile && matchedSession && existingActive?.piSessionId === matchedSession.id) {
+				if (activeWs !== workspaceId) {
+					setActiveWs(workspaceId);
+					await pi.workspaces.setActive(workspaceId);
+				}
+				setBashOpen(false);
+				return;
+			}
+
 			const result = await pi.sessions.open({
-				workspaceId: activeWs,
+				workspaceId,
 				sessionFile,
 			});
 			const { sessionId, piSessionId } = result;
 			if (result.cwdFallback) {
 				emitToast(t("toast.workspaceMissing"), "info");
 			}
-			setActiveSid(sessionId);
-			setActivePiSid(piSessionId);
+			setActiveSessionByWs((prev) => ({
+				...prev,
+				[workspaceId]: { sessionId, piSessionId },
+			}));
+			touchSession(sessionId, workspaceId, piSessionId);
+			if (activeWs !== workspaceId) {
+				setActiveWs(workspaceId);
+				await pi.workspaces.setActive(workspaceId);
+			}
+			setBashOpen(false);
 			if (!sessionFile) {
 				setSessionsByWs((prev) => {
-					const existing = prev[activeWs] ?? [];
+					const existing = prev[workspaceId] ?? [];
 					const alreadyListed = existing.some((s) => s.id === piSessionId);
 					if (alreadyListed) return prev;
 					const placeholder: SessionInfo = {
@@ -211,16 +290,20 @@ export function App() {
 						created: Date.now(),
 						modified: Date.now(),
 					};
-					return { ...prev, [activeWs]: [placeholder, ...existing] };
+					return { ...prev, [workspaceId]: [placeholder, ...existing] };
 				});
 			}
 			await hydrate(sessionId);
-			if (!attachedSids.current.has(sessionId)) {
-				attach(sessionId);
-				attachedSids.current.add(sessionId);
+			attachSession(sessionId);
+			if (existingActive && existingActive.sessionId !== sessionId) {
+				try {
+					await closeDesktopSession(existingActive.sessionId);
+				} catch {
+					// Ignore cleanup errors for replaced workspace session
+				}
 			}
 			if (sessionFile) {
-				await refreshSessions(activeWs);
+				await refreshSessions(workspaceId);
 			}
 		} catch (e) {
 			emitToast(t("toast.failedToOpen", { error: e instanceof Error ? e.message : String(e) }));
@@ -232,10 +315,15 @@ export function App() {
 		const { workspaceId, session: s } = deleteTarget;
 		setDeleteTarget(null);
 		try {
-			// Close session if it's currently open
-			if (s.id === activePiSid && activeSid) {
+			const activeForWorkspace = activeSessionByWs[workspaceId];
+			if (s.id === activeForWorkspace?.piSessionId) {
+				setActiveSessionByWs((prev) => {
+					const next = { ...prev };
+					delete next[workspaceId];
+					return next;
+				});
 				try {
-					await pi.sessions.close(activeSid);
+					await closeDesktopSession(activeForWorkspace.sessionId);
 				} catch {
 					// Ignore close errors
 				}
@@ -245,10 +333,6 @@ export function App() {
 				...prev,
 				[workspaceId]: (prev[workspaceId] ?? []).filter((session) => session.path !== s.path),
 			}));
-			if (s.id === activePiSid) {
-				setActiveSid(null);
-				setActivePiSid(null);
-			}
 			await refreshSessions(workspaceId);
 		} catch (e) {
 			emitToast(t("toast.deleteFailed", { error: e instanceof Error ? e.message : String(e) }));
@@ -260,15 +344,21 @@ export function App() {
 		const ws = removeWsTarget;
 		setRemoveWsTarget(null);
 		try {
-			// Close active session if it belongs to this workspace
-			if (activeWs === ws.id && activeSid) {
+			const activeForWorkspace = activeSessionByWs[ws.id];
+			if (activeForWorkspace) {
+				setActiveSessionByWs((prev) => {
+					const next = { ...prev };
+					delete next[ws.id];
+					return next;
+				});
 				try {
-					await pi.sessions.close(activeSid);
+					await closeDesktopSession(activeForWorkspace.sessionId);
 				} catch {
 					// Ignore
 				}
-				setActiveSid(null);
-				setActivePiSid(null);
+			}
+			if (activeWs === ws.id) {
+				setBashOpen(false);
 			}
 			await pi.workspaces.remove(ws.id);
 			setSessionsByWs((prev) => {
@@ -319,24 +409,93 @@ export function App() {
 		}
 	}
 
-	async function renameSession(s: SessionInfo, newName: string) {
+	async function renameSession(workspaceId: string, s: SessionInfo, newName: string) {
 		const name = newName.trim();
 		if (!name || name === s.name) return;
+		let temporarySessionId: string | null = null;
 		try {
-			const result = await pi.sessions.open({
-				workspaceId: activeWs!,
-				sessionFile: s.path,
-			});
-			const resp = await pi.rpc.send(result.sessionId, {
+			const activeForWorkspace = activeSessionByWs[workspaceId];
+			const isActiveRuntime = activeForWorkspace?.piSessionId === s.id;
+			const targetSessionId = isActiveRuntime
+				? activeForWorkspace.sessionId
+				: (
+					await pi.sessions.open({
+						workspaceId,
+						sessionFile: s.path,
+					})
+				  ).sessionId;
+			if (!isActiveRuntime) temporarySessionId = targetSessionId;
+			const resp = await pi.rpc.send(targetSessionId, {
 				type: "set_session_name",
 				name,
 			});
 			if (!resp.success) emitToast(resp.error);
-			await refreshSessions(activeWs!);
+			await refreshSessions(workspaceId);
 		} catch (e) {
 			emitToast(t("toast.renameFailed", { error: e instanceof Error ? e.message : String(e) }));
+		} finally {
+			if (temporarySessionId) {
+				try {
+					await closeDesktopSession(temporarySessionId);
+				} catch {
+					// Ignore close errors for temporary rename session
+				}
+			}
 		}
 	}
+
+	useEffect(() => {
+		for (const [workspaceId, binding] of Object.entries(activeSessionByWs)) {
+			if (!sessionActivity.current.has(binding.sessionId)) {
+				touchSession(binding.sessionId, workspaceId, binding.piSessionId);
+			}
+			const nextSlice = sessionSlices[binding.sessionId];
+			if (nextSlice && trackedSlices.current.get(binding.sessionId) !== nextSlice) {
+				trackedSlices.current.set(binding.sessionId, nextSlice);
+				touchSession(binding.sessionId, workspaceId, binding.piSessionId);
+			}
+		}
+		for (const sessionId of Array.from(trackedSlices.current.keys())) {
+			const stillTracked = Object.values(activeSessionByWs).some((binding) => binding.sessionId === sessionId);
+			if (!stillTracked) trackedSlices.current.delete(sessionId);
+		}
+	}, [activeSessionByWs, sessionSlices]);
+
+	useEffect(() => {
+		if (activeSid) touchSession(activeSid, activeWs ?? undefined, activePiSid ?? undefined);
+	}, [activePiSid, activeSid, activeWs]);
+
+	useEffect(() => {
+		const timer = window.setInterval(() => {
+			const now = Date.now();
+			for (const [workspaceId, binding] of Object.entries(activeSessionByWs)) {
+				const sessionId = binding.sessionId;
+				if (workspaceId === activeWs) continue;
+				if (recyclingSessions.current.has(sessionId)) continue;
+				const meta = sessionActivity.current.get(sessionId);
+				if (!meta) continue;
+				const sliceForSession = sessionSlices[sessionId];
+				if (isSessionBusy(sliceForSession)) continue;
+				if (now - meta.lastTouchedAt < IDLE_SESSION_TTL_MS) continue;
+
+				recyclingSessions.current.add(sessionId);
+				void closeDesktopSession(sessionId)
+					.catch(() => {
+						// Ignore idle cleanup errors — session can be reopened later.
+					})
+					.finally(() => {
+						setActiveSessionByWs((prev) => {
+							if (prev[workspaceId]?.sessionId !== sessionId) return prev;
+							const next = { ...prev };
+							delete next[workspaceId];
+							return next;
+						});
+						recyclingSessions.current.delete(sessionId);
+					});
+			}
+		}, SESSION_REAPER_INTERVAL_MS);
+		return () => window.clearInterval(timer);
+	}, [activeSessionByWs, activeWs, sessionSlices]);
 
 	const activeWorkspace = workspaces.find((w) => w.id === activeWs);
 	const firstUserMessage = slice ? firstUserMessageText(slice.messages) : "";
@@ -785,9 +944,9 @@ function WorkspaceWithSessions({
 	activeSessionRunning: boolean;
 	renamingId: string | null;
 	onSelectWorkspace: (id: string) => void;
-	onOpenSession: (sessionFile?: string) => void;
+	onOpenSession: (sessionFile?: string, workspaceId?: string) => void;
 	onStartRename: (id: string) => void;
-	onSubmitRename: (session: SessionInfo, name: string) => Promise<void>;
+	onSubmitRename: (workspaceId: string, session: SessionInfo, name: string) => Promise<void>;
 	onCancelRename: () => void;
 	onDeleteSession: (session: SessionInfo) => void;
 	onRemoveWorkspace: () => void;
@@ -833,7 +992,7 @@ function WorkspaceWithSessions({
 								variant="ghost"
 								onClick={(e) => {
 									e.stopPropagation();
-									onOpenSession();
+									onOpenSession(undefined, workspace.id);
 								}}
 								aria-label={t("sidebar.newSession")}
 								className="size-6 text-primary"
@@ -867,12 +1026,12 @@ function WorkspaceWithSessions({
 								isRunning={s.id === activePiSid && activeSessionRunning}
 								renaming={renamingId === s.path}
 								onClick={() => {
-									if (s.id !== activePiSid && s.path) onOpenSession(s.path);
+									if (s.id !== activePiSid && s.path) onOpenSession(s.path, workspace.id);
 								}}
 								onStartRename={() => onStartRename(s.path)}
 								onSubmitRename={async (name) => {
 									onCancelRename();
-									await onSubmitRename(s, name);
+									await onSubmitRename(workspace.id, s, name);
 								}}
 								onCancelRename={onCancelRename}
 								onDelete={() => onDeleteSession(s)}
