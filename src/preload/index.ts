@@ -67,7 +67,7 @@ const pty = {
 	kill: (id: string) => ipcRenderer.invoke("pi:pty:kill", id),
 	list: () =>
 		ipcRenderer.invoke("pi:pty:list") as Promise<
-			Array<{ id: string; cwd: string; shell: string; title: string }>
+			Array<{ id: string; cwd: string; shell: string; title: string; buffer: string }>
 		>,
 	onData: (cb: (payload: { id: string; data: string }) => void) => {
 		const handler = (_e: Electron.IpcRendererEvent, payload: { id: string; data: string }) =>
@@ -82,6 +82,12 @@ const pty = {
 		) => cb(payload);
 		ipcRenderer.on("pi:pty:exit", handler);
 		return () => ipcRenderer.off("pi:pty:exit", handler);
+	},
+	onTitle: (cb: (payload: { id: string; title: string }) => void) => {
+		const handler = (_e: Electron.IpcRendererEvent, payload: { id: string; title: string }) =>
+			cb(payload);
+		ipcRenderer.on("pi:pty:title", handler);
+		return () => ipcRenderer.off("pi:pty:title", handler);
 	},
 };
 

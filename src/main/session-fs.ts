@@ -29,7 +29,10 @@ function toListItem(info: SessionInfo): SessionListItem {
 
 export async function listSessionsForCwd(cwd: string): Promise<SessionListItem[]> {
 	const sessions = await SessionManager.list(cwd);
-	return sessions.map(toListItem).sort((a, b) => b.modified - a.modified);
+	return sessions
+		.filter((session) => session.cwd === cwd)
+		.map(toListItem)
+		.sort((a, b) => b.modified - a.modified);
 }
 
 export async function deleteSessionFile(sessionPath: string): Promise<void> {

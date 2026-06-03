@@ -291,4 +291,12 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 			}
 		}
 	});
+
+	ptyManager.on("title", ({ id, title }) => {
+		for (const win of BrowserWindow.getAllWindows()) {
+			if (!win.isDestroyed()) {
+				win.webContents.send("pi:pty:title", { id, title });
+			}
+		}
+	});
 }

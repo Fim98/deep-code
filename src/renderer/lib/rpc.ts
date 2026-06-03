@@ -173,11 +173,14 @@ export interface PiBridge {
 		write: (id: string, data: string) => Promise<void>;
 		resize: (id: string, cols: number, rows: number) => Promise<void>;
 		kill: (id: string) => Promise<void>;
-		list: () => Promise<Array<{ id: string; cwd: string; shell: string; title: string }>>;
+		list: () => Promise<
+			Array<{ id: string; cwd: string; shell: string; title: string; buffer: string }>
+		>;
 		onData: (cb: (payload: { id: string; data: string }) => void) => () => void;
 		onExit: (
 			cb: (payload: { id: string; exitCode: number; signal?: number }) => void,
 		) => () => void;
+		onTitle: (cb: (payload: { id: string; title: string }) => void) => () => void;
 	};
 	window: {
 		new: () => Promise<void>;

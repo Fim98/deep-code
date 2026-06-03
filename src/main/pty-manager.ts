@@ -25,7 +25,11 @@ export interface PtyInstance {
 	cwd: string;
 	shell: string;
 	title: string;
+	buffer: string;
 }
+
+const BUFFER_LIMIT = 1024 * 1024 * 2;
+const BUFFER_TRIM_SIZE = 64 * 1024;
 
 class PtyManager extends EventEmitter {
 	private instances = new Map<string, PtyInstance>();
@@ -76,7 +80,15 @@ class PtyManager extends EventEmitter {
 			...options.env,
 			TERM: "xterm-256color",
 			COLORTERM: "truecolor",
+			TERM_PROGRAM: "DeepCode",
+			DEEPCODE_TERMINAL: "1",
 		} as Record<string, string>;
+		const utf8Locale = this.getUtf8Locale(env);
+		env.LANG = utf8Locale;
+		env.LC_CTYPE = utf8Locale;
+		if (env.LC_ALL && !this.isUtf8Locale(env.LC_ALL)) {
+			env.LC_ALL = utf8Locale;
+		}
 
 		// For zsh, point ZDOTDIR to our shim directory which contains:
 		// - .zshenv: unsetopt prompt_sp (prevents the reverse-video "%" flash)
@@ -102,12 +114,15 @@ class PtyManager extends EventEmitter {
 			cwd,
 			shell,
 			title: shell,
+			buffer: "",
 		};
 
 		this.instances.set(id, instance);
 
 		// Forward data events
 		ptyProcess.onData((data) => {
+			this.appendBuffer(instance, data);
+			this.updateTitleFromOutput(instance, data);
 			this.emit("data", { id, data });
 		});
 
@@ -156,12 +171,13 @@ class PtyManager extends EventEmitter {
 		return this.instances.get(id);
 	}
 
-	list(): Array<{ id: string; cwd: string; shell: string; title: string }> {
+	list(): Array<{ id: string; cwd: string; shell: string; title: string; buffer: string }> {
 		return Array.from(this.instances.values()).map((inst) => ({
 			id: inst.id,
 			cwd: inst.cwd,
 			shell: inst.shell,
 			title: inst.title,
+			buffer: inst.buffer,
 		}));
 	}
 
@@ -170,6 +186,38 @@ class PtyManager extends EventEmitter {
 			return process.env.COMSPEC || "powershell.exe";
 		}
 		return process.env.SHELL || "/bin/bash";
+	}
+
+	private appendBuffer(instance: PtyInstance, data: string): void {
+		instance.buffer += data;
+		if (instance.buffer.length <= BUFFER_LIMIT) return;
+		instance.buffer = instance.buffer.slice(-(BUFFER_LIMIT - BUFFER_TRIM_SIZE));
+	}
+
+	private updateTitleFromOutput(instance: PtyInstance, data: string): void {
+		// biome-ignore lint/suspicious/noControlCharactersInRegex: parsing ANSI OSC title sequences
+		const pattern = /\x1b\](?:0|1|2);([^\x07\x1b]*)(?:\x07|\x1b\\)/g;
+		let match: RegExpExecArray | null;
+		// biome-ignore lint/suspicious/noAssignInExpressions: standard RegExp.exec loop idiom
+		while ((match = pattern.exec(data))) {
+			const title = match[1]
+				// biome-ignore lint/suspicious/noControlCharactersInRegex: stripping ANSI control bytes from titles
+				?.replace(/[\u0000-\u001f\u007f]/g, "")
+				.trim()
+				.slice(0, 120);
+			if (!title || title === instance.title) continue;
+			instance.title = title;
+			this.emit("title", { id: instance.id, title });
+		}
+	}
+
+	private isUtf8Locale(value: string | undefined): boolean {
+		return /utf-?8/i.test(value ?? "");
+	}
+
+	private getUtf8Locale(env: Record<string, string>): string {
+		const candidates = [env.LC_ALL, env.LC_CTYPE, env.LANG];
+		return candidates.find((value) => this.isUtf8Locale(value)) || "en_US.UTF-8";
 	}
 }
 

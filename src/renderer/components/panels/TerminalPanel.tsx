@@ -13,6 +13,7 @@ interface TerminalTab {
 	shell: string;
 	cwd: string;
 	title: string;
+	buffer?: string;
 }
 
 interface Props {
@@ -20,6 +21,88 @@ interface Props {
 	expanded: boolean;
 	onToggle: () => void;
 	onClose: () => void;
+}
+
+const TERMINAL_FONT_FAMILY = [
+	"'JetBrainsMono Nerd Font Mono'",
+	"'SF Mono'",
+	"'Cascadia Code'",
+	"'Fira Code'",
+	"'JetBrains Mono'",
+	"Menlo",
+	"Monaco",
+	"'Noto Sans Mono CJK SC'",
+	"'PingFang SC'",
+	"'Hiragino Sans GB'",
+	"'Microsoft YaHei UI'",
+	"'Microsoft YaHei'",
+	"monospace",
+].join(", ");
+
+type TerminalWriter = ReturnType<typeof createTerminalWriter>;
+
+function createTerminalWriter(
+	write: (data: string, done?: () => void) => void,
+	schedule: (flush: () => void) => void = queueMicrotask,
+) {
+	let chunks: string[] | undefined;
+	let waits: Array<() => void> | undefined;
+	let scheduled = false;
+	let writing = false;
+
+	const settle = () => {
+		if (scheduled || writing || chunks?.length) return;
+		const list = waits;
+		if (!list?.length) return;
+		waits = undefined;
+		for (const fn of list) fn();
+	};
+
+	const run = () => {
+		if (writing) return;
+		scheduled = false;
+		const items = chunks;
+		if (!items?.length) {
+			settle();
+			return;
+		}
+		chunks = undefined;
+		writing = true;
+		write(items.join(""), () => {
+			writing = false;
+			if (chunks?.length) {
+				if (scheduled) return;
+				scheduled = true;
+				schedule(run);
+				return;
+			}
+			settle();
+		});
+	};
+
+	const push = (data: string) => {
+		if (!data) return;
+		if (chunks) chunks.push(data);
+		else chunks = [data];
+
+		if (scheduled || writing) return;
+		scheduled = true;
+		schedule(run);
+	};
+
+	const flush = (done?: () => void) => {
+		if (!scheduled && !writing && !chunks?.length) {
+			done?.();
+			return;
+		}
+		if (done) {
+			if (waits) waits.push(done);
+			else waits = [done];
+		}
+		run();
+	};
+
+	return { push, flush };
 }
 
 /** xterm.js theme that adapts to light/dark mode */
@@ -81,9 +164,50 @@ export function TerminalPanel({ cwd, expanded, onToggle, onClose }: Props) {
 	const [tabs, setTabs] = useState<TerminalTab[]>([]);
 	const [activeTabId, setActiveTabId] = useState<string | null>(null);
 	const terminalsRef = useRef<Map<string, any>>(new Map());
+	const terminalWritersRef = useRef<Map<string, TerminalWriter>>(new Map());
+	const pendingOutputRef = useRef<Map<string, string[]>>(new Map());
+	const resizeTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+	const terminalCleanupsRef = useRef<Map<string, Array<() => void>>>(new Map());
 	const containerRef = useRef<HTMLDivElement>(null);
 	const fitAddonRef = useRef<Map<string, any>>(new Map());
 	const isDark = useTheme((s) => s.applied === "dark");
+
+	const cleanupTerminalUi = useCallback((id: string) => {
+		const cleanups = terminalCleanupsRef.current.get(id);
+		if (!cleanups) return;
+		for (const cleanup of cleanups.splice(0).reverse()) {
+			try {
+				cleanup();
+			} catch {
+				// ignore
+			}
+		}
+		terminalCleanupsRef.current.delete(id);
+	}, []);
+
+	const disposeTerminal = useCallback(
+		(id: string) => {
+			cleanupTerminalUi(id);
+			terminalsRef.current.get(id)?.dispose();
+			terminalsRef.current.delete(id);
+			terminalWritersRef.current.delete(id);
+			pendingOutputRef.current.delete(id);
+			const timer = resizeTimersRef.current.get(id);
+			if (timer) clearTimeout(timer);
+			resizeTimersRef.current.delete(id);
+			fitAddonRef.current.delete(id);
+		},
+		[cleanupTerminalUi],
+	);
+
+	const registerTerminalTab = useCallback((tab: TerminalTab) => {
+		setTabs((prev) => (prev.some((item) => item.id === tab.id) ? prev : [...prev, tab]));
+		setActiveTabId((prev) => prev ?? tab.id);
+		if (tab.buffer) {
+			const pending = pendingOutputRef.current.get(tab.id);
+			pendingOutputRef.current.set(tab.id, pending ? [tab.buffer, ...pending] : [tab.buffer]);
+		}
+	}, []);
 
 	const createTerminal = useCallback(async () => {
 		const el = containerRef.current;
@@ -104,17 +228,14 @@ export function TerminalPanel({ cwd, expanded, onToggle, onClose }: Props) {
 			title: shellName,
 		};
 
-		setTabs((prev) => [...prev, newTab]);
-		setActiveTabId(result.id);
+		registerTerminalTab(newTab);
 		return result.id;
-	}, [cwd]);
+	}, [cwd, registerTerminalTab]);
 
 	const closeTerminal = useCallback(
 		async (id: string) => {
 			await pi.pty.kill(id);
-			terminalsRef.current.get(id)?.dispose();
-			terminalsRef.current.delete(id);
-			fitAddonRef.current.delete(id);
+			disposeTerminal(id);
 			setTabs((prev) => {
 				const next = prev.filter((t) => t.id !== id);
 				if (activeTabId === id) {
@@ -128,8 +249,18 @@ export function TerminalPanel({ cwd, expanded, onToggle, onClose }: Props) {
 				return next;
 			});
 		},
-		[activeTabId, onClose],
+		[activeTabId, disposeTerminal, onClose],
 	);
+
+	const schedulePtyResize = useCallback((tabId: string, cols: number, rows: number) => {
+		const existing = resizeTimersRef.current.get(tabId);
+		if (existing) clearTimeout(existing);
+		const timer = setTimeout(() => {
+			resizeTimersRef.current.delete(tabId);
+			void pi.pty.resize(tabId, cols, rows);
+		}, 80);
+		resizeTimersRef.current.set(tabId, timer);
+	}, []);
 
 	const initTerminal = useCallback(
 		async (tabId: string) => {
@@ -141,19 +272,33 @@ export function TerminalPanel({ cwd, expanded, onToggle, onClose }: Props) {
 			const { WebLinksAddon } = await import("@xterm/addon-web-links");
 
 			const existing = terminalsRef.current.get(tabId);
-			if (existing) existing.dispose();
+			if (existing) disposeTerminal(tabId);
 
 			const terminal = new Terminal({
 				cursorBlink: true,
 				cursorStyle: "bar",
 				fontSize: 13,
-				lineHeight: 1.25,
-				fontFamily:
-					"'SF Mono', 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Menlo, Monaco, 'Courier New', monospace",
+				lineHeight: 1.28,
+				letterSpacing: 0,
+				fontFamily: TERMINAL_FONT_FAMILY,
 				theme: getXtermTheme(isDark),
 				allowTransparency: false,
 				scrollback: 10000,
-				convertEol: true,
+				convertEol: false,
+			});
+			terminal.attachCustomKeyEventHandler((event: KeyboardEvent) => {
+				const key = event.key.toLowerCase();
+				if ((event.metaKey || (event.ctrlKey && event.shiftKey)) && key === "c") {
+					document.execCommand("copy");
+					return false;
+				}
+				if ((event.metaKey || (event.ctrlKey && event.shiftKey)) && key === "v") {
+					void navigator.clipboard.readText().then((text) => {
+						if (text) terminal.paste(text);
+					});
+					return false;
+				}
+				return true;
 			});
 
 			const fitAddon = new FitAddon();
@@ -161,20 +306,73 @@ export function TerminalPanel({ cwd, expanded, onToggle, onClose }: Props) {
 			terminal.loadAddon(new WebLinksAddon());
 			terminal.open(container);
 
+			const writer = createTerminalWriter((data, done) => terminal.write(data, done));
 			terminalsRef.current.set(tabId, terminal);
+			terminalWritersRef.current.set(tabId, writer);
 			fitAddonRef.current.set(tabId, fitAddon);
 
-			terminal.onData((data) => {
+			const fitAndSync = () => {
+				try {
+					fitAddon.fit();
+					schedulePtyResize(tabId, terminal.cols, terminal.rows);
+				} catch {
+					// ignore
+				}
+			};
+			requestAnimationFrame(fitAndSync);
+			requestAnimationFrame(() => requestAnimationFrame(fitAndSync));
+
+			const pending = pendingOutputRef.current.get(tabId);
+			if (pending?.length) {
+				writer.push(pending.join(""));
+				pendingOutputRef.current.delete(tabId);
+			}
+
+			const handleCopy = (event: ClipboardEvent) => {
+				const selection = terminal.getSelection();
+				if (!selection || !event.clipboardData) return;
+				event.preventDefault();
+				event.clipboardData.setData("text/plain", selection);
+			};
+			const handlePaste = (event: ClipboardEvent) => {
+				const text = event.clipboardData?.getData("text/plain") ?? "";
+				if (!text) return;
+				event.preventDefault();
+				terminal.paste(text);
+			};
+			const handlePointerDown = () => {
+				terminal.focus();
+				terminal.textarea?.focus();
+			};
+			container.addEventListener("copy", handleCopy, true);
+			container.addEventListener("paste", handlePaste, true);
+			container.addEventListener("pointerdown", handlePointerDown);
+			terminalCleanupsRef.current.set(tabId, [
+				() => container.removeEventListener("copy", handleCopy, true),
+				() => container.removeEventListener("paste", handlePaste, true),
+				() => container.removeEventListener("pointerdown", handlePointerDown),
+			]);
+
+			if (document.fonts) {
+				void document.fonts.ready.then(fitAndSync);
+			}
+
+			const dataDisposable = terminal.onData((data) => {
 				void pi.pty.write(tabId, data);
 			});
 
-			terminal.onResize(({ cols, rows }) => {
-				void pi.pty.resize(tabId, cols, rows);
+			const resizeDisposable = terminal.onResize(({ cols, rows }) => {
+				schedulePtyResize(tabId, cols, rows);
 			});
+
+			terminalCleanupsRef.current.get(tabId)?.push(
+				() => dataDisposable.dispose(),
+				() => resizeDisposable.dispose(),
+			);
 
 			terminal.focus();
 		},
-		[isDark],
+		[disposeTerminal, isDark, schedulePtyResize],
 	);
 
 	// Re-theme existing terminals when app theme changes
@@ -192,33 +390,88 @@ export function TerminalPanel({ cwd, expanded, onToggle, onClose }: Props) {
 	// PTY events
 	useEffect(() => {
 		const unsubData = pi.pty.onData(({ id, data }) => {
-			terminalsRef.current.get(id)?.write(data);
+			const writer = terminalWritersRef.current.get(id);
+			if (writer) {
+				writer.push(data);
+				return;
+			}
+			const pending = pendingOutputRef.current.get(id);
+			if (pending) pending.push(data);
+			else pendingOutputRef.current.set(id, [data]);
 		});
 		const unsubExit = pi.pty.onExit(({ id }) => {
-			setTabs((prev) => prev.filter((t) => t.id !== id));
-			terminalsRef.current.get(id)?.dispose();
-			terminalsRef.current.delete(id);
-			fitAddonRef.current.delete(id);
+			setTabs((prev) => {
+				const next = prev.filter((t) => t.id !== id);
+				setActiveTabId((current) => {
+					if (current !== id) return current;
+					return next[next.length - 1]?.id ?? null;
+				});
+				return next;
+			});
+			const writer = terminalWritersRef.current.get(id);
+			if (writer) writer.flush(() => disposeTerminal(id));
+			else disposeTerminal(id);
+		});
+		const unsubTitle = pi.pty.onTitle(({ id, title }) => {
+			setTabs((prev) => prev.map((tab) => (tab.id === id ? { ...tab, title } : tab)));
 		});
 		return () => {
 			unsubData();
 			unsubExit();
+			unsubTitle();
 		};
-	}, []);
+	}, [disposeTerminal]);
 
-	// Auto-create first terminal on mount
+	// Restore existing PTYs for this workspace on mount, or create the first one.
 	useEffect(() => {
-		if (tabs.length === 0) void createTerminal();
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+		let cancelled = false;
+		void pi.pty.list().then((items) => {
+			if (cancelled) return;
+			const matching = items.filter((item) => !cwd || item.cwd === cwd);
+			if (matching.length === 0) {
+				void createTerminal();
+				return;
+			}
+			for (const item of matching) {
+				registerTerminalTab({
+					id: item.id,
+					shell: item.shell,
+					cwd: item.cwd,
+					title: item.title || item.shell.split("/").pop() || "Terminal",
+					buffer: item.buffer,
+				});
+			}
+		});
+		return () => {
+			cancelled = true;
+			for (const [id] of terminalsRef.current) disposeTerminal(id);
+			setTabs([]);
+			setActiveTabId(null);
+		};
+	}, [createTerminal, cwd, disposeTerminal, registerTerminalTab]);
 
-	// Init terminal when tab becomes active
+	// Init/focus terminal when tab becomes active
 	useEffect(() => {
-		if (activeTabId && !terminalsRef.current.has(activeTabId)) {
+		if (!activeTabId) return;
+		if (!terminalsRef.current.has(activeTabId)) {
 			const timer = setTimeout(() => void initTerminal(activeTabId), 80);
 			return () => clearTimeout(timer);
 		}
-	}, [activeTabId, tabs.length, initTerminal]);
+		if (expanded) {
+			const terminal = terminalsRef.current.get(activeTabId);
+			requestAnimationFrame(() => {
+				try {
+					// biome-ignore lint/suspicious/noFocusedTests: xterm.js fit() method, not a test
+					fitAddonRef.current.get(activeTabId)?.fit();
+					terminal?.focus();
+					terminal?.textarea?.focus();
+					if (terminal) schedulePtyResize(activeTabId, terminal.cols, terminal.rows);
+				} catch {
+					// ignore
+				}
+			});
+		}
+	}, [activeTabId, expanded, tabs.length, initTerminal, schedulePtyResize]);
 
 	// Fit on expand + resize observer (always active even when collapsed,
 	// so when it expands the container has correct dimensions)
@@ -228,6 +481,8 @@ export function TerminalPanel({ cwd, expanded, onToggle, onClose }: Props) {
 				try {
 					// biome-ignore lint/suspicious/noFocusedTests: xterm.js fit() method, not a test
 					fitAddonRef.current.get(activeTabId)?.fit();
+					const terminal = terminalsRef.current.get(activeTabId);
+					if (terminal) schedulePtyResize(activeTabId, terminal.cols, terminal.rows);
 				} catch {
 					// ignore
 				}
@@ -248,14 +503,9 @@ export function TerminalPanel({ cwd, expanded, onToggle, onClose }: Props) {
 			ro.disconnect();
 			window.removeEventListener("resize", doFit);
 		};
-	}, [activeTabId, expanded]);
+	}, [activeTabId, expanded, schedulePtyResize]);
 
-	// Cleanup on unmount
-	useEffect(() => {
-		return () => {
-			for (const [id] of terminalsRef.current) void pi.pty.kill(id);
-		};
-	}, []);
+	// Terminal UI cleanup is handled by the restore effect above.
 
 	return (
 		<div className="shrink-0 border-t border-border/50 bg-background">

@@ -89,6 +89,31 @@ describe("session-fs", () => {
 			expect(result[0].modified).toBe(date.getTime());
 		});
 
+		it("filters out sessions from other working directories", async () => {
+			vi.mocked(SessionManager.list).mockResolvedValue([
+				{
+					path: "/a/root.json",
+					id: "root",
+					cwd: "/a",
+					created: new Date("2025-06-01"),
+					modified: new Date("2025-06-01"),
+					messageCount: 1,
+					firstMessage: "root",
+				},
+				{
+					path: "/a/nested/child.json",
+					id: "child",
+					cwd: "/a/nested",
+					created: new Date("2025-06-02"),
+					modified: new Date("2025-06-02"),
+					messageCount: 1,
+					firstMessage: "child",
+				},
+			] as any);
+			const result = await listSessionsForCwd("/a");
+			expect(result.map((item) => item.id)).toEqual(["root"]);
+		});
+
 		it("returns empty array for no sessions", async () => {
 			vi.mocked(SessionManager.list).mockResolvedValue([]);
 			const result = await listSessionsForCwd("/empty");
