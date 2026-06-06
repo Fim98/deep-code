@@ -271,6 +271,10 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 		ptyManager.kill(id);
 	});
 
+	ipcMain.handle("pi:pty:rename", (_e, id: string, title: string) => {
+		return ptyManager.rename(id, title);
+	});
+
 	ipcMain.handle("pi:pty:list", () => {
 		return ptyManager.list();
 	});

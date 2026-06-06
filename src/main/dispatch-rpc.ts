@@ -42,14 +42,34 @@ export async function dispatchRpc(
 	try {
 		switch (cmd.type) {
 			case "prompt": {
-				void session
-					.prompt(cmd.message, {
-						images: cmd.images,
-						streamingBehavior: cmd.streamingBehavior,
-						source: "rpc",
-					})
-					.catch(() => undefined);
-				return ok(id, "prompt");
+				let preflightSucceeded = false;
+				return await new Promise<RpcResponse>((resolve) => {
+					let settled = false;
+					const settle = (response: RpcResponse) => {
+						if (settled) return;
+						settled = true;
+						resolve(response);
+					};
+
+					void session
+						.prompt(cmd.message, {
+							images: cmd.images,
+							streamingBehavior: cmd.streamingBehavior,
+							source: "rpc",
+							preflightResult: (didSucceed) => {
+								if (!didSucceed) return;
+								preflightSucceeded = true;
+								settle(ok(id, "prompt"));
+							},
+						})
+						.then(() => {
+							if (!preflightSucceeded) settle(ok(id, "prompt"));
+						})
+						.catch((err) => {
+							if (preflightSucceeded) return;
+							settle(fail(id, "prompt", err instanceof Error ? err.message : String(err)));
+						});
+				});
 			}
 
 			case "steer": {

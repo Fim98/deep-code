@@ -28,6 +28,12 @@ export interface NotifyItem {
 	createdAt: number;
 }
 
+export interface EditorTextOverride {
+	id: string;
+	sessionId: string;
+	text: string;
+}
+
 interface ExtensionUIState {
 	/** Current modal dialog (only one at a time) */
 	currentDialog: InteractiveRequest | null;
@@ -40,8 +46,8 @@ interface ExtensionUIState {
 		string,
 		{ sessionId: string; lines: string[]; placement: "aboveEditor" | "belowEditor" }
 	>;
-	/** Extension-set editor text override */
-	editorTextOverride: string | null;
+	/** Extension-set editor text request */
+	editorTextOverride: EditorTextOverride | null;
 	/** Extension-set title override */
 	titleOverride: string | null;
 }
@@ -50,6 +56,7 @@ interface ExtensionUIActions {
 	handleRequest: (request: ExtensionUIRequest) => void;
 	respondDialog: (response: { value?: string; confirmed?: boolean; cancelled?: boolean }) => void;
 	dismissNotification: (id: string) => void;
+	consumeEditorTextOverride: (id: string) => void;
 	clearAll: () => void;
 }
 
@@ -131,7 +138,7 @@ export const useExtensionUI = create<Store>((set, get) => ({
 
 			case "set_editor_text": {
 				const req = request as ExtensionUISetEditorTextRequest;
-				set({ editorTextOverride: req.text });
+				set({ editorTextOverride: { id: req.id, sessionId: req.sessionId, text: req.text } });
 				break;
 			}
 		}
@@ -164,6 +171,10 @@ export const useExtensionUI = create<Store>((set, get) => ({
 		set((s) => ({
 			notifications: s.notifications.filter((n) => n.id !== id),
 		}));
+	},
+
+	consumeEditorTextOverride(id: string) {
+		set((s) => (s.editorTextOverride?.id === id ? { editorTextOverride: null } : {}));
 	},
 
 	clearAll() {

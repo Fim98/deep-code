@@ -97,14 +97,16 @@ export function App() {
 
 	const { hydrate, attach, setCurrent } = useSessions();
 	const sessionSubscriptions = useRef(new Map<string, () => void>());
-	const sessionActivity = useRef(new Map<string, { workspaceId: string; piSessionId: string; lastTouchedAt: number }>());
+	const sessionActivity = useRef(
+		new Map<string, { workspaceId: string; piSessionId: string; lastTouchedAt: number }>(),
+	);
 	const recyclingSessions = useRef(new Set<string>());
 	const trackedSlices = useRef(new Map<string, unknown>());
-	const activeSession = activeWs ? activeSessionByWs[activeWs] ?? null : null;
+	const activeSession = activeWs ? (activeSessionByWs[activeWs] ?? null) : null;
 	const activeSid = activeSession?.sessionId ?? null;
 	const activePiSid = activeSession?.piSessionId ?? null;
 	const sessionSlices = useSessions((s) => s.bySession);
-	const slice = activeSid ? sessionSlices[activeSid] ?? null : null;
+	const slice = activeSid ? (sessionSlices[activeSid] ?? null) : null;
 
 	useEffect(() => {
 		installGlobalErrorToasts();
@@ -419,11 +421,11 @@ export function App() {
 			const targetSessionId = isActiveRuntime
 				? activeForWorkspace.sessionId
 				: (
-					await pi.sessions.open({
-						workspaceId,
-						sessionFile: s.path,
-					})
-				  ).sessionId;
+						await pi.sessions.open({
+							workspaceId,
+							sessionFile: s.path,
+						})
+					).sessionId;
 			if (!isActiveRuntime) temporarySessionId = targetSessionId;
 			const resp = await pi.rpc.send(targetSessionId, {
 				type: "set_session_name",
@@ -456,7 +458,9 @@ export function App() {
 			}
 		}
 		for (const sessionId of Array.from(trackedSlices.current.keys())) {
-			const stillTracked = Object.values(activeSessionByWs).some((binding) => binding.sessionId === sessionId);
+			const stillTracked = Object.values(activeSessionByWs).some(
+				(binding) => binding.sessionId === sessionId,
+			);
 			if (!stillTracked) trackedSlices.current.delete(sessionId);
 		}
 	}, [activeSessionByWs, sessionSlices]);
@@ -888,7 +892,12 @@ export function App() {
 					{/* Right rail: file preview + file tree */}
 					{activeWorkspace && previewFile ? (
 						<>
-							<ResizeHandle minWidth={280} maxWidth={900} onResize={setPreviewWidth} />
+							<ResizeHandle
+								direction="horizontal"
+								minSize={280}
+								maxSize={900}
+								onResize={setPreviewWidth}
+							/>
 							<div className="h-full shrink-0" style={{ width: previewWidth }}>
 								<FilePreview filePath={previewFile} onClose={() => setPreviewFile(null)} />
 							</div>

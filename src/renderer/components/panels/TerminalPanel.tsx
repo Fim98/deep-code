@@ -1,12 +1,39 @@
 import { ChevronDown, ChevronUp, Plus, Terminal as TerminalIcon, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ResizeHandle } from "@/components/ui/resize-handle";
 import { useI18n } from "@/lib/i18n";
 import { pi } from "@/lib/rpc";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/stores/theme";
 
 import "@xterm/xterm/css/xterm.css";
+
+const HEIGHT_STORAGE_KEY = "pi.terminal.height";
+const DEFAULT_HEIGHT = 260;
+const MIN_HEIGHT = 100;
+const COLLAPSE_THRESHOLD = 60;
+
+function readPersistedHeight(): number {
+	if (typeof window === "undefined") return DEFAULT_HEIGHT;
+	try {
+		const raw = localStorage.getItem(HEIGHT_STORAGE_KEY);
+		if (!raw) return DEFAULT_HEIGHT;
+		const n = Number.parseInt(raw, 10);
+		if (!Number.isFinite(n) || n < MIN_HEIGHT) return DEFAULT_HEIGHT;
+		return Math.min(n, Math.floor(window.innerHeight * 0.8));
+	} catch {
+		return DEFAULT_HEIGHT;
+	}
+}
+
+function persistHeight(height: number) {
+	try {
+		localStorage.setItem(HEIGHT_STORAGE_KEY, String(Math.round(height)));
+	} catch {
+		// ignore quota / disabled storage
+	}
+}
 
 interface TerminalTab {
 	id: string;
@@ -163,6 +190,8 @@ export function TerminalPanel({ cwd, expanded, onToggle, onClose }: Props) {
 	const { t } = useI18n();
 	const [tabs, setTabs] = useState<TerminalTab[]>([]);
 	const [activeTabId, setActiveTabId] = useState<string | null>(null);
+	const [height, setHeight] = useState<number>(() => readPersistedHeight());
+	const [isResizing, setIsResizing] = useState(false);
 	const terminalsRef = useRef<Map<string, any>>(new Map());
 	const terminalWritersRef = useRef<Map<string, TerminalWriter>>(new Map());
 	const pendingOutputRef = useRef<Map<string, string[]>>(new Map());
@@ -171,6 +200,66 @@ export function TerminalPanel({ cwd, expanded, onToggle, onClose }: Props) {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const fitAddonRef = useRef<Map<string, any>>(new Map());
 	const isDark = useTheme((s) => s.applied === "dark");
+	const [editingTabId, setEditingTabId] = useState<string | null>(null);
+	const [editingValue, setEditingValue] = useState("");
+	const editInputRef = useRef<HTMLInputElement | null>(null);
+
+	const renameTab = useCallback(async (id: string, title: string) => {
+		const trimmed = title.trim();
+		if (!trimmed) {
+			setEditingTabId(null);
+			return;
+		}
+		setTabs((prev) => prev.map((tab) => (tab.id === id ? { ...tab, title: trimmed } : tab)));
+		setEditingTabId(null);
+		try {
+			await pi.pty.rename(id, trimmed);
+		} catch (err) {
+			console.error("[terminal] rename failed", err);
+		}
+	}, []);
+
+	const startEditing = useCallback((tab: TerminalTab) => {
+		setEditingTabId(tab.id);
+		setEditingValue(tab.title);
+	}, []);
+
+	const cancelEditing = useCallback(() => {
+		setEditingTabId(null);
+		setEditingValue("");
+	}, []);
+
+	useEffect(() => {
+		if (!editingTabId) return;
+		editInputRef.current?.focus();
+		editInputRef.current?.select();
+	}, [editingTabId]);
+
+	const handleHeightChange = useCallback((next: number) => {
+		const clamped = Math.max(MIN_HEIGHT, next);
+		setHeight(clamped);
+		persistHeight(clamped);
+	}, []);
+
+	const handleResizeStart = useCallback(() => {
+		setIsResizing(true);
+	}, []);
+
+	const handleResizeEnd = useCallback(() => {
+		setIsResizing(false);
+	}, []);
+
+	// Re-clamp height when window resizes
+	useEffect(() => {
+		function onWindowResize() {
+			setHeight((prev) => {
+				const cap = Math.floor(window.innerHeight * 0.8);
+				return Math.min(prev, cap);
+			});
+		}
+		window.addEventListener("resize", onWindowResize);
+		return () => window.removeEventListener("resize", onWindowResize);
+	}, []);
 
 	const cleanupTerminalUi = useCallback((id: string) => {
 		const cleanups = terminalCleanupsRef.current.get(id);
@@ -529,42 +618,85 @@ export function TerminalPanel({ cwd, expanded, onToggle, onClose }: Props) {
 				{expanded ? (
 					/* Tabs + actions when expanded */
 					<div className="ml-3 flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
-						{tabs.map((tab) => (
-							<button
-								key={tab.id}
-								type="button"
-								onClick={() => setActiveTabId(tab.id)}
-								className={cn(
-									"group relative flex h-6 shrink-0 items-center gap-1 rounded-[6px] px-2 text-[11px] font-medium transition-colors duration-100",
-									activeTabId === tab.id
-										? "bg-foreground/[0.06] text-foreground"
-										: "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground/70",
-								)}
-							>
-								<TerminalIcon className="size-2.5 shrink-0 opacity-50" />
-								<span className="max-w-[80px] truncate">{tab.title}</span>
-								{tabs.length > 1 && (
-									<span
-										role="button"
-										tabIndex={0}
-										onClick={(e) => {
-											e.stopPropagation();
-											void closeTerminal(tab.id);
-										}}
-										onKeyDown={(e) => {
-											if (e.key === "Enter" || e.key === " ") {
-												e.preventDefault();
+						{tabs.map((tab) => {
+							const isEditing = editingTabId === tab.id;
+							return (
+								<div
+									key={tab.id}
+									role="tab"
+									tabIndex={0}
+									onClick={() => !isEditing && setActiveTabId(tab.id)}
+									onKeyDown={(e) => {
+										if (isEditing) return;
+										if (e.key === "Enter" || e.key === " ") {
+											e.preventDefault();
+											setActiveTabId(tab.id);
+										}
+									}}
+									className={cn(
+										"group relative flex h-6 shrink-0 items-center gap-1 rounded-[6px] px-2 text-[11px] font-medium transition-colors duration-100 cursor-pointer",
+										activeTabId === tab.id
+											? "bg-foreground/[0.06] text-foreground"
+											: "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground/70",
+									)}
+								>
+									<TerminalIcon className="size-2.5 shrink-0 opacity-50" />
+									{isEditing ? (
+										<input
+											ref={editInputRef}
+											type="text"
+											value={editingValue}
+											onChange={(e) => setEditingValue(e.target.value)}
+											onBlur={() => void renameTab(tab.id, editingValue)}
+											onKeyDown={(e) => {
+												if (e.key === "Enter") {
+													e.preventDefault();
+													void renameTab(tab.id, editingValue);
+												} else if (e.key === "Escape") {
+													e.preventDefault();
+													cancelEditing();
+												}
+												e.stopPropagation();
+											}}
+											onClick={(e) => e.stopPropagation()}
+											className="max-w-[100px] rounded-sm bg-background/80 px-1 py-px text-[11px] font-medium text-foreground outline-none ring-1 ring-primary/30 focus:ring-primary/60"
+										/>
+									) : (
+										<button
+											type="button"
+											onDoubleClick={(e) => {
+												e.stopPropagation();
+												startEditing(tab);
+											}}
+											className="max-w-[80px] truncate border-none bg-transparent p-0 text-inherit"
+											title={tab.title}
+										>
+											{tab.title}
+										</button>
+									)}
+									{tabs.length > 1 && !isEditing && (
+										<span
+											role="button"
+											tabIndex={0}
+											onClick={(e) => {
 												e.stopPropagation();
 												void closeTerminal(tab.id);
-											}
-										}}
-										className="flex size-3.5 items-center justify-center rounded-sm opacity-0 transition-opacity hover:bg-foreground/[0.08] group-hover:opacity-100 cursor-pointer"
-									>
-										<X className="size-2" />
-									</span>
-								)}
-							</button>
-						))}
+											}}
+											onKeyDown={(e) => {
+												if (e.key === "Enter" || e.key === " ") {
+													e.preventDefault();
+													e.stopPropagation();
+													void closeTerminal(tab.id);
+												}
+											}}
+											className="flex size-3.5 items-center justify-center rounded-sm opacity-0 transition-opacity hover:bg-foreground/[0.08] group-hover:opacity-100 cursor-pointer"
+										>
+											<X className="size-2" />
+										</span>
+									)}
+								</div>
+							);
+						})}
 						<button
 							type="button"
 							onClick={() => void createTerminal()}
@@ -600,13 +732,30 @@ export function TerminalPanel({ cwd, expanded, onToggle, onClose }: Props) {
 				</div>
 			</div>
 
+			{/* Resize handle — sits between header and terminal area; drag up/down to resize */}
+			<ResizeHandle
+				direction="vertical"
+				minSize={MIN_HEIGHT}
+				maxSize={Math.max(
+					MIN_HEIGHT,
+					typeof window !== "undefined" ? Math.floor(window.innerHeight * 0.8) : 600,
+				)}
+				collapseThreshold={COLLAPSE_THRESHOLD}
+				onCollapse={onClose}
+				onResize={handleHeightChange}
+				onResizeStart={handleResizeStart}
+				onResizeEnd={handleResizeEnd}
+			/>
+
 			{/* Terminal area — always in DOM, height toggled via CSS to preserve xterm content */}
 			<div
 				ref={containerRef}
 				className={cn(
-					"relative overflow-hidden transition-[height] duration-200 ease-out",
-					expanded ? "h-[260px]" : "h-0",
+					"relative overflow-hidden",
+					!isResizing && "transition-[height] duration-200 ease-out",
+					expanded ? "" : "h-0",
 				)}
+				style={expanded ? { height: `${height}px` } : undefined}
 			>
 				{tabs.map((tab) => (
 					<div

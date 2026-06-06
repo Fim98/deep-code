@@ -349,5 +349,90 @@ describe("session-state store", () => {
 			expect(slice.pendingSubmissions).toHaveLength(0);
 			expect(slice.queue.steering).toEqual(["queued msg"]);
 		});
+
+		it("records extension errors as runtime events", () => {
+			let eventHandler: ((ev: any) => void) | undefined;
+			mockPi.rpc.subscribe.mockImplementation((_sid: string, cb: (ev: any) => void) => {
+				eventHandler = cb;
+				return vi.fn();
+			});
+
+			useSessions.setState({
+				bySession: {
+					s1: {
+						messages: [],
+						state: null,
+						isStreaming: false,
+						activeTools: {},
+						pendingSubmissions: [],
+						planTracker: { tasks: [] },
+						queue: { steering: [], followUp: [] },
+					},
+				},
+			});
+
+			useSessions.getState().attach("s1");
+
+			eventHandler!({
+				type: "extension_error",
+				extensionPath: "/tmp/ext.ts",
+				event: "message_end",
+				error: "boom",
+			});
+
+			const slice = useSessions.getState().bySession.s1;
+			expect(slice.messages).toHaveLength(1);
+			expect(slice.messages[0]).toMatchObject({
+				role: "custom",
+				subtype: "runtime_event",
+				data: {
+					type: "extension_error",
+					error: "boom",
+				},
+			});
+		});
+
+		it("updates session metadata events", () => {
+			let eventHandler: ((ev: any) => void) | undefined;
+			mockPi.rpc.subscribe.mockImplementation((_sid: string, cb: (ev: any) => void) => {
+				eventHandler = cb;
+				return vi.fn();
+			});
+
+			useSessions.setState({
+				bySession: {
+					s1: {
+						messages: [],
+						state: {
+							model: undefined,
+							thinkingLevel: "off",
+							isStreaming: false,
+							isCompacting: false,
+							steeringMode: "all",
+							followUpMode: "all",
+							sessionFile: "/tmp/s.json",
+							sessionId: "pi-id",
+							autoCompactionEnabled: true,
+							messageCount: 0,
+							pendingMessageCount: 0,
+						},
+						isStreaming: false,
+						activeTools: {},
+						pendingSubmissions: [],
+						planTracker: { tasks: [] },
+						queue: { steering: [], followUp: [] },
+					},
+				},
+			});
+
+			useSessions.getState().attach("s1");
+
+			eventHandler!({ type: "session_info_changed", name: "Renamed" });
+			eventHandler!({ type: "thinking_level_changed", level: "high" });
+
+			const slice = useSessions.getState().bySession.s1;
+			expect(slice.state?.sessionName).toBe("Renamed");
+			expect(slice.state?.thinkingLevel).toBe("high");
+		});
 	});
 });

@@ -1,10 +1,13 @@
 import {
+	AlertCircle,
 	ChevronRight,
 	Copy,
 	FilePen,
 	FilePlus,
 	FileText,
 	GitFork,
+	Info,
+	RefreshCw,
 	RotateCcw,
 	Search,
 	Sparkles,
@@ -211,7 +214,11 @@ export function MessageTimeline({ sessionId }: Props) {
 					.filter((p): p is Part & { type: "text" } => p.type === "text" && !!p.text)
 					.map((p) => p.text)
 					.join(" ");
-				if (text.toLowerCase().includes(q)) matched.add(item.key);
+				const errors = item.messages
+					.map((m) => m.errorMessage)
+					.filter((message): message is string => !!message)
+					.join(" ");
+				if (`${text} ${errors}`.toLowerCase().includes(q)) matched.add(item.key);
 			} else if (item.type === "toolResult") {
 				const text = (item.message.content as Part[])
 					.filter((p): p is Part & { type: "text" } => p?.type === "text")
@@ -584,7 +591,16 @@ function AssistantRow({
 		.join("\n\n");
 	const activities = buildActivities(parts, toolResults, activeTools, isStreaming);
 	const hasFinalText = text.trim().length > 0;
-	const hasContent = hasFinalText || activities.length > 0;
+	const errorMessage = [...messages]
+		.reverse()
+		.map((message) => message.errorMessage)
+		.find((message): message is string => !!message);
+	const errorStopReason = [...messages]
+		.reverse()
+		.map((message) => message.stopReason)
+		.find((reason) => reason === "error" || reason === "aborted");
+	const hasError = !!errorMessage || !!errorStopReason;
+	const hasContent = hasFinalText || activities.length > 0 || hasError;
 	if (!hasContent) return null;
 
 	const firstMessage = messages[0];
@@ -630,6 +646,9 @@ function AssistantRow({
 						isStreaming={isStreaming}
 						hasFinalText={hasFinalText}
 					/>
+					{hasError ? (
+						<AssistantErrorNotice stopReason={errorStopReason} message={errorMessage} />
+					) : null}
 					{hasFinalText ? <MessageResponse>{text}</MessageResponse> : null}
 					{model || stopReason ? (
 						<div className="text-[11px] font-medium text-muted-foreground/55">
@@ -680,6 +699,32 @@ function AssistantRow({
 				) : null}
 			</div>
 		</Message>
+	);
+}
+
+function AssistantErrorNotice({ stopReason, message }: { stopReason?: string; message?: string }) {
+	const { t } = useI18n();
+	const aborted = stopReason === "aborted";
+	const title = aborted ? t("timeline.requestAborted") : t("timeline.requestFailed");
+	return (
+		<div
+			className={cn(
+				"flex min-w-0 items-start gap-3 rounded-[18px] border px-4 py-3 text-[13px] leading-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)]",
+				aborted
+					? "border-warning/25 bg-warning/5 text-foreground"
+					: "border-destructive/25 bg-destructive/5 text-destructive",
+			)}
+		>
+			<AlertCircle className="mt-0.5 size-4 shrink-0" />
+			<div className="min-w-0 flex-1">
+				<div className="font-medium">{title}</div>
+				{message ? (
+					<pre className="mt-1 whitespace-pre-wrap break-words font-mono text-[11.5px] leading-5 [overflow-wrap:anywhere]">
+						{message}
+					</pre>
+				) : null}
+			</div>
+		</div>
 	);
 }
 
@@ -805,6 +850,10 @@ function ActivityItemRow({ item }: { item: ActivityItem }) {
 }
 
 function CustomRow({ data }: { data: ChatMessage & { role: "custom" } }) {
+	if (data.subtype === "runtime_event") {
+		return <RuntimeEventRow event={data.data} />;
+	}
+
 	return (
 		<Message from="assistant">
 			<MessageContent className="rounded-[18px] border border-border/40 bg-card/50 px-4 py-3 text-[12px] text-muted-foreground shadow-[0_2px_8px_rgba(0,0,0,0.03)] backdrop-blur-xl">
@@ -815,6 +864,177 @@ function CustomRow({ data }: { data: ChatMessage & { role: "custom" } }) {
 			</MessageContent>
 		</Message>
 	);
+}
+
+type RuntimeSeverity = "info" | "warning" | "error";
+
+interface RuntimeEventDisplay {
+	title: string;
+	message?: string;
+	severity: RuntimeSeverity;
+	icon: "info" | "retry" | "error";
+}
+
+function RuntimeEventRow({ event }: { event: unknown }) {
+	const { t } = useI18n();
+	const display = describeRuntimeEvent(event, t);
+	const Icon = display.icon === "retry" ? RefreshCw : display.icon === "error" ? AlertCircle : Info;
+	return (
+		<Message from="assistant">
+			<MessageContent
+				className={cn(
+					"rounded-[18px] border px-4 py-3 text-[13px] leading-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)] backdrop-blur-xl",
+					display.severity === "error" && "border-destructive/25 bg-destructive/5 text-destructive",
+					display.severity === "warning" && "border-warning/25 bg-warning/5 text-foreground",
+					display.severity === "info" && "border-border/40 bg-card/50 text-muted-foreground",
+				)}
+			>
+				<div className="flex min-w-0 items-start gap-3">
+					<Icon
+						className={cn(
+							"mt-0.5 size-4 shrink-0",
+							display.severity === "info" && "text-primary/70",
+						)}
+					/>
+					<div className="min-w-0 flex-1">
+						<div className="font-medium text-foreground">{display.title}</div>
+						{display.message ? (
+							<div className="mt-1 whitespace-pre-wrap break-words text-[12px] [overflow-wrap:anywhere]">
+								{display.message}
+							</div>
+						) : null}
+					</div>
+				</div>
+			</MessageContent>
+		</Message>
+	);
+}
+
+function describeRuntimeEvent(
+	event: unknown,
+	t: (key: string, params?: Record<string, string | number>) => string,
+): RuntimeEventDisplay {
+	const type = stringProp(event, "type");
+	switch (type) {
+		case "compaction_start": {
+			const reason = compactionReasonLabel(stringProp(event, "reason"), t);
+			return {
+				title: t("timeline.compacting"),
+				message: t("timeline.compactionReason", { reason }),
+				severity: "info",
+				icon: "info",
+			};
+		}
+		case "compaction_end": {
+			const errorMessage = stringProp(event, "errorMessage");
+			if (errorMessage) {
+				return {
+					title: t("timeline.compactionFailed"),
+					message: errorMessage,
+					severity: "error",
+					icon: "error",
+				};
+			}
+			if (booleanProp(event, "aborted")) {
+				return {
+					title: t("timeline.compactionCancelled"),
+					severity: "warning",
+					icon: "info",
+				};
+			}
+			return {
+				title: booleanProp(event, "willRetry")
+					? t("timeline.compactionRetrying")
+					: t("timeline.compacted"),
+				severity: "info",
+				icon: "info",
+			};
+		}
+		case "auto_retry_start": {
+			const attempt = numberProp(event, "attempt", 1);
+			const maxAttempts = numberProp(event, "maxAttempts", attempt);
+			const delay = formatDuration(numberProp(event, "delayMs", 0));
+			const errorMessage = stringProp(event, "errorMessage") ?? "";
+			return {
+				title: t("timeline.retrying"),
+				message: t("timeline.retryingDetail", {
+					attempt,
+					maxAttempts,
+					delay,
+					error: errorMessage,
+				}),
+				severity: "warning",
+				icon: "retry",
+			};
+		}
+		case "auto_retry_end": {
+			if (booleanProp(event, "success")) {
+				return {
+					title: t("timeline.retryRecovered"),
+					severity: "info",
+					icon: "retry",
+				};
+			}
+			return {
+				title: t("timeline.retryFailed"),
+				message: stringProp(event, "finalError"),
+				severity: "error",
+				icon: "error",
+			};
+		}
+		case "extension_error": {
+			const extensionPath = stringProp(event, "extensionPath");
+			const extensionEvent = stringProp(event, "event");
+			const errorMessage = stringProp(event, "error");
+			const scope = [extensionPath, extensionEvent].filter(Boolean).join(" · ");
+			return {
+				title: t("timeline.extensionError"),
+				message: [scope, errorMessage].filter(Boolean).join("\n"),
+				severity: "error",
+				icon: "error",
+			};
+		}
+		default:
+			return {
+				title: type ?? t("timeline.runtimeEvent"),
+				message: summarize(event),
+				severity: "info",
+				icon: "info",
+			};
+	}
+}
+
+function compactionReasonLabel(
+	reason: string | undefined,
+	t: (key: string, params?: Record<string, string | number>) => string,
+): string {
+	switch (reason) {
+		case "manual":
+			return t("timeline.compactionReasonManual");
+		case "threshold":
+			return t("timeline.compactionReasonThreshold");
+		case "overflow":
+			return t("timeline.compactionReasonOverflow");
+		default:
+			return reason ?? t("timeline.compactionReasonUnknown");
+	}
+}
+
+function stringProp(value: unknown, key: string): string | undefined {
+	if (!value || typeof value !== "object") return undefined;
+	const prop = (value as Record<string, unknown>)[key];
+	return typeof prop === "string" && prop.length > 0 ? prop : undefined;
+}
+
+function numberProp(value: unknown, key: string, fallback: number): number {
+	if (!value || typeof value !== "object") return fallback;
+	const prop = (value as Record<string, unknown>)[key];
+	return typeof prop === "number" && Number.isFinite(prop) ? prop : fallback;
+}
+
+function booleanProp(value: unknown, key: string): boolean {
+	if (!value || typeof value !== "object") return false;
+	return (value as Record<string, unknown>)[key] === true;
 }
 
 function OrphanToolResult({

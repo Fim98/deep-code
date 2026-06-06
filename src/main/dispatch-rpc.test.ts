@@ -21,18 +21,35 @@ describe("dispatchRpc", () => {
 				images: undefined,
 				streamingBehavior: undefined,
 				source: "rpc",
+				preflightResult: expect.any(Function),
 			});
 			expect(resp.success).toBe(true);
 			expect(resp.command).toBe("prompt");
 			expect(resp.id).toBe("1");
 		});
 
-		it("succeeds even when session.prompt rejects (fire-and-forget)", async () => {
+		it("returns an error when session.prompt rejects before preflight succeeds", async () => {
 			session.prompt.mockRejectedValue(new Error("boom"));
 			const resp = await dispatchRpc(session as any, {
 				id: "2",
 				type: "prompt",
 				message: "fail",
+			});
+			expect(resp.success).toBe(false);
+			if (!resp.success) expect(resp.error).toBe("boom");
+		});
+
+		it("returns success after preflight even if the background prompt later rejects", async () => {
+			session.prompt.mockImplementation(
+				(_message: string, options: { preflightResult: (success: boolean) => void }) => {
+					options.preflightResult(true);
+					return Promise.reject(new Error("late boom"));
+				},
+			);
+			const resp = await dispatchRpc(session as any, {
+				id: "2b",
+				type: "prompt",
+				message: "fail later",
 			});
 			expect(resp.success).toBe(true);
 		});

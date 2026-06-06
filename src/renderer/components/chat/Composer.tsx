@@ -22,7 +22,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
 import { pi } from "@/lib/rpc";
+import { emitToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { useExtensionUI } from "@/stores/extension-ui";
 import { useSessions } from "@/stores/session-state";
 
 interface ImageContent {
@@ -80,12 +82,15 @@ export function Composer({ sessionId, isStreaming }: Props) {
 	const [attachments, setAttachments] = useState<Attachment[]>([]);
 	const [dragOver, setDragOver] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null) as RefObject<HTMLInputElement>;
+	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const [commands, setCommands] = useState<SlashCommand[]>([]);
 	const [slashIndex, setSlashIndex] = useState(0);
 	const [slashOpen, setSlashOpen] = useState(false);
 	const slashRef = useRef<HTMLDivElement>(null);
 	const addPendingSubmission = useSessions((s) => s.addPendingSubmission);
 	const removePendingSubmission = useSessions((s) => s.removePendingSubmission);
+	const editorTextOverride = useExtensionUI((s) => s.editorTextOverride);
+	const consumeEditorTextOverride = useExtensionUI((s) => s.consumeEditorTextOverride);
 
 	// Fetch available commands when session changes
 	useEffect(() => {
@@ -95,6 +100,18 @@ export function Composer({ sessionId, isStreaming }: Props) {
 			}
 		});
 	}, [sessionId]);
+
+	useEffect(() => {
+		if (!editorTextOverride || editorTextOverride.sessionId !== sessionId) return;
+		setText(editorTextOverride.text);
+		setSlashOpen(false);
+		consumeEditorTextOverride(editorTextOverride.id);
+		requestAnimationFrame(() => {
+			textareaRef.current?.focus();
+			const end = editorTextOverride.text.length;
+			textareaRef.current?.setSelectionRange(end, end);
+		});
+	}, [editorTextOverride, sessionId, consumeEditorTextOverride]);
 
 	// Determine slash query: text must start with "/" and cursor must be in the first token
 	const slashQuery = useMemo(() => {
@@ -183,10 +200,13 @@ export function Composer({ sessionId, isStreaming }: Props) {
 			};
 			if (images) cmd.images = images;
 			const response = await pi.rpc.send(sessionId, cmd as any);
-			if (!response.success) removePendingSubmission(sessionId, pendingId);
+			if (!response.success) {
+				removePendingSubmission(sessionId, pendingId);
+				emitToast(response.error);
+			}
 		} catch (error) {
 			removePendingSubmission(sessionId, pendingId);
-			throw error;
+			emitToast(error instanceof Error ? error.message : String(error));
 		}
 	}
 
@@ -367,6 +387,7 @@ export function Composer({ sessionId, isStreaming }: Props) {
 				<PromptInputBody>
 					<PromptInputTextarea
 						aria-label="Message"
+						ref={textareaRef}
 						value={text}
 						onChange={(e) => setText(e.target.value)}
 						onKeyDown={onKeyDown}

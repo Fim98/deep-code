@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useExtensionUI } from "@/stores/extension-ui";
 import { useSessions } from "@/stores/session-state";
 import { Composer } from "./Composer";
 
@@ -18,6 +19,14 @@ const mockFileReaderResult = "data:image/png;base64,aGVsbG8=";
 describe("Composer", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		useExtensionUI.setState({
+			currentDialog: null,
+			notifications: [],
+			statuses: {},
+			widgets: {},
+			editorTextOverride: null,
+			titleOverride: null,
+		});
 		useSessions.setState({ bySession: {}, currentSessionId: null });
 		useSessions.setState({
 			bySession: {
@@ -169,6 +178,50 @@ describe("Composer", () => {
 		await user.keyboard("{Enter}");
 
 		expect(textarea.value).toBe("");
+	});
+
+	// ── Extension editor text ────────────────────────────────────────────
+
+	it("applies extension editor text for the current session", async () => {
+		render(<Composer sessionId="test-session" isStreaming={false} />);
+
+		const textarea = screen.getByLabelText("Message") as HTMLTextAreaElement;
+
+		await act(async () => {
+			useExtensionUI.getState().handleRequest({
+				type: "extension_ui_request",
+				id: "editor-1",
+				sessionId: "test-session",
+				method: "set_editor_text",
+				text: "prefilled content",
+			});
+		});
+
+		expect(textarea.value).toBe("prefilled content");
+		expect(useExtensionUI.getState().editorTextOverride).toBeNull();
+	});
+
+	it("does not apply extension editor text for another session", async () => {
+		render(<Composer sessionId="test-session" isStreaming={false} />);
+
+		const textarea = screen.getByLabelText("Message") as HTMLTextAreaElement;
+
+		await act(async () => {
+			useExtensionUI.getState().handleRequest({
+				type: "extension_ui_request",
+				id: "editor-2",
+				sessionId: "other-session",
+				method: "set_editor_text",
+				text: "other content",
+			});
+		});
+
+		expect(textarea.value).toBe("");
+		expect(useExtensionUI.getState().editorTextOverride).toEqual({
+			id: "editor-2",
+			sessionId: "other-session",
+			text: "other content",
+		});
 	});
 
 	// ── Attach button ────────────────────────────────────────────────────

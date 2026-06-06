@@ -19,9 +19,9 @@ export function ExtensionUIHost() {
 	const widgets = useExtensionUI((s) => s.widgets);
 	const statuses = useExtensionUI((s) => s.statuses);
 	const titleOverride = useExtensionUI((s) => s.titleOverride);
-	const editorTextOverride = useExtensionUI((s) => s.editorTextOverride);
 	const respondDialog = useExtensionUI((s) => s.respondDialog);
 	const dismissNotification = useExtensionUI((s) => s.dismissNotification);
+	const currentSessionId = useSessions((s) => s.currentSessionId);
 
 	// Apply title override to document title
 	useEffect(() => {
@@ -29,15 +29,6 @@ export function ExtensionUIHost() {
 			document.title = titleOverride;
 		}
 	}, [titleOverride]);
-
-	// Apply editor text override — push into current session's composer
-	const currentSessionId = useSessions((s) => s.currentSessionId);
-	useEffect(() => {
-		if (editorTextOverride !== null && currentSessionId) {
-			// The composer will need to pick this up via its own subscription
-			// For now, we store it and let the Composer component handle it
-		}
-	}, [editorTextOverride, currentSessionId]);
 
 	const _handleSelect = useCallback(
 		(value: string) => {
@@ -98,10 +89,10 @@ export function ExtensionUIHost() {
 			{currentDialog && <DialogRenderer dialog={currentDialog} />}
 
 			{/* Widget overlays (above/below editor area) */}
-			<WidgetOverlay widgets={widgets} />
+			<WidgetOverlay currentSessionId={currentSessionId} widgets={widgets} />
 
 			{/* Status bar from extensions */}
-			<StatusBar statuses={statuses} />
+			<StatusBar currentSessionId={currentSessionId} statuses={statuses} />
 		</>
 	);
 }
@@ -140,11 +131,15 @@ function DialogRenderer({ dialog }: { dialog: InteractiveRequest }) {
 // ─── Widget Overlay ─────────────────────────────────────────────────────────
 
 function WidgetOverlay({
+	currentSessionId,
 	widgets,
 }: {
+	currentSessionId: string | null;
 	widgets: Record<string, { sessionId: string; lines: string[]; placement: string }>;
 }) {
-	const entries = Object.entries(widgets);
+	const entries = currentSessionId
+		? Object.entries(widgets).filter(([, widget]) => widget.sessionId === currentSessionId)
+		: [];
 	if (entries.length === 0) return null;
 
 	return (
@@ -175,11 +170,15 @@ function WidgetOverlay({
 // ─── Status Bar ─────────────────────────────────────────────────────────────
 
 function StatusBar({
+	currentSessionId,
 	statuses,
 }: {
+	currentSessionId: string | null;
 	statuses: Record<string, { sessionId: string; text: string }>;
 }) {
-	const entries = Object.entries(statuses);
+	const entries = currentSessionId
+		? Object.entries(statuses).filter(([, status]) => status.sessionId === currentSessionId)
+		: [];
 	if (entries.length === 0) return null;
 
 	return (

@@ -161,6 +161,17 @@ class PtyManager extends EventEmitter {
 		}
 	}
 
+	rename(id: string, title: string): boolean {
+		const instance = this.instances.get(id);
+		if (!instance) return false;
+		const trimmed = title.trim();
+		if (!trimmed) return false;
+		if (trimmed === instance.title) return true;
+		instance.title = trimmed;
+		this.emit("title", { id, title: trimmed });
+		return true;
+	}
+
 	killAll(): void {
 		for (const [id] of this.instances) {
 			this.kill(id);

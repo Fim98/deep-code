@@ -1,6 +1,6 @@
-import type { AgentSessionEvent, RpcSessionState } from "@earendil-works/pi-coding-agent";
+import type { RpcSessionState } from "@earendil-works/pi-coding-agent";
 import { create } from "zustand";
-import { pi } from "@/lib/rpc";
+import { type DesktopAgentSessionEvent, pi } from "@/lib/rpc";
 
 export type ChatMessage =
 	| { role: "user"; content: string | unknown[]; timestamp: number }
@@ -11,6 +11,7 @@ export type ChatMessage =
 			timestamp: number;
 			usage?: unknown;
 			stopReason?: string;
+			errorMessage?: string;
 	  }
 	| {
 			role: "toolResult";
@@ -195,7 +196,7 @@ function applyEvent(
 	set: (fn: (s: Store) => Partial<Store>) => void,
 	_get: () => Store,
 	sid: string,
-	event: AgentSessionEvent,
+	event: DesktopAgentSessionEvent,
 ) {
 	set((s) => {
 		const slice = s.bySession[sid] ?? emptySlice();
@@ -285,6 +286,59 @@ function applyEvent(
 				};
 				break;
 			}
+			case "compaction_start": {
+				next = {
+					...slice,
+					state: patchSessionState(slice.state, { isCompacting: true }),
+					messages: appendRuntimeEvent(slice.messages, event),
+				};
+				break;
+			}
+			case "compaction_end": {
+				next = {
+					...slice,
+					state: patchSessionState(slice.state, { isCompacting: false }),
+					isStreaming: !!event.willRetry || slice.isStreaming,
+					messages: appendRuntimeEvent(slice.messages, event),
+				};
+				break;
+			}
+			case "auto_retry_start": {
+				next = {
+					...slice,
+					isStreaming: true,
+					messages: appendRuntimeEvent(slice.messages, event),
+				};
+				break;
+			}
+			case "auto_retry_end": {
+				next = {
+					...slice,
+					messages: appendRuntimeEvent(slice.messages, event),
+				};
+				break;
+			}
+			case "extension_error": {
+				next = {
+					...slice,
+					messages: appendRuntimeEvent(slice.messages, event),
+				};
+				break;
+			}
+			case "session_info_changed": {
+				next = {
+					...slice,
+					state: patchSessionState(slice.state, { sessionName: event.name }),
+				};
+				break;
+			}
+			case "thinking_level_changed": {
+				next = {
+					...slice,
+					state: patchSessionState(slice.state, { thinkingLevel: event.level }),
+				};
+				break;
+			}
 			default: {
 				// Other AgentEvent / custom event types: ignore for now.
 				break;
@@ -295,6 +349,28 @@ function applyEvent(
 		}
 		return { bySession: { ...s.bySession, [sid]: next } };
 	});
+}
+
+function appendRuntimeEvent(
+	messages: ChatMessage[],
+	event: DesktopAgentSessionEvent,
+): ChatMessage[] {
+	return [
+		...messages,
+		{
+			role: "custom",
+			subtype: "runtime_event",
+			data: event,
+			timestamp: Date.now(),
+		},
+	];
+}
+
+function patchSessionState(
+	state: RpcSessionState | null,
+	patch: Partial<RpcSessionState>,
+): RpcSessionState | null {
+	return state ? { ...state, ...patch } : state;
 }
 
 function removeMatchingPending(
@@ -324,10 +400,10 @@ function userMessageText(content: string | unknown[]): string {
 
 function updateToolState(
 	tools: Record<string, ToolExecutionState>,
-	event: AgentSessionEvent,
+	event: DesktopAgentSessionEvent,
 ): Record<string, ToolExecutionState> {
 	const ev = event as Extract<
-		AgentSessionEvent,
+		DesktopAgentSessionEvent,
 		{
 			type: "tool_execution_start" | "tool_execution_update" | "tool_execution_end";
 		}

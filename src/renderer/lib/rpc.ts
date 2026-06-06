@@ -1,5 +1,15 @@
 import type { AgentSessionEvent, RpcCommand, RpcResponse } from "@earendil-works/pi-coding-agent";
 
+export type DesktopAgentSessionEvent =
+	| AgentSessionEvent
+	| {
+			type: "extension_error";
+			extensionPath: string;
+			event: string;
+			error: string;
+			stack?: string;
+	  };
+
 export interface WorkspaceEntry {
 	id: string;
 	name: string;
@@ -173,6 +183,7 @@ export interface PiBridge {
 		write: (id: string, data: string) => Promise<void>;
 		resize: (id: string, cols: number, rows: number) => Promise<void>;
 		kill: (id: string) => Promise<void>;
+		rename: (id: string, title: string) => Promise<boolean>;
 		list: () => Promise<
 			Array<{ id: string; cwd: string; shell: string; title: string; buffer: string }>
 		>;
@@ -191,7 +202,7 @@ export interface PiBridge {
 	};
 	rpc: {
 		send: <C extends RpcCommand>(sessionId: string, command: C) => Promise<RpcResponse>;
-		subscribe: (sessionId: string, cb: (event: AgentSessionEvent) => void) => () => void;
+		subscribe: (sessionId: string, cb: (event: DesktopAgentSessionEvent) => void) => () => void;
 	};
 	extensionUI: {
 		onRequest: (cb: (request: ExtensionUIRequest) => void) => () => void;

@@ -65,6 +65,8 @@ const pty = {
 	resize: (id: string, cols: number, rows: number) =>
 		ipcRenderer.invoke("pi:pty:resize", id, cols, rows),
 	kill: (id: string) => ipcRenderer.invoke("pi:pty:kill", id),
+	rename: (id: string, title: string) =>
+		ipcRenderer.invoke("pi:pty:rename", id, title) as Promise<boolean>,
 	list: () =>
 		ipcRenderer.invoke("pi:pty:list") as Promise<
 			Array<{ id: string; cwd: string; shell: string; title: string; buffer: string }>

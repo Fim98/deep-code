@@ -9,6 +9,7 @@ import {
 	createAgentSessionFromServices,
 	createAgentSessionRuntime,
 	createAgentSessionServices,
+	type ExtensionError,
 	SessionManager,
 } from "@earendil-works/pi-coding-agent";
 import { ExtensionUIBridge } from "./extension-ui-bridge.js";
@@ -31,7 +32,17 @@ export interface OpenSessionResult {
 	cwdFallback?: boolean;
 }
 
-type Listener = (event: AgentSessionEvent) => void;
+type DesktopSessionEvent =
+	| AgentSessionEvent
+	| {
+			type: "extension_error";
+			extensionPath: string;
+			event: string;
+			error: string;
+			stack?: string;
+	  };
+
+type Listener = (event: DesktopSessionEvent) => void;
 
 interface Entry {
 	runtime: AgentSessionRuntime;
@@ -40,6 +51,55 @@ interface Entry {
 	unsubRef: { current: () => void };
 	listeners: Set<Listener>;
 	extensionBridge: ExtensionUIBridge;
+}
+
+function emitToListeners(listeners: Set<Listener>, event: DesktopSessionEvent): void {
+	for (const listener of listeners) listener(event);
+}
+
+function toExtensionErrorEvent(err: ExtensionError): DesktopSessionEvent {
+	return {
+		type: "extension_error",
+		extensionPath: err.extensionPath,
+		event: err.event,
+		error: err.error,
+		stack: err.stack,
+	};
+}
+
+async function bindRuntimeExtensions(
+	runtime: AgentSessionRuntime,
+	extensionBridge: ExtensionUIBridge,
+	emit: (event: DesktopSessionEvent) => void,
+): Promise<void> {
+	await runtime.session.bindExtensions({
+		uiContext: extensionBridge.createUIContext(),
+		commandContextActions: {
+			waitForIdle: () => runtime.session.agent.waitForIdle(),
+			newSession: async (options) => runtime.newSession(options),
+			fork: async (entryId, forkOptions) => {
+				const result = await runtime.fork(entryId, forkOptions);
+				return { cancelled: result.cancelled };
+			},
+			navigateTree: async (targetId, navigateOptions) => {
+				const result = await runtime.session.navigateTree(targetId, {
+					summarize: navigateOptions?.summarize,
+					customInstructions: navigateOptions?.customInstructions,
+					replaceInstructions: navigateOptions?.replaceInstructions,
+					label: navigateOptions?.label,
+				});
+				return { cancelled: result.cancelled };
+			},
+			switchSession: async (sessionPath, switchOptions) =>
+				runtime.switchSession(sessionPath, switchOptions),
+			reload: async () => {
+				await runtime.session.reload();
+			},
+		},
+		onError: (err) => {
+			emit(toExtensionErrorEvent(err));
+		},
+	});
 }
 
 class SessionRegistryImpl {
@@ -88,17 +148,16 @@ class SessionRegistryImpl {
 
 		const sessionId = randomUUID();
 		const listeners = new Set<Listener>();
+		const emit = (event: DesktopSessionEvent) => emitToListeners(listeners, event);
 
 		// Create extension UI bridge for this session
 		const extensionBridge = new ExtensionUIBridge();
-		await runtime.session.bindExtensions({
-			uiContext: extensionBridge.createUIContext(),
-		});
+		await bindRuntimeExtensions(runtime, extensionBridge, emit);
 
 		// Subscribe to the current session's events
 		const unsubRef: { current: () => void } = {
 			current: runtime.session.subscribe((event) => {
-				for (const l of listeners) l(event);
+				emit(event);
 			}),
 		};
 
@@ -106,12 +165,9 @@ class SessionRegistryImpl {
 		runtime.setRebindSession(async () => {
 			unsubRef.current();
 			unsubRef.current = runtime.session.subscribe((event) => {
-				for (const l of listeners) l(event);
+				emit(event);
 			});
-			// Rebind extension UI context to the new session
-			await runtime.session.bindExtensions({
-				uiContext: extensionBridge.createUIContext(),
-			});
+			await bindRuntimeExtensions(runtime, extensionBridge, emit);
 		});
 
 		this.entries.set(sessionId, {

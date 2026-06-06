@@ -264,7 +264,43 @@ describe("extension-ui store", () => {
 
 			useExtensionUI.getState().handleRequest(request);
 
-			expect(useExtensionUI.getState().editorTextOverride).toBe("prefilled content");
+			expect(useExtensionUI.getState().editorTextOverride).toEqual({
+				id: "e1",
+				sessionId: "sess-1",
+				text: "prefilled content",
+			});
+		});
+
+		it("consumes matching editor text override", () => {
+			useExtensionUI.getState().handleRequest({
+				type: "extension_ui_request",
+				id: "e2",
+				sessionId: "sess-1",
+				method: "set_editor_text",
+				text: "prefilled content",
+			});
+
+			useExtensionUI.getState().consumeEditorTextOverride("e2");
+
+			expect(useExtensionUI.getState().editorTextOverride).toBeNull();
+		});
+
+		it("keeps newer editor text override when consuming an old id", () => {
+			useExtensionUI.getState().handleRequest({
+				type: "extension_ui_request",
+				id: "e3",
+				sessionId: "sess-1",
+				method: "set_editor_text",
+				text: "newer content",
+			});
+
+			useExtensionUI.getState().consumeEditorTextOverride("old-id");
+
+			expect(useExtensionUI.getState().editorTextOverride).toEqual({
+				id: "e3",
+				sessionId: "sess-1",
+				text: "newer content",
+			});
 		});
 	});
 
