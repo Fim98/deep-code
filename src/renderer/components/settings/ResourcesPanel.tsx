@@ -2,7 +2,9 @@ import {
 	AlertTriangle,
 	BookOpen,
 	Box,
+	Copy,
 	FileText,
+	FolderSearch,
 	Palette,
 	RefreshCw,
 	RotateCcw,
@@ -186,6 +188,9 @@ export function ResourcesPanel({ sessionId, cwd }: Props) {
 								title={diag.message}
 								subtitle={diag.path}
 								badge={diag.type}
+								path={diag.path}
+								copyText={`${diag.type}: ${diag.message}${diag.path ? `\n${diag.path}` : ""}`}
+								tone={diag.type === "error" ? "error" : "warning"}
 							/>
 						))}
 					</ResourceSection>
@@ -197,6 +202,7 @@ export function ResourcesPanel({ sessionId, cwd }: Props) {
 							title={shortPath(file.path)}
 							subtitle={file.path}
 							badge={formatBytes(file.bytes)}
+							path={file.path}
 						/>
 					))}
 				</ResourceSection>
@@ -207,6 +213,7 @@ export function ResourcesPanel({ sessionId, cwd }: Props) {
 							title={shortPath(extension.path)}
 							subtitle={`${extension.commands.length} commands · ${extension.tools.length} tools`}
 							badge={extension.sourceInfo?.scope ?? extension.sourceInfo?.source}
+							path={extension.resolvedPath}
 						/>
 					))}
 				</ResourceSection>
@@ -217,6 +224,7 @@ export function ResourcesPanel({ sessionId, cwd }: Props) {
 							title={skill.name}
 							subtitle={skill.description}
 							badge={skill.sourceInfo?.scope}
+							path={skill.filePath}
 						/>
 					))}
 				</ResourceSection>
@@ -227,6 +235,7 @@ export function ResourcesPanel({ sessionId, cwd }: Props) {
 							title={`/${prompt.name}`}
 							subtitle={prompt.description || prompt.filePath}
 							badge={prompt.sourceInfo?.scope}
+							path={prompt.filePath}
 						/>
 					))}
 				</ResourceSection>
@@ -237,6 +246,7 @@ export function ResourcesPanel({ sessionId, cwd }: Props) {
 							title={theme.name}
 							subtitle={theme.sourceInfo?.path}
 							badge={theme.sourceInfo?.scope}
+							path={theme.sourceInfo?.path}
 						/>
 					))}
 				</ResourceSection>
@@ -401,13 +411,27 @@ function ResourceRow({
 	title,
 	subtitle,
 	badge,
+	path,
+	copyText,
+	tone = "default",
 }: {
 	title: string;
 	subtitle?: string;
 	badge?: string;
+	path?: string;
+	copyText?: string;
+	tone?: "default" | "warning" | "error";
 }) {
+	const borderClass =
+		tone === "error"
+			? "border-destructive/30 bg-destructive/[0.03]"
+			: tone === "warning"
+				? "border-amber-400/30 bg-amber-400/[0.04]"
+				: "border-border/50 bg-background/50";
 	return (
-		<div className="rounded-[16px] border border-border/50 bg-background/50 px-4 py-3 shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
+		<div
+			className={`rounded-[16px] border px-4 py-3 shadow-[0_1px_4px_rgba(0,0,0,0.02)] ${borderClass}`}
+		>
 			<div className="flex items-center gap-2">
 				<div className="min-w-0 flex-1 truncate text-[13px] font-medium text-foreground">
 					{title}
@@ -420,6 +444,31 @@ function ResourceRow({
 			</div>
 			{subtitle ? (
 				<div className="mt-1 truncate text-[11px] text-muted-foreground">{subtitle}</div>
+			) : null}
+			{path || copyText ? (
+				<div className="mt-2 flex gap-1.5">
+					{path ? (
+						<button
+							type="button"
+							onClick={() => pi.shell.showItemInFolder(path)}
+							className="inline-flex items-center gap-1 rounded-full bg-foreground/[0.04] px-2 py-1 text-[10px] text-muted-foreground transition-colors hover:bg-foreground/[0.07] hover:text-foreground"
+						>
+							<FolderSearch className="size-3" />
+							Reveal
+						</button>
+					) : null}
+					<button
+						type="button"
+						onClick={() => {
+							void navigator.clipboard.writeText(copyText ?? path ?? title);
+							emitToast("Copied", "info");
+						}}
+						className="inline-flex items-center gap-1 rounded-full bg-foreground/[0.04] px-2 py-1 text-[10px] text-muted-foreground transition-colors hover:bg-foreground/[0.07] hover:text-foreground"
+					>
+						<Copy className="size-3" />
+						Copy
+					</button>
+				</div>
 			) : null}
 		</div>
 	);
