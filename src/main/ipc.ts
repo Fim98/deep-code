@@ -9,7 +9,13 @@ import { createWindow } from "./index.js";
 import { ptyManager } from "./pty-manager.js";
 import { deleteSessionFile, listSessionsForCwd } from "./session-fs.js";
 import { sessionRegistry } from "./session-registry.js";
-import { getAgentDirPath, getDesktopSettings, setDesktopSetting } from "./settings.js";
+import {
+	getAgentDirPath,
+	getDesktopSettings,
+	getProjectTrust,
+	setDesktopSetting,
+	setProjectTrust,
+} from "./settings.js";
 import { isTelemetryEnabled, setTelemetryEnabled } from "./telemetry.js";
 import { quitAndInstall, scheduleCheck } from "./updater.js";
 import {
@@ -183,6 +189,10 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 	ipcMain.handle("pi:settings:get", () => getDesktopSettings());
 	ipcMain.handle("pi:settings:set", (_e, key: string, value: unknown) => {
 		setDesktopSetting(key, value);
+	});
+	ipcMain.handle("pi:settings:project-trust:get", (_e, path: string) => getProjectTrust(path));
+	ipcMain.handle("pi:settings:project-trust:set", (_e, path: string, decision: boolean | null) => {
+		setProjectTrust(path, decision);
 	});
 	ipcMain.handle("pi:settings:agent-dir", () => getAgentDirPath());
 	ipcMain.handle("pi:app:version", () => {

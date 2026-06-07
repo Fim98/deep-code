@@ -149,6 +149,13 @@ const theme = {
 const settings = {
 	get: () => ipcRenderer.invoke("pi:settings:get"),
 	set: (key: string, value: unknown) => ipcRenderer.invoke("pi:settings:set", key, value),
+	getProjectTrust: (path: string) =>
+		ipcRenderer.invoke("pi:settings:project-trust:get", path) as Promise<{
+			path: string;
+			decision: boolean | null;
+		}>,
+	setProjectTrust: (path: string, decision: boolean | null) =>
+		ipcRenderer.invoke("pi:settings:project-trust:set", path, decision) as Promise<void>,
 	agentDir: () => ipcRenderer.invoke("pi:settings:agent-dir"),
 };
 

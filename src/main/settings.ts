@@ -1,4 +1,5 @@
 import { SettingsManager } from "@earendil-works/pi-coding-agent";
+import { type ProjectTrustDecision, ProjectTrustStore } from "./project-trust.js";
 import { getSharedServices } from "./shared-services.js";
 
 let settingsManager: SettingsManager | undefined;
@@ -11,6 +12,11 @@ function getSettingsManager(): SettingsManager {
 		settingsManager = SettingsManager.create(process.cwd(), agentDir);
 	}
 	return settingsManager;
+}
+
+export interface ProjectTrustInfo {
+	path: string;
+	decision: ProjectTrustDecision;
 }
 
 export interface DesktopSettings {
@@ -28,6 +34,8 @@ export interface DesktopSettings {
 	imageAutoResize: boolean;
 	blockImages: boolean;
 	enabledModels: string[] | undefined;
+	globalSettings: Record<string, unknown>;
+	projectSettings: Record<string, unknown>;
 }
 
 export function getDesktopSettings(): DesktopSettings {
@@ -47,6 +55,8 @@ export function getDesktopSettings(): DesktopSettings {
 		imageAutoResize: sm.getImageAutoResize(),
 		blockImages: sm.getBlockImages(),
 		enabledModels: sm.getEnabledModels(),
+		globalSettings: sm.getGlobalSettings() as Record<string, unknown>,
+		projectSettings: sm.getProjectSettings() as Record<string, unknown>,
 	};
 }
 
@@ -98,6 +108,16 @@ export function setDesktopSetting(key: string, value: unknown): void {
 		default:
 			throw new Error(`Unknown setting: ${key}`);
 	}
+}
+
+export function getProjectTrust(path: string): ProjectTrustInfo {
+	const { agentDir } = getSharedServices();
+	return { path, decision: new ProjectTrustStore(agentDir).get(path) };
+}
+
+export function setProjectTrust(path: string, decision: ProjectTrustDecision): void {
+	const { agentDir } = getSharedServices();
+	new ProjectTrustStore(agentDir).set(path, decision);
 }
 
 export function getAgentDirPath(): string {

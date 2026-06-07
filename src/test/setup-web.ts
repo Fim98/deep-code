@@ -37,6 +37,7 @@ const mockPi = {
 	},
 	shell: {
 		showItemInFolder: vi.fn().mockResolvedValue(undefined),
+		openPath: vi.fn().mockResolvedValue(""),
 	},
 	logs: {
 		get: vi.fn().mockResolvedValue([]),
@@ -44,6 +45,18 @@ const mockPi = {
 	},
 	fileTree: {
 		list: vi.fn().mockResolvedValue([]),
+		read: vi.fn().mockResolvedValue({ content: null, size: 0 }),
+	},
+	pty: {
+		spawn: vi.fn().mockResolvedValue({ id: "pty-1", shell: "/bin/zsh", cwd: "/tmp" }),
+		write: vi.fn().mockResolvedValue(undefined),
+		resize: vi.fn().mockResolvedValue(undefined),
+		kill: vi.fn().mockResolvedValue(undefined),
+		rename: vi.fn().mockResolvedValue(true),
+		list: vi.fn().mockResolvedValue([]),
+		onData: vi.fn().mockReturnValue(() => {}),
+		onExit: vi.fn().mockReturnValue(() => {}),
+		onTitle: vi.fn().mockReturnValue(() => {}),
 	},
 	window: {
 		new: vi.fn().mockResolvedValue(undefined),
@@ -87,8 +100,12 @@ const mockPi = {
 			imageAutoResize: true,
 			blockImages: false,
 			enabledModels: undefined,
+			globalSettings: {},
+			projectSettings: {},
 		}),
 		set: vi.fn().mockResolvedValue(undefined),
+		getProjectTrust: vi.fn().mockResolvedValue({ path: "/tmp", decision: null }),
+		setProjectTrust: vi.fn().mockResolvedValue(undefined),
 		agentDir: vi.fn().mockResolvedValue("/tmp/test-agent"),
 	},
 	appInfo: {

@@ -52,14 +52,7 @@ function color256(n: number): string {
 	return `rgb(${gray}, ${gray}, ${gray})`;
 }
 
-interface Style {
-	color?: string;
-	backgroundColor?: string;
-	fontWeight?: string;
-	fontStyle?: string;
-	textDecoration?: string;
-	opacity?: string;
-}
+type Style = React.CSSProperties;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function parseAnsi(text: string): React.ReactNode[] {

@@ -35,6 +35,9 @@ export interface OpenSessionResult {
 	sessionFile: string | undefined;
 	piSessionId: string;
 	cwdFallback?: boolean;
+	projectHasTrustInputs: boolean;
+	projectTrustDecision: boolean | null;
+	projectTrusted: boolean;
 }
 
 export interface SessionTreeNode {
@@ -67,6 +70,8 @@ export interface DesktopSettings {
 	imageAutoResize: boolean;
 	blockImages: boolean;
 	enabledModels: string[] | undefined;
+	globalSettings: Record<string, unknown>;
+	projectSettings: Record<string, unknown>;
 }
 
 // ─── Extension UI types ─────────────────────────────────────────────────────
@@ -222,6 +227,8 @@ export interface PiBridge {
 	settings: {
 		get: () => Promise<DesktopSettings>;
 		set: (key: string, value: unknown) => Promise<void>;
+		getProjectTrust: (path: string) => Promise<{ path: string; decision: boolean | null }>;
+		setProjectTrust: (path: string, decision: boolean | null) => Promise<void>;
 		agentDir: () => Promise<string>;
 	};
 	appInfo: {

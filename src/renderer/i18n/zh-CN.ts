@@ -200,6 +200,15 @@ export const zhCN: Record<string, string> = {
 	"settings.imageHandling": "图片处理",
 	"settings.modelFiltersSaved": "模型筛选器已保存",
 
+	// Project trust
+	"settings.projectTrust": "项目信任",
+	"settings.projectTrustDescription":
+		"pi 只有在信任工作区后才会加载项目内的 AGENTS.md、.pi 设置、扩展、包、技能、提示模板和主题。",
+	"settings.trust": "信任",
+	"settings.doNotTrust": "不信任",
+	"settings.clearDecision": "清除决定",
+	"settings.trustDecisionSaved": "信任决定已保存。重新打开会话后会重新加载项目资源。",
+
 	// About
 	"settings.about": "deepcode",
 	"settings.version": "版本",
@@ -261,6 +270,9 @@ export const zhCN: Record<string, string> = {
 	"toast.noMessageToCopy": "暂无可复制的消息",
 	"toast.copyFailed": "复制失败：{{error}}",
 	"toast.workspaceMissing": "未找到工作区文件夹，使用当前目录",
+	"toast.projectUntrusted": "项目内 pi 资源会被忽略，直到信任此工作区。",
+	"toast.trustProject": "信任项目",
+	"toast.projectTrustSaved": "项目信任已保存。重新打开会话后会重新加载资源。",
 
 	// ─── Timeline ───────────────────────────────────────────────────────────
 	"timeline.emptyTitle": "发送消息以开始",

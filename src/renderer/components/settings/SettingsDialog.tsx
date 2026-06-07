@@ -8,6 +8,7 @@ import {
 	FolderOpen,
 	Info,
 	Key,
+	ListFilter,
 	Monitor,
 	Moon,
 	Plus,
@@ -42,22 +43,24 @@ import { type ThemeChoice, useTheme } from "@/stores/theme";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-type TabId = "general" | "providers" | "about";
+type TabId = "general" | "providers" | "models" | "about";
 
 // ─── Main Dialog ─────────────────────────────────────────────────────────────
 
 interface Props {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
+	activeWorkspacePath?: string;
 }
 
-export function SettingsDialog({ open, onOpenChange }: Props) {
+export function SettingsDialog({ open, onOpenChange, activeWorkspacePath }: Props) {
 	const { t } = useI18n();
 	const [tab, setTab] = useState<TabId>("general");
 
 	const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
 		{ id: "general", label: t("settings.tab.general"), icon: <Cog className="size-4" /> },
 		{ id: "providers", label: t("settings.tab.providers"), icon: <Key className="size-4" /> },
+		{ id: "models", label: t("settings.tab.models"), icon: <ListFilter className="size-4" /> },
 		{ id: "about", label: t("settings.tab.about"), icon: <Info className="size-4" /> },
 	];
 
@@ -101,8 +104,9 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
 					{/* Right panel */}
 					<ScrollArea className="flex-1">
 						<div className="px-7 py-6">
-							{tab === "general" && <GeneralTab />}
+							{tab === "general" && <GeneralTab activeWorkspacePath={activeWorkspacePath} />}
 							{tab === "providers" && <ProvidersTab />}
+							{tab === "models" && <ModelsTab />}
 							{tab === "about" && <AboutTab />}
 						</div>
 					</ScrollArea>
@@ -114,13 +118,25 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
 
 // ─── General Tab ─────────────────────────────────────────────────────────────
 
-function GeneralTab() {
+function GeneralTab({ activeWorkspacePath }: { activeWorkspacePath?: string }) {
 	const { t } = useI18n();
 	const [settings, setSettings] = useState<DesktopSettings | null>(null);
+	const [agentDir, setAgentDir] = useState<string | null>(null);
+	const [trustDecision, setTrustDecision] = useState<boolean | null>(null);
 
 	useEffect(() => {
 		pi.settings.get().then(setSettings).catch(formatError);
-	}, []);
+		pi.settings
+			.agentDir()
+			.then(setAgentDir)
+			.catch(() => {});
+		if (activeWorkspacePath) {
+			pi.settings
+				.getProjectTrust(activeWorkspacePath)
+				.then((trust) => setTrustDecision(trust.decision))
+				.catch(() => {});
+		}
+	}, [activeWorkspacePath]);
 
 	async function update(key: string, value: unknown) {
 		try {
@@ -129,6 +145,17 @@ function GeneralTab() {
 			setSettings(next);
 		} catch (e) {
 			emitToast(formatError(e));
+		}
+	}
+
+	async function updateProjectTrust(decision: boolean | null) {
+		try {
+			if (!activeWorkspacePath) return;
+			await pi.settings.setProjectTrust(activeWorkspacePath, decision);
+			setTrustDecision(decision);
+			emitToast(t("settings.trustDecisionSaved"), "info");
+		} catch (error) {
+			emitToast(formatError(error));
 		}
 	}
 
@@ -148,6 +175,51 @@ function GeneralTab() {
 				<SettingRow label={t("settings.language")} description={t("settings.languageDescription")}>
 					<LanguagePicker />
 				</SettingRow>
+			</section>
+
+			{/* Project trust */}
+			<section className="space-y-3">
+				<SectionHeader title={t("settings.projectTrust")} />
+				<div className="rounded-[18px] border border-border/60 bg-card p-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
+					<div className="text-[12px] leading-relaxed text-muted-foreground">
+						{t("settings.projectTrustDescription")}
+					</div>
+					<div className="mt-4 flex flex-wrap gap-2">
+						<Button
+							type="button"
+							size="sm"
+							variant={trustDecision === true ? "primary" : "secondary"}
+							className="rounded-full"
+							disabled={!activeWorkspacePath}
+							onClick={() => updateProjectTrust(true)}
+						>
+							{t("settings.trust")}
+						</Button>
+						<Button
+							type="button"
+							size="sm"
+							variant={trustDecision === false ? "primary" : "secondary"}
+							className="rounded-full"
+							disabled={!activeWorkspacePath}
+							onClick={() => updateProjectTrust(false)}
+						>
+							{t("settings.doNotTrust")}
+						</Button>
+						<Button
+							type="button"
+							size="sm"
+							variant="ghost"
+							className="rounded-full"
+							disabled={!activeWorkspacePath}
+							onClick={() => updateProjectTrust(null)}
+						>
+							{t("settings.clearDecision")}
+						</Button>
+					</div>
+					<div className="mt-3 text-[11px] text-muted-foreground">
+						~/.pi/agent/trust.json{agentDir ? ` · ${agentDir}/trust.json` : ""}
+					</div>
+				</div>
 			</section>
 
 			{/* AI Behavior */}
@@ -643,6 +715,116 @@ function AddProviderForm({
 				</div>
 			</form>
 		</div>
+	);
+}
+
+// ─── Models Tab ──────────────────────────────────────────────────────────────
+
+function ModelsTab() {
+	const { t } = useI18n();
+	const [settings, setSettings] = useState<DesktopSettings | null>(null);
+	const [patterns, setPatterns] = useState("");
+	const [saving, setSaving] = useState(false);
+
+	useEffect(() => {
+		void pi.settings
+			.get()
+			.then((next) => {
+				setSettings(next);
+				setPatterns((next.enabledModels ?? []).join("\n"));
+			})
+			.catch((error) => emitToast(formatError(error)));
+	}, []);
+
+	async function savePatterns() {
+		const enabledModels = patterns
+			.split("\n")
+			.map((line) => line.trim())
+			.filter(Boolean);
+		setSaving(true);
+		try {
+			await pi.settings.set("enabledModels", enabledModels.length > 0 ? enabledModels : undefined);
+			const next = await pi.settings.get();
+			setSettings(next);
+			setPatterns((next.enabledModels ?? []).join("\n"));
+			emitToast(t("settings.modelFiltersSaved"), "info");
+		} catch (error) {
+			emitToast(formatError(error));
+		} finally {
+			setSaving(false);
+		}
+	}
+
+	async function updateBlockImages(value: boolean) {
+		try {
+			await pi.settings.set("blockImages", value);
+			setSettings(await pi.settings.get());
+		} catch (error) {
+			emitToast(formatError(error));
+		}
+	}
+
+	return (
+		<div className="space-y-8">
+			<section className="space-y-3">
+				<SectionHeader title={t("settings.enabledModels")} />
+				<div className="rounded-[18px] border border-border/60 bg-card p-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
+					<div className="mb-3 text-[12px] leading-relaxed text-muted-foreground">
+						{t("settings.enabledModelsDescription")}
+					</div>
+					<textarea
+						value={patterns}
+						onChange={(event) => setPatterns(event.target.value)}
+						placeholder="anthropic/claude-*\nopenai/gpt-*"
+						className="min-h-[132px] w-full resize-none rounded-[16px] border border-border/60 bg-background/60 px-4 py-3 font-mono text-[12px] outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-primary/40 focus:ring-2 focus:ring-primary/10"
+					/>
+					<div className="mt-4 flex items-center justify-between gap-3">
+						<div className="text-[11px] text-muted-foreground">
+							{t("settings.customModelsHint")}
+						</div>
+						<Button
+							type="button"
+							variant="primary"
+							size="sm"
+							className="rounded-full"
+							disabled={saving}
+							onClick={savePatterns}
+						>
+							{saving ? t("settings.checking") : t("settings.save")}
+						</Button>
+					</div>
+				</div>
+			</section>
+
+			<section className="space-y-3">
+				<SectionHeader title={t("settings.imageHandling")} />
+				<SettingRow
+					label={t("settings.blockImages")}
+					description={t("settings.blockImagesDescription")}
+				>
+					<ToggleSwitch checked={settings?.blockImages ?? false} onChange={updateBlockImages} />
+				</SettingRow>
+			</section>
+
+			<section className="space-y-3">
+				<SectionHeader title={t("settings.configurationFiles")} />
+				<div className="space-y-2.5">
+					<SettingsJsonPreview label="Global" value={settings?.globalSettings} />
+					<SettingsJsonPreview label="Project" value={settings?.projectSettings} />
+				</div>
+			</section>
+		</div>
+	);
+}
+
+function SettingsJsonPreview({ label, value }: { label: string; value: unknown }) {
+	return (
+		<details className="rounded-[16px] border border-border/50 bg-card px-4 py-3 text-[12px] shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
+			<summary className="cursor-pointer font-medium text-foreground">{label}</summary>
+			<pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap rounded-[12px] bg-foreground/[0.03] p-3 font-mono text-[11px] text-muted-foreground">
+				{JSON.stringify(value ?? {}, null, 2)}
+			</pre>
+		</details>
 	);
 }
 

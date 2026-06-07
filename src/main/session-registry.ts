@@ -11,9 +11,15 @@ import {
 	createAgentSessionServices,
 	type ExtensionError,
 	SessionManager,
+	SettingsManager,
 } from "@earendil-works/pi-coding-agent";
 import { ExtensionUIBridge } from "./extension-ui-bridge.js";
 import { createPlanTrackerTool } from "./plan-tracker-tool.js";
+import {
+	hasProjectTrustInputs,
+	type ProjectTrustDecision,
+	ProjectTrustStore,
+} from "./project-trust.js";
 import { getSharedServices } from "./shared-services.js";
 import { getWorkspace } from "./workspace-store.js";
 
@@ -30,6 +36,12 @@ export interface OpenSessionResult {
 	piSessionId: string;
 	/** True when the workspace path did not exist and we fell back to process.cwd(). */
 	cwdFallback?: boolean;
+	/** Whether this workspace has project-local pi inputs such as AGENTS.md or .pi/. */
+	projectHasTrustInputs: boolean;
+	/** Saved trust decision from ~/.pi/agent/trust.json. */
+	projectTrustDecision: ProjectTrustDecision;
+	/** Effective trust used for this session. */
+	projectTrusted: boolean;
 }
 
 type DesktopSessionEvent =
@@ -117,6 +129,10 @@ class SessionRegistryImpl {
 		}
 
 		const { authStorage, modelRegistry, agentDir } = getSharedServices();
+		const trustStore = new ProjectTrustStore(agentDir);
+		const projectHasTrustInputs = hasProjectTrustInputs(cwd);
+		const projectTrustDecision = projectHasTrustInputs ? trustStore.get(cwd) : null;
+		const projectTrusted = !projectHasTrustInputs || projectTrustDecision === true;
 
 		const sessionManager = opts.sessionFile
 			? SessionManager.open(opts.sessionFile, undefined, cwd)
@@ -125,11 +141,18 @@ class SessionRegistryImpl {
 		const createRuntime: CreateAgentSessionRuntimeFactory = async (
 			options,
 		): Promise<CreateAgentSessionRuntimeResult> => {
+			const settingsManager = SettingsManager.create(options.cwd, options.agentDir);
+			const maybeTrustAwareSettings = settingsManager as SettingsManager & {
+				setProjectTrusted?: (trusted: boolean) => void;
+			};
+			maybeTrustAwareSettings.setProjectTrusted?.(projectTrusted);
+
 			const services = await createAgentSessionServices({
 				cwd: options.cwd,
 				agentDir: options.agentDir,
 				authStorage,
 				modelRegistry,
+				settingsManager,
 			});
 			const result = await createAgentSessionFromServices({
 				services,
@@ -184,6 +207,9 @@ class SessionRegistryImpl {
 			sessionFile: runtime.session.sessionFile,
 			piSessionId: runtime.session.sessionId,
 			cwdFallback: cwd !== ws.path ? true : undefined,
+			projectHasTrustInputs,
+			projectTrustDecision,
+			projectTrusted,
 		};
 	}
 

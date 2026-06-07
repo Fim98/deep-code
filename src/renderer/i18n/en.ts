@@ -205,6 +205,16 @@ export const en: Record<string, string> = {
 	"settings.imageHandling": "Image Handling",
 	"settings.modelFiltersSaved": "Model filters saved",
 
+	// Project trust
+	"settings.projectTrust": "Project trust",
+	"settings.projectTrustDescription":
+		"Pi only loads project-local AGENTS.md, .pi settings, extensions, packages, skills, prompts, and themes after the workspace is trusted.",
+	"settings.trust": "Trust",
+	"settings.doNotTrust": "Do not trust",
+	"settings.clearDecision": "Clear decision",
+	"settings.trustDecisionSaved":
+		"Trust decision saved. Reopen the session to reload project resources.",
+
 	// About
 	"settings.about": "deepcode",
 	"settings.version": "Version",
@@ -266,6 +276,10 @@ export const en: Record<string, string> = {
 	"toast.noMessageToCopy": "No message to copy",
 	"toast.copyFailed": "Copy failed: {{error}}",
 	"toast.workspaceMissing": "Workspace folder not found, using current directory",
+	"toast.projectUntrusted":
+		"Project-local pi resources are ignored until this workspace is trusted.",
+	"toast.trustProject": "Trust project",
+	"toast.projectTrustSaved": "Project trust saved. Reopen the session to reload resources.",
 
 	// ─── Timeline ───────────────────────────────────────────────────────────
 	"timeline.emptyTitle": "Send a message to begin",

@@ -29,6 +29,8 @@ const mockSettingsManager = {
 	getImageAutoResize: vi.fn().mockReturnValue(true),
 	getBlockImages: vi.fn().mockReturnValue(false),
 	getEnabledModels: vi.fn().mockReturnValue(undefined),
+	getGlobalSettings: vi.fn().mockReturnValue({}),
+	getProjectSettings: vi.fn().mockReturnValue({}),
 	setDefaultProvider: mockSetDefaultProvider,
 	setDefaultModel: mockSetDefaultModel,
 	setDefaultThinkingLevel: mockSetDefaultThinkingLevel,
@@ -50,6 +52,10 @@ vi.mock("./shared-services.js", () => ({
 		modelRegistry: {},
 		agentDir: "/tmp/test-agent",
 	})),
+}));
+
+vi.mock("./project-trust.js", () => ({
+	ProjectTrustStore: vi.fn(() => ({ get: vi.fn(() => null), set: vi.fn() })),
 }));
 
 vi.mock("@earendil-works/pi-coding-agent", () => ({

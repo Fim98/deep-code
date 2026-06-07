@@ -26,6 +26,8 @@ describe("SettingsDialog", () => {
 			imageAutoResize: true,
 			blockImages: false,
 			enabledModels: undefined,
+			globalSettings: {},
+			projectSettings: {},
 		});
 		mockPi.settings.agentDir.mockResolvedValue("/tmp/test-agent");
 		mockPi.appInfo.version.mockResolvedValue("0.0.0-test");
@@ -41,9 +43,10 @@ describe("SettingsDialog", () => {
 			render(<SettingsDialog open={true} onOpenChange={vi.fn()} />);
 		});
 		expect(screen.getByText("Settings")).toBeInTheDocument();
-		// Tab buttons — Models tab has been removed
+		// Tab buttons
 		expect(screen.getByText("General")).toBeInTheDocument();
 		expect(screen.getByText("Providers")).toBeInTheDocument();
+		expect(screen.getByText("Models")).toBeInTheDocument();
 		expect(screen.getByText("About")).toBeInTheDocument();
 	});
 
@@ -178,6 +181,24 @@ describe("SettingsDialog", () => {
 			});
 
 			expect(screen.getByText("Auto-compaction")).toBeInTheDocument();
+		});
+	});
+
+	// ── Models tab ────────────────────────────────────────────────────────
+
+	describe("Models tab", () => {
+		it("shows enabled model filters", async () => {
+			const user = userEvent.setup();
+			await act(async () => {
+				render(<SettingsDialog open={true} onOpenChange={vi.fn()} />);
+			});
+
+			await act(async () => {
+				await user.click(screen.getByText("Models"));
+			});
+
+			expect(await screen.findByText("Enabled Models")).toBeInTheDocument();
+			expect(screen.getByText("Block images")).toBeInTheDocument();
 		});
 	});
 

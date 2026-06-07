@@ -245,6 +245,7 @@ export function App() {
 	async function openSession(sessionFile?: string, workspaceIdArg?: string) {
 		const workspaceId = workspaceIdArg ?? activeWs;
 		if (!workspaceId) return;
+		const targetWorkspace = workspaces.find((workspace) => workspace.id === workspaceId);
 		try {
 			const existingActive = activeSessionByWs[workspaceId];
 			const existingSessions = sessionsByWs[workspaceId] ?? [];
@@ -267,6 +268,19 @@ export function App() {
 			const { sessionId, piSessionId } = result;
 			if (result.cwdFallback) {
 				emitToast(t("toast.workspaceMissing"), "info");
+			}
+			if (result.projectHasTrustInputs && !result.projectTrusted) {
+				emitToast(t("toast.projectUntrusted"), {
+					action: {
+						label: t("toast.trustProject"),
+						onClick: () => {
+							if (!targetWorkspace) return;
+							void pi.settings.setProjectTrust(targetWorkspace.path, true).then(() => {
+								emitToast(t("toast.projectTrustSaved"), "info");
+							});
+						},
+					},
+				});
 			}
 			setActiveSessionByWs((prev) => ({
 				...prev,
@@ -660,7 +674,11 @@ export function App() {
 				</DialogContent>
 			</Dialog>
 
-			<SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+			<SettingsDialog
+				open={settingsOpen}
+				onOpenChange={setSettingsOpen}
+				activeWorkspacePath={activeWorkspace?.path}
+			/>
 			<CommandPalette
 				open={paletteOpen}
 				onOpenChange={setPaletteOpen}
