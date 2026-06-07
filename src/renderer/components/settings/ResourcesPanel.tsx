@@ -93,7 +93,9 @@ export function ResourcesPanel({ sessionId, cwd }: Props) {
 					action: { label: "Reveal", onClick: () => void pi.shell.showItemInFolder(path) },
 				});
 			} else {
-				emitToast(`Created and opened ${path}`, "info");
+				emitToast(`Created and opened ${path}`, {
+					action: { label: "Reload", onClick: () => void reload() },
+				});
 			}
 		} catch (error) {
 			emitToast(formatError(error));
