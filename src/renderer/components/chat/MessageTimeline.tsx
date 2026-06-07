@@ -1,9 +1,9 @@
 import {
 	AlertCircle,
-	ChevronRight,
+	CheckCircle2,
+	ChevronDown,
 	Copy,
 	FilePen,
-	FilePlus,
 	FileText,
 	GitFork,
 	Info,
@@ -46,7 +46,14 @@ interface ToolCallPart {
 	arguments: Record<string, unknown>;
 }
 
+type Part =
+	| { type: "text"; text: string }
+	| { type: "thinking"; thinking: string; redacted?: boolean }
+	| ToolCallPart
+	| { type: "image"; data: string; mimeType: string };
+
 interface ToolResultInfo {
+	toolCallId: string;
 	toolName: string;
 	content: unknown[];
 	isError: boolean;
@@ -54,32 +61,9 @@ interface ToolResultInfo {
 	timestamp?: number;
 }
 
-type Part =
-	| { type: "text"; text: string }
-	| { type: "thinking"; thinking: string; redacted?: boolean }
-	| ToolCallPart
-	| { type: "image"; data: string; mimeType: string };
+type ToolStatus = "pending" | "running" | "done" | "error";
 
-type ActivityKind = "thinking" | "command" | "edit" | "write" | "read" | "search" | "other";
-type ActivityStatus = "pending" | "running" | "done" | "error";
-
-interface ActivityItem {
-	id: string;
-	kind: ActivityKind;
-	label: string;
-	status: ActivityStatus;
-	toolName?: string;
-	action?: "read" | "write" | "edit" | "run" | "search" | "think" | "process";
-	diffStat?: string;
-}
-
-interface ActivityGroup {
-	kind: ActivityKind;
-	items: ActivityItem[];
-	status: ActivityStatus;
-}
-
-type TimelineItem =
+type TranscriptEntry =
 	| {
 			type: "user";
 			key: string;
@@ -87,17 +71,50 @@ type TimelineItem =
 			userIndex: number;
 	  }
 	| {
-			type: "assistantTurn";
+			type: "assistantText";
 			key: string;
-			messages: Array<Extract<ChatMessage, { role: "assistant" }>>;
-			lastIndex: number;
+			text: string;
+			timestamp: number;
+			model?: string;
+			stopReason?: string;
+			precedingUserText?: string;
+	  }
+	| {
+			type: "thinking";
+			key: string;
+			text: string;
+			redacted?: boolean;
+			timestamp: number;
+	  }
+	| {
+			type: "assistantImage";
+			key: string;
+			data: string;
+			mimeType: string;
+			timestamp: number;
+	  }
+	| {
+			type: "toolCall";
+			key: string;
+			toolCallId: string;
+			toolName: string;
+			args: Record<string, unknown>;
+			timestamp: number;
 	  }
 	| {
 			type: "toolResult";
 			key: string;
 			message: Extract<ChatMessage, { role: "toolResult" }>;
 	  }
-	| { type: "custom"; key: string; message: Extract<ChatMessage, { role: "custom" }> };
+	| {
+			type: "assistantError";
+			key: string;
+			stopReason?: string;
+			message?: string;
+			timestamp: number;
+	  }
+	| { type: "custom"; key: string; message: Extract<ChatMessage, { role: "custom" }> }
+	| { type: "liveTool"; key: string; execution: ToolExecutionState };
 
 export function MessageTimeline({ sessionId }: Props) {
 	const { t } = useI18n();
@@ -108,7 +125,6 @@ export function MessageTimeline({ sessionId }: Props) {
 	const pendingSubmissions = slice?.pendingSubmissions ?? [];
 	const hydrate = useSessions((s) => s.hydrate);
 
-	// Fetch fork messages for "Fork from here" buttons
 	const [forkMessages, setForkMessages] = useState<Array<{ entryId: string; text: string }>>([]);
 	useEffect(() => {
 		if (messages.length === 0) return;
@@ -119,7 +135,6 @@ export function MessageTimeline({ sessionId }: Props) {
 		});
 	}, [sessionId, messages.length]);
 
-	// Build a map of user message index -> entryId for fork buttons
 	const forkEntryIds = useMemo(() => {
 		let userIdx = 0;
 		const map = new Map<number, string>();
@@ -150,6 +165,7 @@ export function MessageTimeline({ sessionId }: Props) {
 		},
 		[sessionId, hydrate],
 	);
+
 	const queuedMessages = useMemo(
 		() => [
 			...((slice?.queue.steering ?? []).map((content, index) => ({
@@ -166,78 +182,27 @@ export function MessageTimeline({ sessionId }: Props) {
 		[slice?.queue.steering, slice?.queue.followUp],
 	);
 
-	const { toolResults, claimed } = useMemo(() => {
-		const map = new Map<string, ToolResultInfo>();
-		const toolCallIds = new Set<string>();
-		for (const m of messages) {
-			if (m.role === "assistant") {
-				for (const part of (m.content ?? []) as Part[]) {
-					if (part?.type === "toolCall") toolCallIds.add(part.id);
-				}
-			}
-			if (m.role === "toolResult") {
-				map.set(m.toolCallId, {
-					toolName: m.toolName,
-					content: m.content,
-					isError: m.isError,
-					details: m.details,
-					timestamp: m.timestamp,
-				});
-			}
-		}
-		return { toolResults: map, claimed: toolCallIds };
-	}, [messages]);
+	const toolResults = useMemo(() => buildToolResultMap(messages), [messages]);
+	const transcript = useMemo(() => buildTranscript(messages, activeTools), [messages, activeTools]);
 
-	const lastAssistantIdx = useMemo(() => {
-		for (let i = messages.length - 1; i >= 0; i--) {
-			if (messages[i].role === "assistant") return i;
-		}
-		return -1;
-	}, [messages]);
-	const timelineItems = useMemo(() => buildTimelineItems(messages, claimed), [messages, claimed]);
-
-	// ── Search ──────────────────────────────────────────────────────────
 	const [searchQuery, setSearchQuery] = useState("");
 	const [searchOpen, setSearchOpen] = useState(false);
-
 	const searchMatches = useMemo(() => {
 		if (!searchQuery.trim()) return new Set<string>();
 		const q = searchQuery.toLowerCase();
-		const matched = new Set<string>();
-		for (const item of timelineItems) {
-			if (item.type === "user") {
-				const text = extractTextFromContent(item.message.content);
-				if (text.toLowerCase().includes(q)) matched.add(item.key);
-			} else if (item.type === "assistantTurn") {
-				const text = item.messages
-					.flatMap((m) => (m.content ?? []) as Part[])
-					.filter((p): p is Part & { type: "text" } => p.type === "text" && !!p.text)
-					.map((p) => p.text)
-					.join(" ");
-				const errors = item.messages
-					.map((m) => m.errorMessage)
-					.filter((message): message is string => !!message)
-					.join(" ");
-				if (`${text} ${errors}`.toLowerCase().includes(q)) matched.add(item.key);
-			} else if (item.type === "toolResult") {
-				const text = (item.message.content as Part[])
-					.filter((p): p is Part & { type: "text" } => p?.type === "text")
-					.map((p) => p.text)
-					.join(" ");
-				if (text.toLowerCase().includes(q)) matched.add(item.key);
-			}
-		}
-		return matched;
-	}, [searchQuery, timelineItems]);
-
+		return new Set(
+			transcript
+				.filter((entry) => transcriptSearchText(entry).toLowerCase().includes(q))
+				.map((entry) => entry.key),
+		);
+	}, [searchQuery, transcript]);
 	const hasSearch = searchQuery.trim().length > 0;
-	const visibleItems = hasSearch
-		? timelineItems.filter((item) => searchMatches.has(item.key))
-		: timelineItems;
+	const visibleEntries = hasSearch
+		? transcript.filter((entry) => searchMatches.has(entry.key))
+		: transcript;
 
 	return (
 		<Conversation>
-			{/* Search bar */}
 			{messages.length > 0 ? (
 				<div className="relative px-4 pt-3">
 					{searchOpen ? (
@@ -292,21 +257,16 @@ export function MessageTimeline({ sessionId }: Props) {
 					/>
 				) : (
 					<>
-						{visibleItems.map((item) => (
-							<TimelineRow
-								key={item.key}
-								item={item}
+						{visibleEntries.map((entry) => (
+							<TranscriptRow
+								key={entry.key}
+								entry={entry}
 								toolResults={toolResults}
 								activeTools={activeTools}
-								isStreamingLast={
-									isStreaming &&
-									item.type === "assistantTurn" &&
-									item.lastIndex === lastAssistantIdx
-								}
 								forkEntryIds={forkEntryIds}
 								onFork={handleFork}
 								sessionId={sessionId}
-								isStreaming={isStreaming}
+								globalStreaming={isStreaming}
 							/>
 						))}
 						{pendingSubmissions.map((submission) => (
@@ -327,71 +287,68 @@ export function MessageTimeline({ sessionId }: Props) {
 	);
 }
 
-function TimelineRow({
-	item,
+function TranscriptRow({
+	entry,
 	toolResults,
 	activeTools,
-	isStreamingLast,
 	forkEntryIds,
 	onFork,
 	sessionId,
-	isStreaming,
+	globalStreaming,
 }: {
-	item: TimelineItem;
+	entry: TranscriptEntry;
 	toolResults: Map<string, ToolResultInfo>;
 	activeTools: Record<string, ToolExecutionState>;
-	isStreamingLast: boolean;
 	forkEntryIds: Map<number, string>;
 	onFork: (entryId: string) => void;
 	sessionId: string;
-	isStreaming: boolean;
+	globalStreaming: boolean;
 }) {
-	if (item.type === "user") {
-		const entryId = forkEntryIds.get(item.userIndex);
-		return <UserRow content={item.message.content} forkEntryId={entryId} onFork={onFork} />;
+	switch (entry.type) {
+		case "user":
+			return (
+				<UserRow
+					content={entry.message.content}
+					forkEntryId={forkEntryIds.get(entry.userIndex)}
+					onFork={onFork}
+				/>
+			);
+		case "assistantText":
+			return (
+				<AssistantTextRow entry={entry} sessionId={sessionId} globalStreaming={globalStreaming} />
+			);
+		case "thinking":
+			return <ThinkingRow entry={entry} />;
+		case "assistantImage":
+			return <AssistantImageRow entry={entry} />;
+		case "toolCall":
+			return (
+				<ToolCallRow
+					toolName={entry.toolName}
+					toolCallId={entry.toolCallId}
+					args={entry.args}
+					status={toolStatus(entry.toolCallId, toolResults, activeTools)}
+				/>
+			);
+		case "toolResult":
+			return <ToolResultRow message={entry.message} />;
+		case "assistantError":
+			return <AssistantErrorNotice stopReason={entry.stopReason} message={entry.message} />;
+		case "custom":
+			return <CustomRow data={entry.message} />;
+		case "liveTool":
+			return (
+				<ToolCallRow
+					toolName={entry.execution.toolName}
+					toolCallId={entry.execution.toolCallId}
+					args={entry.execution.args}
+					status={entry.execution.status}
+					live
+				/>
+			);
+		default:
+			return null;
 	}
-	if (item.type === "assistantTurn") {
-		// Find the preceding user message for regeneration
-		const lastAssistantTs = item.messages[0]?.timestamp ?? 0;
-		const allMessages = useSessions.getState().bySession[sessionId]?.messages ?? [];
-		let precedingUserText: string | undefined;
-		for (let i = allMessages.length - 1; i >= 0; i--) {
-			const m = allMessages[i];
-			if (m.timestamp >= lastAssistantTs) continue;
-			if (m.role === "user") {
-				precedingUserText =
-					typeof m.content === "string"
-						? m.content
-						: (m.content as Part[])
-								.filter((p): p is Part & { type: "text" } => p?.type === "text")
-								.map((p) => p.text)
-								.join("\n");
-				break;
-			}
-		}
-		return (
-			<AssistantRow
-				messages={item.messages}
-				toolResults={toolResults}
-				activeTools={activeTools}
-				isStreaming={isStreamingLast}
-				sessionId={sessionId}
-				globalStreaming={isStreaming}
-				precedingUserText={precedingUserText}
-			/>
-		);
-	}
-	if (item.type === "toolResult") {
-		return (
-			<OrphanToolResult
-				toolName={item.message.toolName}
-				content={item.message.content}
-				isError={item.message.isError}
-			/>
-		);
-	}
-	if (item.type === "custom") return <CustomRow data={item.message} />;
-	return null;
 }
 
 function PendingSubmissionTurn({ submission }: { submission: PendingSubmission }) {
@@ -399,8 +356,11 @@ function PendingSubmissionTurn({ submission }: { submission: PendingSubmission }
 		<>
 			<UserRow content={submission.content} forkEntryId={undefined} onFork={undefined} />
 			<Message from="assistant">
-				<MessageContent className="flex flex-col gap-3.5">
-					<ActivityPanel activities={[]} elapsed="0s" isStreaming hasFinalText={false} />
+				<MessageContent className="w-full max-w-full">
+					<div className="flex items-center gap-2 rounded-[18px] border border-border/40 bg-card/50 px-4 py-3 text-[13px] text-muted-foreground shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
+						<Sparkles className="size-4 text-primary" />
+						<Shimmer>{translate("timeline.preparingNextStep")}</Shimmer>
+					</div>
 				</MessageContent>
 			</Message>
 		</>
@@ -434,24 +394,15 @@ function UserRow({
 	onFork?: (entryId: string) => void;
 }) {
 	const { t } = useI18n();
-	const text =
-		typeof content === "string"
-			? content
-			: (content as Part[])
-					.filter((p): p is Part & { type: "text" } => p?.type === "text")
-					.map((p) => p.text)
-					.join("\n");
-	const images =
-		typeof content === "string"
-			? []
-			: (content as Part[]).filter((p): p is Part & { type: "image" } => p?.type === "image");
+	const text = extractTextFromContent(content);
+	const images = extractImagesFromContent(content);
 	return (
 		<Message from="user" className="group/user">
 			<div className="relative max-w-[80%]">
 				<MessageContent className="flex flex-col items-stretch gap-3">
 					{images.map((img, i) => (
 						<img
-							key={i}
+							key={`${img.mimeType}-${i}`}
 							alt=""
 							src={`data:${img.mimeType};base64,${img.data}`}
 							className="max-h-72 self-end rounded-[18px] border border-white/25 object-contain"
@@ -463,13 +414,10 @@ function UserRow({
 						</div>
 					) : null}
 				</MessageContent>
-				{/* Action buttons — copy + fork */}
 				<div
 					className={cn(
 						"absolute -right-1 top-1/2 z-10 flex -translate-y-1/2 items-center gap-1",
-						"opacity-0 transition-opacity duration-150",
-						"group-hover/user:opacity-100",
-						"focus-within:opacity-100",
+						"opacity-0 transition-opacity duration-150 group-hover/user:opacity-100 focus-within:opacity-100",
 					)}
 				>
 					{text ? (
@@ -479,12 +427,7 @@ function UserRow({
 								void navigator.clipboard.writeText(text);
 								emitToast(t("timeline.copied"), "info");
 							}}
-							className={cn(
-								"flex items-center gap-1 rounded-full",
-								"bg-card px-2 py-1 text-[10px] font-medium text-muted-foreground",
-								"border border-border/40 shadow-sm",
-								"hover:text-foreground",
-							)}
+							className="flex items-center gap-1 rounded-full border border-border/40 bg-card px-2 py-1 text-[10px] font-medium text-muted-foreground shadow-sm hover:text-foreground"
 							title={t("timeline.copyMessage")}
 						>
 							<Copy className="size-3" />
@@ -494,12 +437,7 @@ function UserRow({
 						<button
 							type="button"
 							onClick={() => onFork(forkEntryId)}
-							className={cn(
-								"flex items-center gap-1 rounded-full",
-								"bg-card px-2 py-1 text-[10px] font-medium text-primary/70",
-								"border border-primary/20 shadow-sm",
-								"hover:text-primary",
-							)}
+							className="flex items-center gap-1 rounded-full border border-primary/20 bg-card px-2 py-1 text-[10px] font-medium text-primary/70 shadow-sm hover:text-primary"
 							title={t("timeline.forkFromHere")}
 						>
 							<GitFork className="size-3" />
@@ -512,193 +450,370 @@ function UserRow({
 	);
 }
 
-function buildTimelineItems(
-	messages: ChatMessage[],
-	claimedToolResultIds: Set<string>,
-): TimelineItem[] {
-	const items: TimelineItem[] = [];
-	let userIndex = 0;
-	for (let index = 0; index < messages.length; index++) {
-		const message = messages[index];
-		if (message.role === "user") {
-			items.push({
-				type: "user",
-				key: `user-${message.timestamp}-${index}`,
-				message,
-				userIndex,
-			});
-			userIndex++;
-			continue;
-		}
-		if (message.role === "assistant") {
-			const last = items[items.length - 1];
-			if (last?.type === "assistantTurn") {
-				last.messages.push(message);
-				last.lastIndex = index;
-			} else {
-				items.push({
-					type: "assistantTurn",
-					key: `assistant-${message.timestamp}-${index}`,
-					messages: [message],
-					lastIndex: index,
-				});
-			}
-			continue;
-		}
-		if (message.role === "toolResult") {
-			if (!claimedToolResultIds.has(message.toolCallId)) {
-				items.push({
-					type: "toolResult",
-					key: `tool-${message.toolCallId}-${message.timestamp}-${index}`,
-					message,
-				});
-			}
-			continue;
-		}
-		if (message.role === "custom") {
-			items.push({
-				type: "custom",
-				key: `custom-${message.subtype}-${message.timestamp}-${index}`,
-				message,
-			});
-		}
-	}
-	return items;
-}
-
-function AssistantRow({
-	messages,
-	toolResults,
-	activeTools,
-	isStreaming,
+function AssistantTextRow({
+	entry,
 	sessionId,
 	globalStreaming,
-	precedingUserText,
 }: {
-	messages: Array<Extract<ChatMessage, { role: "assistant" }>>;
-	toolResults: Map<string, ToolResultInfo>;
-	activeTools: Record<string, ToolExecutionState>;
-	isStreaming: boolean;
+	entry: Extract<TranscriptEntry, { type: "assistantText" }>;
 	sessionId: string;
 	globalStreaming: boolean;
-	precedingUserText?: string;
 }) {
 	const { t } = useI18n();
-	const parts = messages.flatMap((message) => (message.content ?? []) as Part[]);
-	const text = parts
-		.filter((p): p is Part & { type: "text" } => p.type === "text" && !!p.text)
-		.map((p) => p.text)
-		.join("\n\n");
-	const activities = buildActivities(parts, toolResults, activeTools, isStreaming);
-	const hasFinalText = text.trim().length > 0;
-	const errorMessage = [...messages]
-		.reverse()
-		.map((message) => message.errorMessage)
-		.find((message): message is string => !!message);
-	const errorStopReason = [...messages]
-		.reverse()
-		.map((message) => message.stopReason)
-		.find((reason) => reason === "error" || reason === "aborted");
-	const hasError = !!errorMessage || !!errorStopReason;
-	const hasContent = hasFinalText || activities.length > 0 || hasError;
-	if (!hasContent) return null;
-
-	const firstMessage = messages[0];
-	const lastMessage = messages[messages.length - 1];
-	const startedAt = firstMessage?.timestamp ?? Date.now();
-	const endedAt = latestActivityTimestamp(
-		activities,
-		toolResults,
-		lastMessage?.timestamp ?? startedAt,
-	);
-	const elapsed = formatDuration(Math.max(0, (isStreaming ? Date.now() : endedAt) - startedAt));
-	const model = lastMessage?.model;
-	const stopReason = lastMessage?.stopReason;
+	const [regenerating, setRegenerating] = useState(false);
 
 	async function handleCopy() {
-		if (!text) return;
-		await navigator.clipboard.writeText(text);
+		await navigator.clipboard.writeText(entry.text);
 		emitToast(t("timeline.copied"), "info");
 	}
 
 	async function handleRegenerate() {
-		if (globalStreaming || !precedingUserText) return;
+		if (globalStreaming || !entry.precedingUserText) return;
+		setRegenerating(true);
 		try {
-			// Re-send the preceding user message to get a fresh response
 			await pi.rpc.send(sessionId, {
 				type: "prompt",
-				message: precedingUserText,
+				message: entry.precedingUserText,
 			} as any);
 		} catch (e) {
 			emitToast(
 				translate("toast.forkFailed", { error: e instanceof Error ? e.message : String(e) }),
 			);
+		} finally {
+			setRegenerating(false);
 		}
 	}
 
 	return (
 		<Message from="assistant">
 			<div className="group/assistant relative min-w-0 max-w-full">
-				<MessageContent className="flex flex-col gap-3.5">
-					<ActivityPanel
-						activities={activities}
-						elapsed={elapsed}
-						isStreaming={isStreaming}
-						hasFinalText={hasFinalText}
-					/>
-					{hasError ? (
-						<AssistantErrorNotice stopReason={errorStopReason} message={errorMessage} />
-					) : null}
-					{hasFinalText ? <MessageResponse>{text}</MessageResponse> : null}
-					{model || stopReason ? (
-						<div className="text-[11px] font-medium text-muted-foreground/55">
-							{model ?? ""}
-							{stopReason && stopReason !== "stop" ? ` · ${stopReason}` : ""}
+				<MessageContent className="w-full max-w-full py-1">
+					<MessageResponse>{entry.text}</MessageResponse>
+					{entry.model || entry.stopReason ? (
+						<div className="mt-2 text-[11px] font-medium text-muted-foreground/55">
+							{entry.model ?? ""}
+							{entry.stopReason && entry.stopReason !== "stop" ? ` · ${entry.stopReason}` : ""}
 						</div>
 					) : null}
 				</MessageContent>
-				{/* Action buttons — appear on hover when not streaming */}
-				{!isStreaming && hasFinalText ? (
-					<div
-						className={cn(
-							"absolute -right-1 bottom-1 z-10 flex items-center gap-1",
-							"opacity-0 transition-opacity duration-150",
-							"group-hover/assistant:opacity-100",
-							"focus-within:opacity-100",
-						)}
+				<div className="absolute -right-1 bottom-1 z-10 flex items-center gap-1 opacity-0 transition-opacity duration-150 group-hover/assistant:opacity-100 focus-within:opacity-100">
+					<button
+						type="button"
+						onClick={handleCopy}
+						className="flex items-center gap-1 rounded-full border border-border/40 bg-card px-2 py-1 text-[10px] font-medium text-muted-foreground shadow-sm hover:text-foreground"
+						title={t("timeline.copyMessage")}
 					>
-						<button
-							type="button"
-							onClick={handleCopy}
-							className={cn(
-								"flex items-center gap-1 rounded-full",
-								"bg-card px-2 py-1 text-[10px] font-medium text-muted-foreground",
-								"border border-border/40 shadow-sm",
-								"hover:text-foreground",
-							)}
-							title={t("timeline.copyMessage")}
-						>
-							<Copy className="size-3" />
-						</button>
-						<button
-							type="button"
-							onClick={handleRegenerate}
-							disabled={globalStreaming || !precedingUserText}
-							className={cn(
-								"flex items-center gap-1 rounded-full",
-								"bg-card px-2 py-1 text-[10px] font-medium text-muted-foreground",
-								"border border-border/40 shadow-sm",
-								"hover:text-foreground",
-								"disabled:opacity-40 disabled:pointer-events-none",
-							)}
-							title={t("timeline.regenerate")}
-						>
-							<RotateCcw className="size-3" />
-						</button>
-					</div>
-				) : null}
+						<Copy className="size-3" />
+					</button>
+					<button
+						type="button"
+						onClick={handleRegenerate}
+						disabled={globalStreaming || !entry.precedingUserText || regenerating}
+						className="flex items-center gap-1 rounded-full border border-border/40 bg-card px-2 py-1 text-[10px] font-medium text-muted-foreground shadow-sm hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+						title={t("timeline.regenerate")}
+					>
+						<RotateCcw className={cn("size-3", regenerating && "animate-spin")} />
+					</button>
+				</div>
 			</div>
 		</Message>
+	);
+}
+
+function ThinkingRow({ entry }: { entry: Extract<TranscriptEntry, { type: "thinking" }> }) {
+	const [open, setOpen] = useState(false);
+	return (
+		<Message from="assistant">
+			<MessageContent className="w-full max-w-full py-1">
+				<div className="rounded-[18px] border border-border/40 bg-card/45 px-4 py-3 text-[13px] text-muted-foreground shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+					<button
+						type="button"
+						onClick={() => setOpen((value) => !value)}
+						className="flex w-full items-center gap-2 text-left font-medium text-muted-foreground transition-colors hover:text-foreground"
+					>
+						<Sparkles className="size-3.5 text-primary/70" />
+						<span>{entry.redacted ? "Thinking hidden" : "Thinking"}</span>
+						<ChevronDown
+							className={cn("ml-auto size-3.5 transition-transform", open && "rotate-180")}
+						/>
+					</button>
+					{open ? (
+						<div className="mt-3 border-t border-border/50 pt-3 italic leading-6 text-muted-foreground/85">
+							<MessageResponse>{entry.text}</MessageResponse>
+						</div>
+					) : null}
+				</div>
+			</MessageContent>
+		</Message>
+	);
+}
+
+function AssistantImageRow({
+	entry,
+}: {
+	entry: Extract<TranscriptEntry, { type: "assistantImage" }>;
+}) {
+	return (
+		<Message from="assistant">
+			<MessageContent className="w-full max-w-full py-1">
+				<img
+					alt=""
+					src={`data:${entry.mimeType};base64,${entry.data}`}
+					className="max-h-96 rounded-[18px] border border-border/50 object-contain shadow-[0_2px_8px_rgba(0,0,0,0.03)]"
+				/>
+			</MessageContent>
+		</Message>
+	);
+}
+
+function ToolCallRow({
+	toolName,
+	toolCallId,
+	args,
+	status,
+	live = false,
+}: {
+	toolName: string;
+	toolCallId: string;
+	args: Record<string, unknown>;
+	status: ToolStatus;
+	live?: boolean;
+}) {
+	const Icon = iconForTool(toolName);
+	const summary = summarizeToolCall(toolName, args);
+	const tone = statusTone(status);
+	return (
+		<Message from="assistant">
+			<MessageContent className="w-full max-w-full py-1">
+				<div
+					className={cn(
+						"rounded-[18px] border px-4 py-3 shadow-[0_2px_8px_rgba(0,0,0,0.025)]",
+						tone.card,
+					)}
+				>
+					<div className="flex min-w-0 items-start gap-3">
+						<div
+							className={cn(
+								"flex size-8 shrink-0 items-center justify-center rounded-[12px]",
+								tone.icon,
+							)}
+						>
+							<Icon className="size-4" />
+						</div>
+						<div className="min-w-0 flex-1">
+							<div className="flex min-w-0 items-center gap-2">
+								<div className="truncate text-[13px] font-medium text-foreground">{toolName}</div>
+								<span
+									className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium", tone.badge)}
+								>
+									{live ? "live" : status}
+								</span>
+							</div>
+							<div className="mt-1 truncate text-[12px] text-muted-foreground">{summary}</div>
+							<ToolMetaChips toolName={toolName} args={args} />
+							<ToolDetails title="Arguments" value={args} />
+						</div>
+						<div className="shrink-0 pt-0.5">
+							{status === "running" || status === "pending" ? (
+								<Sparkles className="size-4 animate-pulse text-primary" />
+							) : status === "error" ? (
+								<AlertCircle className="size-4 text-destructive" />
+							) : (
+								<CheckCircle2 className="size-4 text-emerald-600" />
+							)}
+						</div>
+					</div>
+					<div className="mt-2 truncate font-mono text-[10px] text-muted-foreground/50">
+						{toolCallId}
+					</div>
+				</div>
+			</MessageContent>
+		</Message>
+	);
+}
+
+function ToolResultRow({ message }: { message: Extract<ChatMessage, { role: "toolResult" }> }) {
+	const text = extractTextFromContent(message.content);
+	const images = extractImagesFromContent(message.content);
+	const diff = diffFromDetails(message.details);
+	const meta = toolResultMeta(message);
+	const truncation = truncationSummary(message.details);
+	return (
+		<Message from="assistant">
+			<MessageContent className="w-full max-w-full py-1">
+				<div
+					className={cn(
+						"rounded-[18px] border px-4 py-3 shadow-[0_2px_8px_rgba(0,0,0,0.025)]",
+						message.isError
+							? "border-destructive/25 bg-destructive/[0.04]"
+							: "border-border/50 bg-background/50",
+					)}
+				>
+					<div className="mb-2 flex min-w-0 items-center gap-2">
+						<span
+							className={cn(
+								"rounded-full px-2 py-0.5 text-[10px] font-medium",
+								message.isError
+									? "bg-destructive/10 text-destructive"
+									: "bg-emerald-500/10 text-emerald-700",
+							)}
+						>
+							{message.isError ? "error" : "result"}
+						</span>
+						<div className="truncate text-[13px] font-medium text-foreground">
+							{message.toolName}
+						</div>
+						{meta.length > 0 ? (
+							<div className="ml-auto hidden min-w-0 shrink-0 items-center gap-1.5 sm:flex">
+								{meta.map((item) => (
+									<span
+										key={item}
+										className="max-w-44 truncate rounded-full bg-foreground/[0.045] px-2 py-0.5 text-[10px] text-muted-foreground"
+									>
+										{item}
+									</span>
+								))}
+							</div>
+						) : null}
+					</div>
+					{images.length > 0 ? (
+						<div className="mb-3 flex flex-wrap gap-2">
+							{images.map((img, index) => (
+								<img
+									key={`${img.mimeType}-${index}`}
+									alt=""
+									src={`data:${img.mimeType};base64,${img.data}`}
+									className="max-h-64 rounded-[14px] border border-border/50 object-contain"
+								/>
+							))}
+						</div>
+					) : null}
+					{truncation ? <ToolNotice>{truncation}</ToolNotice> : null}
+					{diff ? (
+						<DiffPreview diff={diff} />
+					) : text ? (
+						<ResultText toolName={message.toolName} text={text} isError={message.isError} />
+					) : (
+						<div className="text-[12px] text-muted-foreground">
+							{translate("timeline.noOutput")}
+						</div>
+					)}
+					<ToolDetails title="Details" value={message.details} />
+				</div>
+			</MessageContent>
+		</Message>
+	);
+}
+
+function ToolMetaChips({ toolName, args }: { toolName: string; args: Record<string, unknown> }) {
+	const chips: string[] = [];
+	const path = pathFromArgs(args);
+	const pattern = stringArg(args, "pattern") ?? stringArg(args, "query");
+	const glob = stringArg(args, "glob");
+	const timeout = typeof args.timeout === "number" ? `${args.timeout}ms` : undefined;
+	const edits = Array.isArray(args.edits) ? `${args.edits.length} edits` : undefined;
+	if (path) chips.push(compactPath(path));
+	if (pattern && !path) chips.push(pattern);
+	if (glob) chips.push(glob);
+	if (edits) chips.push(edits);
+	if (timeout && toolName === "bash") chips.push(timeout);
+	if (chips.length === 0) return null;
+	return (
+		<div className="mt-2 flex flex-wrap gap-1.5">
+			{chips.map((chip) => (
+				<span
+					key={chip}
+					className="max-w-full truncate rounded-full bg-foreground/[0.045] px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
+				>
+					{chip}
+				</span>
+			))}
+		</div>
+	);
+}
+
+function ResultText({
+	toolName,
+	text,
+	isError,
+}: {
+	toolName: string;
+	text: string;
+	isError: boolean;
+}) {
+	const compact = shouldCompactResult(toolName, text);
+	return (
+		<pre
+			className={cn(
+				"overflow-auto whitespace-pre-wrap break-words rounded-[14px] border px-3 py-2 font-mono text-[11.5px] leading-5 [overflow-wrap:anywhere]",
+				compact ? "max-h-44" : "max-h-80",
+				isError
+					? "border-destructive/15 bg-destructive/[0.035] text-destructive"
+					: "border-border/40 bg-card/45 text-muted-foreground",
+			)}
+		>
+			{text}
+		</pre>
+	);
+}
+
+function DiffPreview({ diff }: { diff: string }) {
+	const lines = diff.split("\n");
+	const preview = lines.slice(0, 160);
+	return (
+		<div className="overflow-hidden rounded-[14px] border border-border/50 bg-card/45 font-mono text-[11.5px] leading-5">
+			<div className="border-b border-border/40 px-3 py-2 text-[10px] font-medium text-muted-foreground">
+				Diff · {diffStatFromPatch(diff) ?? "changes"}
+			</div>
+			<pre className="max-h-80 overflow-auto py-2">
+				{preview.map((line, index) => (
+					<div
+						key={`${index}-${line}`}
+						className={cn(
+							"px-3 whitespace-pre-wrap break-words [overflow-wrap:anywhere]",
+							line.startsWith("+") &&
+								!line.startsWith("+++") &&
+								"bg-emerald-500/[0.06] text-emerald-700",
+							line.startsWith("-") &&
+								!line.startsWith("---") &&
+								"bg-destructive/[0.05] text-destructive",
+							(line.startsWith("@@") || line.startsWith("diff ")) && "text-primary",
+							!line.startsWith("+") &&
+								!line.startsWith("-") &&
+								!line.startsWith("@@") &&
+								"text-muted-foreground",
+						)}
+					>
+						{line || " "}
+					</div>
+				))}
+				{lines.length > preview.length ? (
+					<div className="px-3 pt-2 text-muted-foreground/70">
+						… {lines.length - preview.length} more lines
+					</div>
+				) : null}
+			</pre>
+		</div>
+	);
+}
+
+function ToolNotice({ children }: { children: React.ReactNode }) {
+	return (
+		<div className="mb-2 rounded-[12px] border border-amber-400/25 bg-amber-400/[0.055] px-3 py-2 text-[11px] text-amber-700">
+			{children}
+		</div>
+	);
+}
+
+function ToolDetails({ title, value }: { title: string; value: unknown }) {
+	if (value == null) return null;
+	return (
+		<details className="mt-2 rounded-[12px] bg-foreground/[0.035] px-3 py-2 text-[11px] text-muted-foreground">
+			<summary className="cursor-pointer font-medium text-muted-foreground/85">{title}</summary>
+			<pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-words font-mono leading-5 [overflow-wrap:anywhere]">
+				{summarize(value, 2000)}
+			</pre>
+		</details>
 	);
 }
 
@@ -707,145 +822,28 @@ function AssistantErrorNotice({ stopReason, message }: { stopReason?: string; me
 	const aborted = stopReason === "aborted";
 	const title = aborted ? t("timeline.requestAborted") : t("timeline.requestFailed");
 	return (
-		<div
-			className={cn(
-				"flex min-w-0 items-start gap-3 rounded-[18px] border px-4 py-3 text-[13px] leading-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)]",
-				aborted
-					? "border-warning/25 bg-warning/5 text-foreground"
-					: "border-destructive/25 bg-destructive/5 text-destructive",
-			)}
-		>
-			<AlertCircle className="mt-0.5 size-4 shrink-0" />
-			<div className="min-w-0 flex-1">
-				<div className="font-medium">{title}</div>
-				{message ? (
-					<pre className="mt-1 whitespace-pre-wrap break-words font-mono text-[11.5px] leading-5 [overflow-wrap:anywhere]">
-						{message}
-					</pre>
-				) : null}
-			</div>
-		</div>
-	);
-}
-
-function ActivityPanel({
-	activities,
-	elapsed,
-	isStreaming,
-	hasFinalText,
-}: {
-	activities: ActivityItem[];
-	elapsed: string;
-	isStreaming: boolean;
-	hasFinalText: boolean;
-}) {
-	const { t } = useI18n();
-	const [manualOpen, setManualOpen] = useState<boolean | null>(null);
-	const groups = useMemo(() => groupActivities(activities), [activities]);
-	const autoOpen = isStreaming || !hasFinalText;
-	const open = manualOpen ?? autoOpen;
-
-	useEffect(() => {
-		if (isStreaming) setManualOpen(null);
-	}, [isStreaming]);
-
-	if (activities.length === 0 && !isStreaming) return null;
-
-	const label = isStreaming
-		? t("activity.processing", { elapsed })
-		: t("activity.processed", { elapsed });
-
-	return (
-		<div className="w-full text-muted-foreground">
-			<button
-				type="button"
-				onClick={() => setManualOpen((value) => !(value ?? autoOpen))}
-				className="group flex w-full cursor-pointer items-center gap-2 border-b border-border/60 pb-2.5 text-left text-[13px] font-medium transition-colors hover:text-foreground"
-			>
-				<span className="min-w-0">{label}</span>
-				<ChevronRight
-					className={cn("size-4 shrink-0 transition-transform duration-200", open && "rotate-90")}
-				/>
-			</button>
-			{open ? (
-				<div className="space-y-3 border-b border-border/60 py-3">
-					{groups.length === 0 && isStreaming ? (
-						<ActivityGroupRow
-							group={{
-								kind: "thinking",
-								status: "running",
-								items: [
-									{
-										id: "working",
-										kind: "thinking",
-										label: translate("timeline.preparingNextStep"),
-										status: "running",
-									},
-								],
-							}}
-						/>
-					) : (
-						groups.map((group, index) => (
-							<ActivityGroupRow key={`${group.kind}-${index}`} group={group} />
-						))
+		<Message from="assistant">
+			<MessageContent className="w-full max-w-full py-1">
+				<div
+					className={cn(
+						"flex min-w-0 items-start gap-3 rounded-[18px] border px-4 py-3 text-[13px] leading-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)]",
+						aborted
+							? "border-warning/25 bg-warning/5 text-foreground"
+							: "border-destructive/25 bg-destructive/5 text-destructive",
 					)}
+				>
+					<AlertCircle className="mt-0.5 size-4 shrink-0" />
+					<div className="min-w-0 flex-1">
+						<div className="font-medium">{title}</div>
+						{message ? (
+							<pre className="mt-1 whitespace-pre-wrap break-words font-mono text-[11.5px] leading-5 [overflow-wrap:anywhere]">
+								{message}
+							</pre>
+						) : null}
+					</div>
 				</div>
-			) : null}
-		</div>
-	);
-}
-
-function ActivityGroupRow({ group }: { group: ActivityGroup }) {
-	const [open, setOpen] = useState(false);
-	const Icon = iconForKind(group.kind);
-	const running = group.status === "running" || group.status === "pending";
-	const title = running ? runningGroupTitle(group) : groupTitle(group);
-	return (
-		<div className="text-[12.5px]">
-			<button
-				type="button"
-				onClick={() => setOpen((value) => !value)}
-				className="group flex w-full cursor-pointer items-center gap-2 text-left transition-colors hover:text-foreground"
-			>
-				<Icon
-					className={cn("size-4 shrink-0", running ? "text-primary" : "text-muted-foreground")}
-				/>
-				<span className="min-w-0 flex-1 truncate">
-					{running ? <Shimmer>{title}</Shimmer> : title}
-				</span>
-				<ChevronRight
-					className={cn("size-3.5 shrink-0 transition-transform duration-200", open && "rotate-90")}
-				/>
-			</button>
-			{running ? (
-				<div className="mt-1.5 space-y-1 pl-6">
-					{group.items.map((item) => (
-						<ActivityItemRow key={item.id} item={item} />
-					))}
-				</div>
-			) : open ? (
-				<div className="mt-1.5 space-y-1 pl-6">
-					{group.items.map((item) => (
-						<ActivityItemRow key={item.id} item={item} />
-					))}
-				</div>
-			) : null}
-		</div>
-	);
-}
-
-function ActivityItemRow({ item }: { item: ActivityItem }) {
-	const label = formatItemLabel(item);
-	return (
-		<div
-			className={cn(
-				"truncate font-mono text-[11.5px] leading-5",
-				item.status === "error" ? "text-destructive" : "text-muted-foreground",
-			)}
-			title={label}
-		>
-			{label}
-		</div>
+			</MessageContent>
+		</Message>
 	);
 }
 
@@ -856,23 +854,16 @@ function CustomRow({ data }: { data: ChatMessage & { role: "custom" } }) {
 
 	return (
 		<Message from="assistant">
-			<MessageContent className="rounded-[18px] border border-border/40 bg-card/50 px-4 py-3 text-[12px] text-muted-foreground shadow-[0_2px_8px_rgba(0,0,0,0.03)] backdrop-blur-xl">
-				<div className="font-medium uppercase tracking-[0.08em] opacity-70">{data.subtype}</div>
-				<pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-5 [overflow-wrap:anywhere]">
-					{summarize(data.data)}
-				</pre>
+			<MessageContent className="w-full max-w-full py-1">
+				<div className="rounded-[18px] border border-border/40 bg-card/50 px-4 py-3 text-[12px] text-muted-foreground shadow-[0_2px_8px_rgba(0,0,0,0.03)] backdrop-blur-xl">
+					<div className="font-medium uppercase tracking-[0.08em] opacity-70">{data.subtype}</div>
+					<pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-5 [overflow-wrap:anywhere]">
+						{summarize(data.data)}
+					</pre>
+				</div>
 			</MessageContent>
 		</Message>
 	);
-}
-
-type RuntimeSeverity = "info" | "warning" | "error";
-
-interface RuntimeEventDisplay {
-	title: string;
-	message?: string;
-	severity: RuntimeSeverity;
-	icon: "info" | "retry" | "error";
 }
 
 function RuntimeEventRow({ event }: { event: unknown }) {
@@ -881,33 +872,409 @@ function RuntimeEventRow({ event }: { event: unknown }) {
 	const Icon = display.icon === "retry" ? RefreshCw : display.icon === "error" ? AlertCircle : Info;
 	return (
 		<Message from="assistant">
-			<MessageContent
-				className={cn(
-					"rounded-[18px] border px-4 py-3 text-[13px] leading-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)] backdrop-blur-xl",
-					display.severity === "error" && "border-destructive/25 bg-destructive/5 text-destructive",
-					display.severity === "warning" && "border-warning/25 bg-warning/5 text-foreground",
-					display.severity === "info" && "border-border/40 bg-card/50 text-muted-foreground",
-				)}
-			>
-				<div className="flex min-w-0 items-start gap-3">
-					<Icon
-						className={cn(
-							"mt-0.5 size-4 shrink-0",
-							display.severity === "info" && "text-primary/70",
-						)}
-					/>
-					<div className="min-w-0 flex-1">
-						<div className="font-medium text-foreground">{display.title}</div>
-						{display.message ? (
-							<div className="mt-1 whitespace-pre-wrap break-words text-[12px] [overflow-wrap:anywhere]">
-								{display.message}
-							</div>
-						) : null}
+			<MessageContent className="w-full max-w-full py-1">
+				<div
+					className={cn(
+						"rounded-[18px] border px-4 py-3 text-[13px] leading-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)] backdrop-blur-xl",
+						display.severity === "error" &&
+							"border-destructive/25 bg-destructive/5 text-destructive",
+						display.severity === "warning" && "border-warning/25 bg-warning/5 text-foreground",
+						display.severity === "info" && "border-border/40 bg-card/50 text-muted-foreground",
+					)}
+				>
+					<div className="flex min-w-0 items-start gap-3">
+						<Icon
+							className={cn(
+								"mt-0.5 size-4 shrink-0",
+								display.severity === "info" && "text-primary/70",
+							)}
+						/>
+						<div className="min-w-0 flex-1">
+							<div className="font-medium text-foreground">{display.title}</div>
+							{display.message ? (
+								<div className="mt-1 whitespace-pre-wrap break-words text-[12px] [overflow-wrap:anywhere]">
+									{display.message}
+								</div>
+							) : null}
+						</div>
 					</div>
 				</div>
 			</MessageContent>
 		</Message>
 	);
+}
+
+interface RuntimeEventDisplay {
+	title: string;
+	message?: string;
+	severity: "info" | "warning" | "error";
+	icon: "info" | "retry" | "error";
+}
+
+function buildToolResultMap(messages: ChatMessage[]): Map<string, ToolResultInfo> {
+	const map = new Map<string, ToolResultInfo>();
+	for (const message of messages) {
+		if (message.role !== "toolResult") continue;
+		map.set(message.toolCallId, {
+			toolCallId: message.toolCallId,
+			toolName: message.toolName,
+			content: message.content,
+			isError: message.isError,
+			details: message.details,
+			timestamp: message.timestamp,
+		});
+	}
+	return map;
+}
+
+function buildTranscript(
+	messages: ChatMessage[],
+	activeTools: Record<string, ToolExecutionState>,
+): TranscriptEntry[] {
+	const entries: TranscriptEntry[] = [];
+	const seenToolCalls = new Set<string>();
+	let userIndex = 0;
+	let precedingUserText: string | undefined;
+
+	for (let index = 0; index < messages.length; index++) {
+		const message = messages[index];
+		if (message.role === "user") {
+			entries.push({
+				type: "user",
+				key: `user-${message.timestamp}-${index}`,
+				message,
+				userIndex,
+			});
+			precedingUserText = extractTextFromContent(message.content);
+			userIndex++;
+			continue;
+		}
+
+		if (message.role === "assistant") {
+			const parts = (message.content ?? []) as Part[];
+			for (let partIndex = 0; partIndex < parts.length; partIndex++) {
+				const part = parts[partIndex];
+				if (part?.type === "text" && part.text.trim()) {
+					entries.push({
+						type: "assistantText",
+						key: `assistant-text-${message.timestamp}-${index}-${partIndex}`,
+						text: part.text.trim(),
+						timestamp: message.timestamp,
+						model: message.model,
+						stopReason: message.stopReason,
+						precedingUserText,
+					});
+				} else if (part?.type === "thinking" && part.thinking.trim()) {
+					entries.push({
+						type: "thinking",
+						key: `assistant-thinking-${message.timestamp}-${index}-${partIndex}`,
+						text: part.thinking.trim(),
+						redacted: part.redacted,
+						timestamp: message.timestamp,
+					});
+				} else if (part?.type === "toolCall") {
+					seenToolCalls.add(part.id);
+					entries.push({
+						type: "toolCall",
+						key: `tool-call-${part.id}-${message.timestamp}-${index}-${partIndex}`,
+						toolCallId: part.id,
+						toolName: part.name,
+						args: part.arguments ?? {},
+						timestamp: message.timestamp,
+					});
+				} else if (part?.type === "image") {
+					entries.push({
+						type: "assistantImage",
+						key: `assistant-image-${message.timestamp}-${index}-${partIndex}`,
+						data: part.data,
+						mimeType: part.mimeType,
+						timestamp: message.timestamp,
+					});
+				}
+			}
+
+			if (
+				message.stopReason === "error" ||
+				message.stopReason === "aborted" ||
+				message.errorMessage
+			) {
+				entries.push({
+					type: "assistantError",
+					key: `assistant-error-${message.timestamp}-${index}`,
+					stopReason: message.stopReason,
+					message: message.errorMessage,
+					timestamp: message.timestamp,
+				});
+			}
+			continue;
+		}
+
+		if (message.role === "toolResult") {
+			entries.push({
+				type: "toolResult",
+				key: `tool-result-${message.toolCallId}-${message.timestamp}-${index}`,
+				message,
+			});
+			continue;
+		}
+
+		if (message.role === "custom") {
+			entries.push({
+				type: "custom",
+				key: `custom-${message.subtype}-${message.timestamp}-${index}`,
+				message,
+			});
+		}
+	}
+
+	for (const execution of Object.values(activeTools)) {
+		if (seenToolCalls.has(execution.toolCallId)) continue;
+		entries.push({
+			type: "liveTool",
+			key: `live-tool-${execution.toolCallId}`,
+			execution,
+		});
+	}
+
+	return entries;
+}
+
+function transcriptSearchText(entry: TranscriptEntry): string {
+	switch (entry.type) {
+		case "user":
+			return extractTextFromContent(entry.message.content);
+		case "assistantText":
+		case "thinking":
+			return entry.text;
+		case "assistantImage":
+			return entry.mimeType;
+		case "toolCall":
+			return `${entry.toolName} ${summarize(entry.args)}`;
+		case "toolResult":
+			return `${entry.message.toolName} ${extractTextFromContent(entry.message.content)} ${summarize(entry.message.details)}`;
+		case "assistantError":
+			return `${entry.stopReason ?? ""} ${entry.message ?? ""}`;
+		case "custom":
+			return `${entry.message.subtype} ${summarize(entry.message.data)}`;
+		case "liveTool":
+			return `${entry.execution.toolName} ${summarize(entry.execution.args)}`;
+	}
+}
+
+function toolStatus(
+	toolCallId: string,
+	toolResults: Map<string, ToolResultInfo>,
+	activeTools: Record<string, ToolExecutionState>,
+): ToolStatus {
+	const result = toolResults.get(toolCallId);
+	if (result?.isError) return "error";
+	if (result) return "done";
+	const active = activeTools[toolCallId];
+	return active?.status ?? "pending";
+}
+
+function statusTone(status: ToolStatus) {
+	switch (status) {
+		case "running":
+		case "pending":
+			return {
+				card: "border-primary/18 bg-primary/[0.035]",
+				icon: "bg-primary-soft text-primary",
+				badge: "bg-primary/10 text-primary",
+			};
+		case "error":
+			return {
+				card: "border-destructive/25 bg-destructive/[0.04]",
+				icon: "bg-destructive/10 text-destructive",
+				badge: "bg-destructive/10 text-destructive",
+			};
+		default:
+			return {
+				card: "border-border/50 bg-background/50",
+				icon: "bg-emerald-500/10 text-emerald-700",
+				badge: "bg-emerald-500/10 text-emerald-700",
+			};
+	}
+}
+
+function iconForTool(name: string) {
+	switch (name) {
+		case "bash":
+			return Terminal;
+		case "edit":
+		case "write":
+			return FilePen;
+		case "read":
+		case "ls":
+			return FileText;
+		case "grep":
+		case "find":
+			return Search;
+		default:
+			return Wrench;
+	}
+}
+
+function toolResultMeta(message: Extract<ChatMessage, { role: "toolResult" }>): string[] {
+	const meta: string[] = [];
+	const details = asRecord(message.details);
+	const fullOutputPath = stringFromRecord(details, "fullOutputPath");
+	const firstChangedLine = numberFromRecord(details, "firstChangedLine");
+	const matchLimitReached = numberFromRecord(details, "matchLimitReached");
+	const resultLimitReached = numberFromRecord(details, "resultLimitReached");
+	const entryLimitReached = numberFromRecord(details, "entryLimitReached");
+	if (fullOutputPath) meta.push(compactPath(fullOutputPath));
+	if (firstChangedLine) meta.push(`line ${firstChangedLine}`);
+	if (matchLimitReached) meta.push(`${matchLimitReached} matches`);
+	if (resultLimitReached) meta.push(`${resultLimitReached} results`);
+	if (entryLimitReached) meta.push(`${entryLimitReached} entries`);
+	const diff = diffFromDetails(message.details);
+	const stat = diff ? diffStatFromPatch(diff) : undefined;
+	if (stat) meta.push(stat);
+	return meta;
+}
+
+function diffFromDetails(details: unknown): string | undefined {
+	const record = asRecord(details);
+	return stringFromRecord(record, "diff") ?? stringFromRecord(record, "patch");
+}
+
+function truncationSummary(details: unknown): string | undefined {
+	const truncation = asRecord(asRecord(details)?.truncation);
+	if (!truncation) return undefined;
+	const originalBytes = numberFromRecord(truncation, "originalBytes");
+	const originalLines = numberFromRecord(truncation, "originalLines");
+	const shownBytes = numberFromRecord(truncation, "shownBytes");
+	const shownLines = numberFromRecord(truncation, "shownLines");
+	const parts = [];
+	if (shownLines && originalLines && shownLines < originalLines) {
+		parts.push(`${shownLines}/${originalLines} lines shown`);
+	}
+	if (shownBytes && originalBytes && shownBytes < originalBytes) {
+		parts.push(`${formatBytes(shownBytes)}/${formatBytes(originalBytes)} shown`);
+	}
+	return parts.length > 0 ? `Output truncated · ${parts.join(" · ")}` : "Output truncated";
+}
+
+function shouldCompactResult(toolName: string, text: string): boolean {
+	return toolName === "read" || toolName === "grep" || toolName === "find" || text.length > 3000;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+	return value && typeof value === "object" ? (value as Record<string, unknown>) : undefined;
+}
+
+function stringFromRecord(
+	record: Record<string, unknown> | undefined,
+	key: string,
+): string | undefined {
+	const value = record?.[key];
+	return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function numberFromRecord(
+	record: Record<string, unknown> | undefined,
+	key: string,
+): number | undefined {
+	const value = record?.[key];
+	return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function diffStatFromPatch(patch: string) {
+	let added = 0;
+	let removed = 0;
+	for (const line of patch.split("\n")) {
+		if (line.startsWith("+++") || line.startsWith("---")) continue;
+		if (line.startsWith("+")) added++;
+		if (line.startsWith("-")) removed++;
+	}
+	if (added === 0 && removed === 0) return undefined;
+	return `+${added} -${removed}`;
+}
+
+function formatBytes(bytes: number): string {
+	if (bytes < 1024) return `${bytes} B`;
+	if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+	return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function summarizeToolCall(name: string, args: Record<string, unknown>) {
+	if (!args || typeof args !== "object") return name;
+	if (typeof args.command === "string") return args.command.split("\n")[0] ?? name;
+	const path = pathFromArgs(args);
+	const pattern = stringArg(args, "pattern") ?? stringArg(args, "query");
+	if (path && pattern) return `${compactPath(path)}  ‹${pattern}›`;
+	if (path) return compactPath(path);
+	if (pattern) return pattern;
+	const fallback = Object.entries(args).find(
+		([key, value]) =>
+			!isVerboseToolArg(key) && (typeof value === "string" || typeof value === "number"),
+	);
+	return fallback == null ? name : String(fallback[1]);
+}
+
+function pathFromArgs(args: Record<string, unknown>) {
+	return (
+		stringArg(args, "path") ??
+		stringArg(args, "file_path") ??
+		stringArg(args, "filePath") ??
+		stringArg(args, "filepath") ??
+		stringArg(args, "file")
+	);
+}
+
+function stringArg(args: Record<string, unknown>, key: string) {
+	const value = args[key];
+	return typeof value === "string" && value.trim() ? value : null;
+}
+
+function isVerboseToolArg(key: string) {
+	return [
+		"content",
+		"oldText",
+		"newText",
+		"old_text",
+		"new_text",
+		"old_string",
+		"new_string",
+		"patch",
+		"diff",
+		"edits",
+	].includes(key);
+}
+
+function compactPath(path: string) {
+	const parts = path.split(/[\\/]/).filter(Boolean);
+	if (parts.length <= 2) return path;
+	return parts.at(-1) ?? path;
+}
+
+function extractTextFromContent(content: string | unknown[]): string {
+	if (typeof content === "string") return content;
+	return (content as Part[])
+		.filter((p): p is Part & { type: "text" } => p?.type === "text" && typeof p.text === "string")
+		.map((p) => p.text)
+		.join("\n");
+}
+
+function extractImagesFromContent(
+	content: string | unknown[],
+): Array<{ data: string; mimeType: string }> {
+	if (typeof content === "string") return [];
+	return (content as Part[]).filter(
+		(p): p is Part & { type: "image" } =>
+			p?.type === "image" && typeof p.data === "string" && typeof p.mimeType === "string",
+	);
+}
+
+function summarize(v: unknown, maxLength = 800): string {
+	try {
+		const s = typeof v === "string" ? v : JSON.stringify(v, null, 2);
+		if (!s) return "";
+		return s.length > maxLength ? `${s.slice(0, maxLength)}...` : s;
+	} catch {
+		return String(v);
+	}
 }
 
 function describeRuntimeEvent(
@@ -1037,408 +1404,10 @@ function booleanProp(value: unknown, key: string): boolean {
 	return (value as Record<string, unknown>)[key] === true;
 }
 
-function OrphanToolResult({
-	toolName,
-	content,
-	isError,
-}: {
-	toolName: string;
-	content: unknown[];
-	isError: boolean;
-}) {
-	const { t } = useI18n();
-	const text = (content as Part[])
-		.filter((p): p is Part & { type: "text" } => p?.type === "text")
-		.map((p) => p.text)
-		.join("\n");
-
-	return (
-		<Message from="assistant">
-			<MessageContent
-				className={cn(
-					"rounded-[18px] border px-4 py-3 text-[12px] shadow-[0_2px_8px_rgba(0,0,0,0.03)] backdrop-blur-xl",
-					isError
-						? "border-destructive/30 bg-destructive/5 text-destructive"
-						: "border-border/40 bg-card/50 text-muted-foreground",
-				)}
-			>
-				<div className="mb-2 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.08em]">
-					<span>{toolName}</span>
-					<span className="opacity-50">·</span>
-					<span>{isError ? t("timeline.error") : t("timeline.result")}</span>
-				</div>
-				<pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-5 [overflow-wrap:anywhere]">
-					{text || t("timeline.noOutput")}
-				</pre>
-			</MessageContent>
-		</Message>
-	);
-}
-
-function buildActivities(
-	parts: Part[],
-	toolResults: Map<string, ToolResultInfo>,
-	activeTools: Record<string, ToolExecutionState>,
-	includeActiveOrphans: boolean,
-): ActivityItem[] {
-	const activities: ActivityItem[] = [];
-	const thinkingCount = parts.filter((p) => p.type === "thinking").length;
-	if (thinkingCount > 0) {
-		activities.push({
-			id: "thinking",
-			kind: "thinking",
-			label: `${thinkingCount} reasoning ${thinkingCount === 1 ? "block" : "blocks"}`,
-			status: "done",
-			action: "think",
-		});
-	}
-	for (const part of parts) {
-		if (part.type !== "toolCall") continue;
-		const result = toolResults.get(part.id);
-		const execution = activeTools[part.id];
-		activities.push({
-			id: part.id,
-			kind: kindForTool(part.name, part.arguments),
-			label: summarizeTool(part.name, part.arguments),
-			status: statusForTool(result, execution),
-			toolName: part.name,
-			action: actionForTool(part.name, part.arguments),
-			diffStat: diffStatForTool(
-				part.name,
-				part.arguments,
-				result ?? execution?.result ?? execution?.partialResult,
-			),
-		});
-	}
-	if (includeActiveOrphans) {
-		const seen = new Set(activities.map((activity) => activity.id));
-		for (const execution of Object.values(activeTools)) {
-			if (seen.has(execution.toolCallId)) continue;
-			activities.push({
-				id: execution.toolCallId,
-				kind: kindForTool(execution.toolName, execution.args),
-				label: summarizeTool(execution.toolName, execution.args),
-				status: statusForTool(undefined, execution),
-				toolName: execution.toolName,
-				action: actionForTool(execution.toolName, execution.args),
-				diffStat: diffStatForTool(
-					execution.toolName,
-					execution.args,
-					execution.result ?? execution.partialResult,
-				),
-			});
-		}
-	}
-	return activities;
-}
-
-function groupActivities(items: ActivityItem[]): ActivityGroup[] {
-	const groups: ActivityGroup[] = [];
-	for (const item of items) {
-		const last = groups.at(-1);
-		if (last?.kind === item.kind) {
-			last.items.push(item);
-			last.status = aggregateStatus(last.items);
-			continue;
-		}
-		groups.push({
-			kind: item.kind,
-			items: [item],
-			status: item.status,
-		});
-	}
-	return groups;
-}
-
-function aggregateStatus(items: ActivityItem[]): ActivityStatus {
-	if (items.some((item) => item.status === "error")) return "error";
-	if (items.some((item) => item.status === "running")) return "running";
-	if (items.some((item) => item.status === "pending")) return "pending";
-	return "done";
-}
-
-function groupTitle(group: ActivityGroup): string {
-	const count = group.items.length;
-	const failed = group.items.filter((item) => item.status === "error").length;
-	const running = group.status === "running" || group.status === "pending";
-	const prefix = running ? runningGroupTitle(group) : donePrefix(group.kind);
-	const unit = unitForKind(group.kind);
-	const failureText = failed > 0 ? translate("activity.group.failed", { count: failed, unit }) : "";
-	return `${prefix} ${count} ${unit}${failureText}`;
-}
-
-function runningGroupTitle(group: ActivityGroup): string {
-	const current =
-		group.items.find((item) => item.status === "running") ??
-		group.items.find((item) => item.status === "pending") ??
-		group.items[0];
-	if (!current) return groupTitle(group);
-	if (group.items.length === 1) return formatItemLabel(current, true);
-	return `${formatItemLabel(current, true)} ${translate("activity.group.etc", { count: group.items.length })}`;
-}
-
-function formatItemLabel(item: ActivityItem, withAction = false) {
-	const label = item.diffStat ? `${item.label} ${item.diffStat}` : item.label;
-	if (!withAction) return label;
-	switch (item.action ?? item.kind) {
-		case "think":
-		case "thinking":
-			return translate("activity.running.thinking");
-		case "write":
-			return translate("activity.running.write", { label });
-		case "edit":
-			return translate("activity.running.edit", { label });
-		case "run":
-		case "command":
-			return translate("activity.running.run", { label });
-		case "read":
-			return translate("activity.running.read", { label });
-		case "search":
-			return translate("activity.running.search", { label });
-		default:
-			return translate("activity.running.process", { label });
-	}
-}
-
-function _runningPrefix(kind: ActivityKind) {
-	const keyMap: Record<ActivityKind, string> = {
-		thinking: "activity.group.thinking.running",
-		command: "activity.group.command.running",
-		edit: "activity.group.edit.running",
-		write: "activity.group.write.running",
-		read: "activity.group.read.running",
-		search: "activity.group.search.running",
-		other: "activity.group.other.running",
-	};
-	return translate(keyMap[kind]);
-}
-
-function donePrefix(kind: ActivityKind) {
-	const keyMap: Record<ActivityKind, string> = {
-		thinking: "activity.group.thinking.done",
-		command: "activity.group.command.done",
-		edit: "activity.group.edit.done",
-		write: "activity.group.write.done",
-		read: "activity.group.read.done",
-		search: "activity.group.search.done",
-		other: "activity.group.other.done",
-	};
-	return translate(keyMap[kind]);
-}
-
-function unitForKind(kind: ActivityKind) {
-	const keyMap: Record<ActivityKind, string> = {
-		thinking: "activity.unit.thinking",
-		command: "activity.unit.command",
-		edit: "activity.unit.file",
-		write: "activity.unit.file",
-		read: "activity.unit.file",
-		search: "activity.unit.search",
-		other: "activity.unit.other",
-	};
-	return translate(keyMap[kind]);
-}
-
-function kindForTool(name: string, _args: Record<string, unknown>): ActivityKind {
-	switch (name) {
-		case "bash":
-			return "command";
-		case "edit":
-			return "edit";
-		case "write":
-			return "write";
-		case "read":
-		case "ls":
-			return "read";
-		case "grep":
-		case "find":
-			return "search";
-		default:
-			return "other";
-	}
-}
-
-function actionForTool(name: string, _args: Record<string, unknown>): ActivityItem["action"] {
-	switch (name) {
-		case "bash":
-			return "run";
-		case "edit":
-			return "edit";
-		case "write":
-			return "write";
-		case "read":
-		case "ls":
-			return "read";
-		case "grep":
-		case "find":
-			return "search";
-		default:
-			return "process";
-	}
-}
-
-function statusForTool(
-	result: ToolResultInfo | undefined,
-	execution: ToolExecutionState | undefined,
-): ActivityStatus {
-	if (result?.isError || execution?.status === "error") return "error";
-	if (result || execution?.status === "done") return "done";
-	if (execution?.status === "running") return "running";
-	return "pending";
-}
-
-function summarizeTool(name: string, args: Record<string, unknown>) {
-	if (!args || typeof args !== "object") return name;
-	if ("command" in args) return String(args.command).split("\n")[0];
-	const path = pathFromArgs(args);
-	const compact = path ? compactPath(path) : null;
-	switch (name) {
-		case "write":
-		case "edit":
-		case "read":
-		case "ls":
-			return compact ?? "未指定路径";
-		case "grep":
-		case "find": {
-			const pattern = stringArg(args, "pattern") ?? stringArg(args, "query");
-			if (compact && pattern) return `${compact}  ‹${pattern}›`;
-			return compact ?? pattern ?? name;
-		}
-		default:
-			break;
-	}
-	if (compact) {
-		if ("pattern" in args) return `${compact}  ‹${String(args.pattern)}›`;
-		return compact;
-	}
-	if ("query" in args) return String(args.query);
-	if ("pattern" in args) return String(args.pattern);
-	const fallback = Object.entries(args).find(
-		([key, value]) =>
-			!isVerboseToolArg(key) && (typeof value === "string" || typeof value === "number"),
-	);
-	return fallback == null ? name : String(fallback[1]);
-}
-
-function pathFromArgs(args: Record<string, unknown>) {
-	return (
-		stringArg(args, "path") ??
-		stringArg(args, "file_path") ??
-		stringArg(args, "filePath") ??
-		stringArg(args, "filepath") ??
-		stringArg(args, "file")
-	);
-}
-
-function stringArg(args: Record<string, unknown>, key: string) {
-	const value = args[key];
-	return typeof value === "string" && value.trim() ? value : null;
-}
-
-function isVerboseToolArg(key: string) {
-	return [
-		"content",
-		"oldText",
-		"newText",
-		"old_text",
-		"new_text",
-		"old_string",
-		"new_string",
-		"patch",
-		"diff",
-		"edits",
-	].includes(key);
-}
-
-function compactPath(path: string) {
-	const parts = path.split(/[\\/]/).filter(Boolean);
-	if (parts.length <= 2) return path;
-	return parts.at(-1) ?? path;
-}
-
-function diffStatForTool(
-	name: string,
-	args: Record<string, unknown>,
-	result?: { details?: unknown },
-) {
-	const details = result?.details as { patch?: string; diff?: string } | undefined;
-	const patch = details?.patch ?? details?.diff;
-	if (patch) return diffStatFromPatch(patch);
-	const lower = name.toLowerCase();
-	if ((lower.includes("write") || lower.includes("create")) && typeof args.content === "string") {
-		const added = String(args.content).split("\n").length;
-		return `+${added} -0`;
-	}
-	if (typeof args.patch === "string") return diffStatFromPatch(args.patch);
-	if (typeof args.diff === "string") return diffStatFromPatch(args.diff);
-	return undefined;
-}
-
-function diffStatFromPatch(patch: string) {
-	let added = 0;
-	let removed = 0;
-	for (const line of patch.split("\n")) {
-		if (line.startsWith("+++") || line.startsWith("---")) continue;
-		if (line.startsWith("+")) added++;
-		if (line.startsWith("-")) removed++;
-	}
-	if (added === 0 && removed === 0) return undefined;
-	return `+${added} -${removed}`;
-}
-
-function iconForKind(kind: ActivityKind) {
-	switch (kind) {
-		case "thinking":
-			return Sparkles;
-		case "command":
-			return Terminal;
-		case "edit":
-			return FilePen;
-		case "write":
-			return FilePlus;
-		case "read":
-			return FileText;
-		case "search":
-			return Search;
-		default:
-			return Wrench;
-	}
-}
-
-function latestActivityTimestamp(
-	activities: ActivityItem[],
-	toolResults: Map<string, ToolResultInfo>,
-	fallback: number,
-) {
-	let latest = fallback;
-	for (const item of activities) {
-		const timestamp = toolResults.get(item.id)?.timestamp;
-		if (timestamp && timestamp > latest) latest = timestamp;
-	}
-	return latest;
-}
-
 function formatDuration(ms: number) {
 	const totalSeconds = Math.max(0, Math.round(ms / 1000));
 	const minutes = Math.floor(totalSeconds / 60);
 	const seconds = totalSeconds % 60;
 	if (minutes <= 0) return `${seconds}s`;
 	return `${minutes}m ${seconds}s`;
-}
-
-function summarize(v: unknown): string {
-	try {
-		const s = JSON.stringify(v, null, 2);
-		return s.length > 400 ? `${s.slice(0, 400)}...` : s;
-	} catch {
-		return String(v);
-	}
-}
-
-function extractTextFromContent(content: string | unknown[]): string {
-	if (typeof content === "string") return content;
-	return (content as Part[])
-		.filter((p): p is Part & { type: "text" } => p?.type === "text")
-		.map((p) => p.text)
-		.join("\n");
 }
