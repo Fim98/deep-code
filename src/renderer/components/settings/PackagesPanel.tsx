@@ -1,4 +1,4 @@
-import { Download, PackagePlus, RefreshCw, Trash2 } from "lucide-react";
+import { Download, PackagePlus, RefreshCw, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,9 +10,10 @@ import { emitToast } from "@/lib/toast";
 interface Props {
 	cwd: string | undefined;
 	sessionId?: string | null;
+	onClose?: () => void;
 }
 
-export function PackagesPanel({ cwd, sessionId }: Props) {
+export function PackagesPanel({ cwd, sessionId, onClose }: Props) {
 	const [items, setItems] = useState<PiPackageEntry[]>([]);
 	const [source, setSource] = useState("");
 	const [local, setLocal] = useState(false);
@@ -136,6 +137,11 @@ export function PackagesPanel({ cwd, sessionId }: Props) {
 					>
 						{loading ? <Spinner size="sm" /> : <RefreshCw className="size-4" />}
 					</Button>
+					{onClose ? (
+						<Button variant="ghost" size="icon" onClick={onClose} aria-label="Close packages">
+							<X className="size-4" />
+						</Button>
+					) : null}
 				</div>
 			</header>
 

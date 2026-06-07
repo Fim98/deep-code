@@ -1,4 +1,4 @@
-import { RefreshCw, ShieldCheck, Wrench } from "lucide-react";
+import { RefreshCw, ShieldCheck, Wrench, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -9,12 +9,13 @@ import { cn } from "@/lib/utils";
 
 interface Props {
 	sessionId: string | null;
+	onClose?: () => void;
 }
 
 const READ_ONLY_TOOLS = ["read", "grep", "find", "ls"];
 const DEFAULT_TOOLS = ["read", "bash", "edit", "write"];
 
-export function ToolsPanel({ sessionId }: Props) {
+export function ToolsPanel({ sessionId, onClose }: Props) {
 	const [data, setData] = useState<SessionToolsData | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [saving, setSaving] = useState(false);
@@ -83,15 +84,22 @@ export function ToolsPanel({ sessionId }: Props) {
 						<div className="text-[11px] text-muted-foreground">pi active tool set</div>
 					</div>
 				</div>
-				<Button
-					variant="ghost"
-					size="icon"
-					onClick={refresh}
-					disabled={loading}
-					aria-label="Refresh tools"
-				>
-					{loading ? <Spinner size="sm" /> : <RefreshCw className="size-4" />}
-				</Button>
+				<div className="flex gap-1">
+					<Button
+						variant="ghost"
+						size="icon"
+						onClick={refresh}
+						disabled={loading}
+						aria-label="Refresh tools"
+					>
+						{loading ? <Spinner size="sm" /> : <RefreshCw className="size-4" />}
+					</Button>
+					{onClose ? (
+						<Button variant="ghost" size="icon" onClick={onClose} aria-label="Close tools">
+							<X className="size-4" />
+						</Button>
+					) : null}
+				</div>
 			</header>
 
 			<div className="space-y-4 overflow-auto p-5">

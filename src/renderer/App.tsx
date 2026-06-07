@@ -981,12 +981,22 @@ export function App() {
 
 					{/* Right rail: packages + resources + tools + file preview + file tree */}
 					{packagesOpen ? (
-						<PackagesPanel cwd={activeWorkspace?.path} sessionId={activeSid} />
+						<PackagesPanel
+							cwd={activeWorkspace?.path}
+							sessionId={activeSid}
+							onClose={() => setRightRailPanel(null)}
+						/>
 					) : null}
 					{resourcesOpen ? (
-						<ResourcesPanel sessionId={activeSid} cwd={activeWorkspace?.path} />
+						<ResourcesPanel
+							sessionId={activeSid}
+							cwd={activeWorkspace?.path}
+							onClose={() => setRightRailPanel(null)}
+						/>
 					) : null}
-					{toolsOpen ? <ToolsPanel sessionId={activeSid} /> : null}
+					{toolsOpen ? (
+						<ToolsPanel sessionId={activeSid} onClose={() => setRightRailPanel(null)} />
+					) : null}
 					{activeWorkspace && previewFile ? (
 						<>
 							<ResizeHandle

@@ -9,6 +9,7 @@ import {
 	RefreshCw,
 	RotateCcw,
 	Sparkles,
+	X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -26,9 +27,10 @@ import { emitToast } from "@/lib/toast";
 interface Props {
 	sessionId: string | null;
 	cwd?: string;
+	onClose?: () => void;
 }
 
-export function ResourcesPanel({ sessionId, cwd }: Props) {
+export function ResourcesPanel({ sessionId, cwd, onClose }: Props) {
 	const [data, setData] = useState<SessionResourcesData | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [reloading, setReloading] = useState(false);
@@ -169,6 +171,11 @@ export function ResourcesPanel({ sessionId, cwd }: Props) {
 					>
 						{loading ? <Spinner size="sm" /> : <RefreshCw className="size-4" />}
 					</Button>
+					{onClose ? (
+						<Button variant="ghost" size="icon" onClick={onClose} aria-label="Close resources">
+							<X className="size-4" />
+						</Button>
+					) : null}
 				</div>
 			</header>
 
