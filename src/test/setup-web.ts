@@ -92,6 +92,14 @@ const mockPi = {
 		update: vi.fn().mockResolvedValue([]),
 		onProgress: vi.fn().mockReturnValue(() => {}),
 	},
+	resources: {
+		paths: vi.fn().mockResolvedValue({
+			global: { prompts: "/tmp/agent/prompts", skills: "/tmp/agent/skills" },
+			project: { prompts: "/tmp/project/.pi/prompts", skills: "/tmp/project/.pi/skills" },
+		}),
+		openDir: vi.fn().mockResolvedValue(""),
+		create: vi.fn().mockResolvedValue("/tmp/resource.md"),
+	},
 	telemetry: {
 		get: vi.fn().mockResolvedValue(false),
 		set: vi.fn().mockResolvedValue(undefined),

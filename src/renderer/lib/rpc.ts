@@ -130,6 +130,14 @@ export interface PiPackageProgressEvent {
 	message?: string;
 }
 
+export type PiResourceScope = "global" | "project";
+export type PiResourceKind = "prompts" | "skills";
+
+export interface PiResourcePaths {
+	global: Record<PiResourceKind, string>;
+	project: Record<PiResourceKind, string>;
+}
+
 export interface DesktopSettings {
 	defaultProvider: string | undefined;
 	defaultModel: string | undefined;
@@ -286,6 +294,21 @@ export interface PiBridge {
 		remove: (args: { cwd: string; source: string; local?: boolean }) => Promise<PiPackageEntry[]>;
 		update: (args: { cwd: string; source?: string }) => Promise<PiPackageEntry[]>;
 		onProgress: (cb: (event: PiPackageProgressEvent) => void) => () => void;
+	};
+	resources: {
+		paths: (cwd: string) => Promise<PiResourcePaths>;
+		openDir: (args: {
+			cwd: string;
+			scope: PiResourceScope;
+			kind: PiResourceKind;
+		}) => Promise<string>;
+		create: (args: {
+			cwd: string;
+			scope: PiResourceScope;
+			kind: PiResourceKind;
+			name: string;
+			description?: string;
+		}) => Promise<string>;
 	};
 	telemetry: {
 		get: () => Promise<boolean>;

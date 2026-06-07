@@ -962,7 +962,9 @@ export function App() {
 
 					{/* Right rail: packages + resources + tools + file preview + file tree */}
 					{packagesOpen ? <PackagesPanel cwd={activeWorkspace?.path} /> : null}
-					{resourcesOpen ? <ResourcesPanel sessionId={activeSid} /> : null}
+					{resourcesOpen ? (
+						<ResourcesPanel sessionId={activeSid} cwd={activeWorkspace?.path} />
+					) : null}
 					{toolsOpen ? <ToolsPanel sessionId={activeSid} /> : null}
 					{activeWorkspace && previewFile ? (
 						<>

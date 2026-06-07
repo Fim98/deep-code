@@ -102,6 +102,19 @@ const windowManagement = {
 	new: () => ipcRenderer.invoke("pi:window:new") as Promise<void>,
 };
 
+const resources = {
+	paths: (cwd: string) => ipcRenderer.invoke("pi:resources:paths", cwd),
+	openDir: (args: { cwd: string; scope: "global" | "project"; kind: "prompts" | "skills" }) =>
+		ipcRenderer.invoke("pi:resources:open-dir", args) as Promise<string>,
+	create: (args: {
+		cwd: string;
+		scope: "global" | "project";
+		kind: "prompts" | "skills";
+		name: string;
+		description?: string;
+	}) => ipcRenderer.invoke("pi:resources:create", args) as Promise<string>,
+};
+
 const packages = {
 	list: (cwd: string) => ipcRenderer.invoke("pi:packages:list", cwd),
 	install: (args: { cwd: string; source: string; local?: boolean }) =>
@@ -218,6 +231,7 @@ const api = {
 	pty,
 	window: windowManagement,
 	packages,
+	resources,
 	telemetry,
 } as const;
 

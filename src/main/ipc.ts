@@ -12,6 +12,13 @@ import {
 	removePiPackage,
 	updatePiPackages,
 } from "./pi-packages.js";
+import {
+	createPiResource,
+	ensurePiResourceDir,
+	getPiResourcePaths,
+	type PiResourceKind,
+	type PiResourceScope,
+} from "./pi-resources.js";
 import { ptyManager } from "./pty-manager.js";
 import { deleteSessionFile, listSessionsForCwd } from "./session-fs.js";
 import { sessionRegistry } from "./session-registry.js";
@@ -244,6 +251,28 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 		updatePiPackages(args, (progress) => {
 			if (!event.sender.isDestroyed()) event.sender.send("pi:packages:progress", progress);
 		}),
+	);
+
+	ipcMain.handle("pi:resources:paths", (_e, cwd: string) => getPiResourcePaths(cwd));
+	ipcMain.handle(
+		"pi:resources:open-dir",
+		(_e, args: { cwd: string; scope: PiResourceScope; kind: PiResourceKind }) => {
+			const dir = ensurePiResourceDir(args.cwd, args.scope, args.kind);
+			return shell.openPath(dir);
+		},
+	);
+	ipcMain.handle(
+		"pi:resources:create",
+		(
+			_e,
+			args: {
+				cwd: string;
+				scope: PiResourceScope;
+				kind: PiResourceKind;
+				name: string;
+				description?: string;
+			},
+		) => createPiResource(args),
 	);
 
 	// Extension UI response: renderer → main process bridge
