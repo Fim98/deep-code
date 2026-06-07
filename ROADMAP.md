@@ -1,6 +1,6 @@
 # deepcode Roadmap
 
-Status as of 2026-05-28.
+Status as of 2026-06-07.
 
 ## Context
 
@@ -53,7 +53,7 @@ session behavior grows more complex.
 `session-fs.ts`; add React tests for `Composer`, `ModelPicker`, and
 `SettingsDialog`; add CI running `npm run typecheck` and tests.
 
-**Done**: 125 tests across 11 test files. Node (main-process): `dispatch-rpc.ts` (34 tests), `workspace-store.ts` (15), `session-fs.ts` (6), `auth.ts` (9). Renderer: `session-state.ts` (13), `theme.ts` (7), `Composer.tsx` (10), `ModelPicker.tsx` (6), `SettingsDialog.tsx` (9), `keyboard.ts` (8), `utils.ts` (7). GitHub Actions CI workflow runs typecheck + tests on every push/PR.
+**Done**: Test coverage now includes 325 tests. Node/main tests cover dispatch RPC, workspace/session filesystem, auth, plan tracking, file tree, pi resources, and related main-process helpers. Renderer tests cover session state, composer, model picker, settings, keyboard, resources/packages/tools panels, and UI utilities. GitHub Actions CI workflow runs typecheck + tests on every push/PR.
 
 ---
 
@@ -485,16 +485,38 @@ Replaces the one-shot BashPanel with a full interactive terminal.
 
 ## P0 — Critical Missing Features
 
-### G1 · MCP (Model Context Protocol) Client — **XL** — TODO
+### F8 · pi-native resources, packages, tools, and project trust — **L** — Done
+
+Align the desktop controls with pi's current native product surface instead of
+inventing opencode-style systems.
+
+**Done**:
+- Project Trust controls backed by `~/.pi/agent/trust.json`
+- Active Tools panel backed by `AgentSession.getAllTools()`,
+  `getActiveToolNames()`, and `setActiveToolsByName()`
+- Resources panel backed by `session.resourceLoader`, with diagnostics,
+  resource path overview, reveal/copy actions, and session reload
+- Packages panel backed by pi `DefaultPackageManager`, including progress
+  forwarding and package path actions
+- Prompt/skill resource actions for global/project `.pi` locations, including
+  pi-native templates, automatic open, and reload prompt
+- Session reload eventing so Resources/Tools panels refresh after reload
+- Right rail exclusivity, close buttons, and resizable split-view panels
+- Tests for pi resource creation plus Resources/Packages/Tools panels
+
+### G1 · MCP (Model Context Protocol) Client — **XL** — Deferred
 Connect to external tool servers via MCP protocol.
 
-**Tech**: Implement MCP client using `@modelcontextprotocol/sdk`.
-Support stdio, SSE, and HTTP transports. OAuth authentication for
-remote servers. Status indicators for connection state.
+**Status**: Deferred. Current pi README/API does not expose MCP as a native
+runtime primitive. deepcode should not invent a parallel MCP layer unless pi
+adds one upstream. Revisit when pi ships MCP support or a supported extension
+bridge for MCP-backed tools.
 
-### G2 · Permission System — **L** — TODO
+### G2 · Permission System — **L** — Deferred
 Tool execution approval and permission rules.
 
-**Tech**: Permission request/reply system. Pattern-based rules
-(allow/deny/ask). Always-allow lists. Per-session and global rules.
-UI for permission dialogs and rule configuration.
+**Status**: Deferred. Current pi security/product model is Project Trust,
+containerization, extension/package provenance, and active tool selection. pi
+does not currently expose native permission popups. deepcode should keep using
+Project Trust and Active Tools instead of building a divergent custom permission
+system.
