@@ -143,6 +143,23 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 		return { tree: serializeTree(tree), leafId };
 	});
 
+	ipcMain.handle("pi:session:tools:get", (_e, sessionId: string) => {
+		const session = sessionRegistry.get(sessionId);
+		return {
+			active: session.getActiveToolNames(),
+			tools: session.getAllTools(),
+		};
+	});
+
+	ipcMain.handle("pi:session:tools:set-active", (_e, sessionId: string, toolNames: string[]) => {
+		const session = sessionRegistry.get(sessionId);
+		session.setActiveToolsByName(toolNames);
+		return {
+			active: session.getActiveToolNames(),
+			tools: session.getAllTools(),
+		};
+	});
+
 	// Extension UI response: renderer → main process bridge
 	ipcMain.handle(
 		"pi:extension-ui:respond",

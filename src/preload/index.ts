@@ -24,6 +24,9 @@ const sessions = {
 	delete: (args: { workspaceId: string; sessionPath: string }) =>
 		ipcRenderer.invoke("pi:session:delete", args),
 	tree: (sessionId: string) => ipcRenderer.invoke("pi:session:tree", sessionId),
+	getTools: (sessionId: string) => ipcRenderer.invoke("pi:session:tools:get", sessionId),
+	setActiveTools: (sessionId: string, toolNames: string[]) =>
+		ipcRenderer.invoke("pi:session:tools:set-active", sessionId, toolNames),
 	exportHtml: (sessionId: string) => ipcRenderer.invoke("pi:session:export-html", sessionId),
 };
 

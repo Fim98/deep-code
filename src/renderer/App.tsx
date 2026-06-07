@@ -13,6 +13,7 @@ import {
 	Sparkles,
 	SquareTerminal,
 	Trash2,
+	Wrench,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BranchesPanel } from "@/components/chat/BranchesPanel";
@@ -29,6 +30,7 @@ import { TerminalPanel } from "@/components/panels/TerminalPanel";
 import { ContextBar } from "@/components/settings/ContextBar";
 import { ModelPicker } from "@/components/settings/ModelPicker";
 import { SettingsDialog } from "@/components/settings/SettingsDialog";
+import { ToolsPanel } from "@/components/settings/ToolsPanel";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -85,6 +87,7 @@ export function App() {
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const [paletteOpen, setPaletteOpen] = useState(false);
 	const [fileTreeOpen, setFileTreeOpen] = useState(false);
+	const [toolsOpen, setToolsOpen] = useState(false);
 	const [previewFile, setPreviewFile] = useState<string | null>(null);
 	const [previewWidth, setPreviewWidth] = useState(480);
 	const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -842,20 +845,36 @@ export function App() {
 									) : null}
 									<div className="mx-1 h-5 w-px bg-border/60" />
 									{activeSid ? (
-										<button
-											type="button"
-											onClick={() => setBashOpen((o) => !o)}
-											aria-label={t("settings.toggleBash")}
-											title={t("bash.title")}
-											className={cn(
-												"flex size-8 cursor-pointer items-center justify-center rounded-[10px] transition-colors",
-												bashOpen
-													? "bg-foreground/[0.08] text-foreground"
-													: "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
-											)}
-										>
-											<SquareTerminal className="size-4" />
-										</button>
+										<>
+											<button
+												type="button"
+												onClick={() => setToolsOpen((o) => !o)}
+												aria-label="Toggle tools"
+												title="Tools"
+												className={cn(
+													"flex size-8 cursor-pointer items-center justify-center rounded-[10px] transition-colors",
+													toolsOpen
+														? "bg-foreground/[0.08] text-foreground"
+														: "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
+												)}
+											>
+												<Wrench className="size-4" />
+											</button>
+											<button
+												type="button"
+												onClick={() => setBashOpen((o) => !o)}
+												aria-label={t("settings.toggleBash")}
+												title={t("bash.title")}
+												className={cn(
+													"flex size-8 cursor-pointer items-center justify-center rounded-[10px] transition-colors",
+													bashOpen
+														? "bg-foreground/[0.08] text-foreground"
+														: "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
+												)}
+											>
+												<SquareTerminal className="size-4" />
+											</button>
+										</>
 									) : null}
 									{activeWorkspace ? (
 										<button
@@ -907,7 +926,8 @@ export function App() {
 						)}
 					</MainArea>
 
-					{/* Right rail: file preview + file tree */}
+					{/* Right rail: tools + file preview + file tree */}
+					{toolsOpen ? <ToolsPanel sessionId={activeSid} /> : null}
 					{activeWorkspace && previewFile ? (
 						<>
 							<ResizeHandle

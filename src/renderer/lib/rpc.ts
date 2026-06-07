@@ -55,6 +55,23 @@ export interface SessionTreeData {
 	leafId: string | null;
 }
 
+export interface ToolInfo {
+	name: string;
+	description: string;
+	parameters?: unknown;
+	promptGuidelines?: string[];
+	sourceInfo?: {
+		source?: string;
+		path?: string;
+		packageName?: string;
+	};
+}
+
+export interface SessionToolsData {
+	active: string[];
+	tools: ToolInfo[];
+}
+
 export interface DesktopSettings {
 	defaultProvider: string | undefined;
 	defaultModel: string | undefined;
@@ -165,6 +182,8 @@ export interface PiBridge {
 		close: (sessionId: string) => Promise<void>;
 		delete: (args: { workspaceId: string; sessionPath: string }) => Promise<void>;
 		tree: (sessionId: string) => Promise<SessionTreeData>;
+		getTools: (sessionId: string) => Promise<SessionToolsData>;
+		setActiveTools: (sessionId: string, toolNames: string[]) => Promise<SessionToolsData>;
 		exportHtml: (sessionId: string) => Promise<string | null>;
 	};
 	shell: {
