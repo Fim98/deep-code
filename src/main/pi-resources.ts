@@ -18,11 +18,18 @@ export interface CreatePiResourceOptions {
 	description?: string;
 }
 
-function titleFromResourceName(name: string): string {
-	return name
-		.split("-")
-		.filter(Boolean)
-		.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+function titleFromResourceName(input: string, fallback: string): string {
+	const words = input
+		.trim()
+		.replace(/[_-]+/g, " ")
+		.split(/[^a-zA-Z0-9]+/g)
+		.filter(Boolean);
+	const source = words.length > 0 ? words : fallback.split("-").filter(Boolean);
+	return source
+		.map((part) => {
+			if (/[A-Z]/.test(part.slice(1))) return part;
+			return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+		})
 		.join(" ");
 }
 
@@ -83,7 +90,7 @@ export function createPiResource(options: CreatePiResourceOptions): string {
 	mkdirSync(skillDir, { recursive: true });
 	writeFileSync(
 		path,
-		`---\nname: ${name}\ndescription: ${JSON.stringify(description)}\n---\n\n# ${titleFromResourceName(name)}\n\n## When to use\n\n${description}\n\n## Instructions\n\n- Read any relevant files before making changes.\n- Prefer small, focused edits.\n- Explain important tradeoffs and assumptions.\n- If this skill references helper files, use paths relative to this skill directory.\n\n## Examples\n\nUser: /skill:${name} <task details>\n\nAssistant: Apply this skill's workflow to the requested task.\n`,
+		`---\nname: ${name}\ndescription: ${JSON.stringify(description)}\n---\n\n# ${titleFromResourceName(options.name, name)}\n\n## When to use\n\n${description}\n\n## Instructions\n\n- Read any relevant files before making changes.\n- Prefer small, focused edits.\n- Explain important tradeoffs and assumptions.\n- If this skill references helper files, use paths relative to this skill directory.\n\n## Examples\n\nUser: /skill:${name} <task details>\n\nAssistant: Apply this skill's workflow to the requested task.\n`,
 		"utf-8",
 	);
 	return path;
