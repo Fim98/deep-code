@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import {
 	type PiResourceKind,
+	type PiResourcePaths,
 	type PiResourceScope,
 	pi,
 	type SessionResourcesData,
@@ -32,6 +33,7 @@ interface Props {
 
 export function ResourcesPanel({ sessionId, cwd, onClose }: Props) {
 	const [data, setData] = useState<SessionResourcesData | null>(null);
+	const [paths, setPaths] = useState<PiResourcePaths | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [reloading, setReloading] = useState(false);
 	const [creating, setCreating] = useState(false);
@@ -43,6 +45,23 @@ export function ResourcesPanel({ sessionId, cwd, onClose }: Props) {
 	useEffect(() => {
 		void refresh();
 	}, [sessionId]);
+
+	useEffect(() => {
+		if (!cwd) {
+			setPaths(null);
+			return;
+		}
+		let cancelled = false;
+		pi.resources
+			.paths(cwd)
+			.then((next) => {
+				if (!cancelled) setPaths(next);
+			})
+			.catch((error) => emitToast(formatError(error)));
+		return () => {
+			cancelled = true;
+		};
+	}, [cwd]);
 
 	useEffect(() => {
 		return onSessionReloaded(({ sessionId: reloadedSessionId }) => {
@@ -194,6 +213,7 @@ export function ResourcesPanel({ sessionId, cwd, onClose }: Props) {
 					onCreate={createResource}
 					onOpenDir={openDir}
 				/>
+				<ResourcePathsOverview paths={paths} />
 				<ResourceSummary data={data} />
 				{diagnostics.length > 0 ? (
 					<ResourceSection title="Diagnostics" icon={<AlertTriangle className="size-4" />}>
@@ -267,6 +287,35 @@ export function ResourcesPanel({ sessionId, cwd, onClose }: Props) {
 				</ResourceSection>
 			</div>
 		</aside>
+	);
+}
+
+function ResourcePathsOverview({ paths }: { paths: PiResourcePaths | null }) {
+	if (!paths) return null;
+	const items: Array<{
+		title: string;
+		scope: PiResourceScope;
+		kind: PiResourceKind;
+		path: string;
+	}> = [
+		{ title: "Global prompts", scope: "global", kind: "prompts", path: paths.global.prompts },
+		{ title: "Project prompts", scope: "project", kind: "prompts", path: paths.project.prompts },
+		{ title: "Global skills", scope: "global", kind: "skills", path: paths.global.skills },
+		{ title: "Project skills", scope: "project", kind: "skills", path: paths.project.skills },
+	];
+
+	return (
+		<ResourceSection title="Resource paths" icon={<FolderSearch className="size-4" />}>
+			{items.map((item) => (
+				<ResourceRow
+					key={`${item.scope}:${item.kind}`}
+					title={item.title}
+					subtitle={item.path}
+					badge={item.scope}
+					path={item.path}
+				/>
+			))}
+		</ResourceSection>
 	);
 }
 
