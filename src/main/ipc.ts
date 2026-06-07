@@ -68,6 +68,55 @@ function serializeTree(nodes: any[]): SerializedTreeNode[] {
 	});
 }
 
+function serializeSessionResources(sessionId: string) {
+	const session = sessionRegistry.get(sessionId);
+	const loader = session.resourceLoader;
+	const extensions = loader.getExtensions();
+	const skills = loader.getSkills();
+	const prompts = loader.getPrompts();
+	const themes = loader.getThemes();
+	const agentsFiles = loader.getAgentsFiles();
+
+	return {
+		contextFiles: agentsFiles.agentsFiles.map((file) => ({
+			path: file.path,
+			bytes: Buffer.byteLength(file.content, "utf-8"),
+		})),
+		extensions: extensions.extensions.map((extension) => ({
+			path: extension.path,
+			resolvedPath: extension.resolvedPath,
+			sourceInfo: extension.sourceInfo,
+			tools: Array.from(extension.tools.keys()),
+			commands: Array.from(extension.commands.keys()),
+			flags: Array.from(extension.flags.keys()),
+			shortcuts: Array.from(extension.shortcuts.keys()).map(String),
+		})),
+		extensionErrors: extensions.errors,
+		skills: skills.skills.map((skill) => ({
+			name: skill.name,
+			description: skill.description,
+			filePath: skill.filePath,
+			baseDir: skill.baseDir,
+			sourceInfo: skill.sourceInfo,
+			disableModelInvocation: skill.disableModelInvocation,
+		})),
+		skillDiagnostics: skills.diagnostics,
+		prompts: prompts.prompts.map((prompt) => ({
+			name: prompt.name,
+			description: prompt.description,
+			argumentHint: prompt.argumentHint,
+			filePath: prompt.filePath,
+			sourceInfo: prompt.sourceInfo,
+		})),
+		promptDiagnostics: prompts.diagnostics,
+		themes: themes.themes.map((theme: any) => ({
+			name: String(theme?.name ?? theme?.id ?? "Theme"),
+			sourceInfo: theme?.sourceInfo,
+		})),
+		themeDiagnostics: themes.diagnostics,
+	};
+}
+
 export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined): void {
 	ipcMain.handle("pi:workspace:list", () => listWorkspaces());
 	ipcMain.handle("pi:workspace:get-active", () => getActiveWorkspaceId());
@@ -158,6 +207,10 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 			active: session.getActiveToolNames(),
 			tools: session.getAllTools(),
 		};
+	});
+
+	ipcMain.handle("pi:session:resources:get", (_e, sessionId: string) => {
+		return serializeSessionResources(sessionId);
 	});
 
 	// Extension UI response: renderer → main process bridge

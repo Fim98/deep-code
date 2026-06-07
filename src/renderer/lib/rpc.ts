@@ -55,21 +55,65 @@ export interface SessionTreeData {
 	leafId: string | null;
 }
 
+export interface SourceInfo {
+	path?: string;
+	source?: string;
+	scope?: string;
+	origin?: string;
+	baseDir?: string;
+	packageName?: string;
+}
+
 export interface ToolInfo {
 	name: string;
 	description: string;
 	parameters?: unknown;
 	promptGuidelines?: string[];
-	sourceInfo?: {
-		source?: string;
-		path?: string;
-		packageName?: string;
-	};
+	sourceInfo?: SourceInfo;
 }
 
 export interface SessionToolsData {
 	active: string[];
 	tools: ToolInfo[];
+}
+
+export interface ResourceDiagnostic {
+	type: "warning" | "error" | "collision";
+	message: string;
+	path?: string;
+}
+
+export interface SessionResourcesData {
+	contextFiles: Array<{ path: string; bytes: number }>;
+	extensions: Array<{
+		path: string;
+		resolvedPath: string;
+		sourceInfo?: SourceInfo;
+		tools: string[];
+		commands: string[];
+		flags: string[];
+		shortcuts: string[];
+	}>;
+	extensionErrors: Array<{ path: string; error: string }>;
+	skills: Array<{
+		name: string;
+		description: string;
+		filePath: string;
+		baseDir: string;
+		sourceInfo?: SourceInfo;
+		disableModelInvocation: boolean;
+	}>;
+	skillDiagnostics: ResourceDiagnostic[];
+	prompts: Array<{
+		name: string;
+		description: string;
+		argumentHint?: string;
+		filePath: string;
+		sourceInfo?: SourceInfo;
+	}>;
+	promptDiagnostics: ResourceDiagnostic[];
+	themes: Array<{ name: string; sourceInfo?: SourceInfo }>;
+	themeDiagnostics: ResourceDiagnostic[];
 }
 
 export interface DesktopSettings {
@@ -184,6 +228,7 @@ export interface PiBridge {
 		tree: (sessionId: string) => Promise<SessionTreeData>;
 		getTools: (sessionId: string) => Promise<SessionToolsData>;
 		setActiveTools: (sessionId: string, toolNames: string[]) => Promise<SessionToolsData>;
+		getResources: (sessionId: string) => Promise<SessionResourcesData>;
 		exportHtml: (sessionId: string) => Promise<string | null>;
 	};
 	shell: {
