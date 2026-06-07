@@ -18,6 +18,14 @@ export interface CreatePiResourceOptions {
 	description?: string;
 }
 
+function titleFromResourceName(name: string): string {
+	return name
+		.split("-")
+		.filter(Boolean)
+		.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+		.join(" ");
+}
+
 function safeResourceName(name: string): string {
 	const normalized = name
 		.trim()
@@ -63,7 +71,7 @@ export function createPiResource(options: CreatePiResourceOptions): string {
 		if (existsSync(path)) throw new Error(`Prompt already exists: ${path}`);
 		writeFileSync(
 			path,
-			`---\ndescription: ${JSON.stringify(description)}\nargument-hint: ""\n---\n\nWrite your reusable prompt here. Use $ARGUMENTS for user-provided arguments.\n`,
+			`---\ndescription: ${JSON.stringify(description)}\nargument-hint: "[instructions]"\n---\n\n# /${name}\n\n${description}\n\n## Context\n\nUse any provided arguments as extra instructions:\n\n$ARGUMENTS\n\n## Task\n\nDescribe the concrete workflow this prompt should run. Keep the output structured and actionable.\n`,
 			"utf-8",
 		);
 		return path;
@@ -75,7 +83,7 @@ export function createPiResource(options: CreatePiResourceOptions): string {
 	mkdirSync(skillDir, { recursive: true });
 	writeFileSync(
 		path,
-		`---\nname: ${name}\ndescription: ${JSON.stringify(description)}\n---\n\n# ${name}\n\nUse this skill when ${description}\n\n## Instructions\n\nAdd detailed instructions here.\n`,
+		`---\nname: ${name}\ndescription: ${JSON.stringify(description)}\n---\n\n# ${titleFromResourceName(name)}\n\n## When to use\n\n${description}\n\n## Instructions\n\n- Read any relevant files before making changes.\n- Prefer small, focused edits.\n- Explain important tradeoffs and assumptions.\n- If this skill references helper files, use paths relative to this skill directory.\n\n## Examples\n\nUser: /skill:${name} <task details>\n\nAssistant: Apply this skill's workflow to the requested task.\n`,
 		"utf-8",
 	);
 	return path;
