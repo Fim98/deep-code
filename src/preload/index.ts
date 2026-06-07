@@ -28,6 +28,7 @@ const sessions = {
 	setActiveTools: (sessionId: string, toolNames: string[]) =>
 		ipcRenderer.invoke("pi:session:tools:set-active", sessionId, toolNames),
 	getResources: (sessionId: string) => ipcRenderer.invoke("pi:session:resources:get", sessionId),
+	reload: (sessionId: string) => ipcRenderer.invoke("pi:session:reload", sessionId),
 	exportHtml: (sessionId: string) => ipcRenderer.invoke("pi:session:export-html", sessionId),
 };
 

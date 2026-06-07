@@ -243,6 +243,7 @@ export interface PiBridge {
 		getTools: (sessionId: string) => Promise<SessionToolsData>;
 		setActiveTools: (sessionId: string, toolNames: string[]) => Promise<SessionToolsData>;
 		getResources: (sessionId: string) => Promise<SessionResourcesData>;
+		reload: (sessionId: string) => Promise<SessionResourcesData>;
 		exportHtml: (sessionId: string) => Promise<string | null>;
 	};
 	shell: {

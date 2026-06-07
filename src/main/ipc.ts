@@ -219,6 +219,12 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 		return serializeSessionResources(sessionId);
 	});
 
+	ipcMain.handle("pi:session:reload", async (_e, sessionId: string) => {
+		const session = sessionRegistry.get(sessionId);
+		await session.reload();
+		return serializeSessionResources(sessionId);
+	});
+
 	ipcMain.handle("pi:packages:list", (_e, cwd: string) => listPiPackages(cwd));
 	ipcMain.handle(
 		"pi:packages:install",

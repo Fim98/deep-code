@@ -1,4 +1,13 @@
-import { AlertTriangle, BookOpen, Box, FileText, Palette, RefreshCw, Sparkles } from "lucide-react";
+import {
+	AlertTriangle,
+	BookOpen,
+	Box,
+	FileText,
+	Palette,
+	RefreshCw,
+	RotateCcw,
+	Sparkles,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -12,6 +21,7 @@ interface Props {
 export function ResourcesPanel({ sessionId }: Props) {
 	const [data, setData] = useState<SessionResourcesData | null>(null);
 	const [loading, setLoading] = useState(false);
+	const [reloading, setReloading] = useState(false);
 
 	useEffect(() => {
 		void refresh();
@@ -26,6 +36,19 @@ export function ResourcesPanel({ sessionId }: Props) {
 			emitToast(formatError(error));
 		} finally {
 			setLoading(false);
+		}
+	}
+
+	async function reload() {
+		if (!sessionId) return;
+		setReloading(true);
+		try {
+			setData(await pi.sessions.reload(sessionId));
+			emitToast("Session resources reloaded", "info");
+		} catch (error) {
+			emitToast(formatError(error));
+		} finally {
+			setReloading(false);
 		}
 	}
 
@@ -63,15 +86,28 @@ export function ResourcesPanel({ sessionId }: Props) {
 						<div className="text-[11px] text-muted-foreground">loaded by pi for this session</div>
 					</div>
 				</div>
-				<Button
-					variant="ghost"
-					size="icon"
-					onClick={refresh}
-					disabled={loading}
-					aria-label="Refresh resources"
-				>
-					{loading ? <Spinner size="sm" /> : <RefreshCw className="size-4" />}
-				</Button>
+				<div className="flex gap-1">
+					<Button
+						variant="ghost"
+						size="icon"
+						onClick={reload}
+						disabled={reloading}
+						aria-label="Reload session resources"
+						title="Reload session resources"
+					>
+						{reloading ? <Spinner size="sm" /> : <RotateCcw className="size-4" />}
+					</Button>
+					<Button
+						variant="ghost"
+						size="icon"
+						onClick={refresh}
+						disabled={loading}
+						aria-label="Refresh resources"
+						title="Refresh resources"
+					>
+						{loading ? <Spinner size="sm" /> : <RefreshCw className="size-4" />}
+					</Button>
+				</div>
 			</header>
 
 			<div className="space-y-4 overflow-auto p-5">

@@ -46,6 +46,17 @@ const mockPi = {
 			themes: [],
 			themeDiagnostics: [],
 		}),
+		reload: vi.fn().mockResolvedValue({
+			contextFiles: [],
+			extensions: [],
+			extensionErrors: [],
+			skills: [],
+			skillDiagnostics: [],
+			prompts: [],
+			promptDiagnostics: [],
+			themes: [],
+			themeDiagnostics: [],
+		}),
 		exportHtml: vi.fn().mockResolvedValue(null),
 	},
 	shell: {
