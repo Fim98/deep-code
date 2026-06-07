@@ -37,6 +37,8 @@ describe("PackagesPanel", () => {
 		expect(await screen.findByText("pi-example-package")).toBeInTheDocument();
 		expect(screen.getByText("project")).toBeInTheDocument();
 		expect(screen.getByText("/tmp/project/.pi/packages/pi-example-package")).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Reveal" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Copy" })).toBeInTheDocument();
 	});
 
 	it("installs packages into the selected scope", async () => {
@@ -64,6 +66,35 @@ describe("PackagesPanel", () => {
 			});
 		});
 		expect(await screen.findByText("github:user/pkg")).toBeInTheDocument();
+	});
+
+	it("reveals and copies installed package paths", async () => {
+		const writeText = vi.fn().mockResolvedValue(undefined);
+		Object.defineProperty(navigator, "clipboard", {
+			value: { ...navigator.clipboard, writeText },
+			configurable: true,
+		});
+		const user = userEvent.setup();
+		mockPi.packages.list.mockResolvedValue([
+			{
+				source: "pi-example-package",
+				scope: "project",
+				installedPath: "/tmp/project/.pi/packages/pi-example-package",
+				filtered: false,
+			},
+		]);
+
+		await act(async () => {
+			render(<PackagesPanel cwd="/tmp/project" />);
+		});
+
+		await user.click(await screen.findByRole("button", { name: "Reveal" }));
+		expect(mockPi.shell.showItemInFolder).toHaveBeenCalledWith(
+			"/tmp/project/.pi/packages/pi-example-package",
+		);
+
+		await user.click(screen.getByRole("button", { name: "Copy" }));
+		expect(writeText).toHaveBeenCalledWith("/tmp/project/.pi/packages/pi-example-package");
 	});
 
 	it("shows package progress events", async () => {

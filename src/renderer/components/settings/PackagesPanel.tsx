@@ -1,4 +1,4 @@
-import { Download, PackagePlus, RefreshCw, Trash2, X } from "lucide-react";
+import { Copy, Download, FolderSearch, PackagePlus, RefreshCw, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -238,6 +238,10 @@ function PackageRow({
 	onRemove: () => void;
 	onUpdate: () => void;
 }) {
+	const detail =
+		item.installedPath ?? (item.filtered ? "filtered package source" : "not installed yet");
+	const copyText = item.installedPath ?? item.source;
+
 	return (
 		<div className="rounded-[18px] border border-border/50 bg-background/50 p-4 shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
 			<div className="flex items-start gap-3">
@@ -248,9 +252,29 @@ function PackageRow({
 							{item.scope}
 						</span>
 					</div>
-					<div className="mt-1 truncate text-[11px] text-muted-foreground">
-						{item.installedPath ??
-							(item.filtered ? "filtered package source" : "not installed yet")}
+					<div className="mt-1 truncate text-[11px] text-muted-foreground">{detail}</div>
+					<div className="mt-2 flex gap-1.5">
+						{item.installedPath ? (
+							<button
+								type="button"
+								onClick={() => pi.shell.showItemInFolder(item.installedPath!)}
+								className="inline-flex items-center gap-1 rounded-full bg-foreground/[0.04] px-2 py-1 text-[10px] text-muted-foreground transition-colors hover:bg-foreground/[0.07] hover:text-foreground"
+							>
+								<FolderSearch className="size-3" />
+								Reveal
+							</button>
+						) : null}
+						<button
+							type="button"
+							onClick={() => {
+								void navigator.clipboard.writeText(copyText);
+								emitToast("Copied", "info");
+							}}
+							className="inline-flex items-center gap-1 rounded-full bg-foreground/[0.04] px-2 py-1 text-[10px] text-muted-foreground transition-colors hover:bg-foreground/[0.07] hover:text-foreground"
+						>
+							<Copy className="size-3" />
+							Copy
+						</button>
 					</div>
 				</div>
 				<div className="flex shrink-0 gap-1">

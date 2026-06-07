@@ -215,6 +215,15 @@ Object.defineProperty(window, "ResizeObserver", {
 // ---------------------------------------------------------------------------
 Element.prototype.scrollIntoView = vi.fn();
 
+Object.defineProperty(navigator, "clipboard", {
+	value: {
+		writeText: vi.fn().mockResolvedValue(undefined),
+		readText: vi.fn().mockResolvedValue(""),
+	},
+	writable: true,
+	configurable: true,
+});
+
 // ---------------------------------------------------------------------------
 // Suppress noisy console.error in jsdom (optional, Radix portals etc.)
 // ---------------------------------------------------------------------------
