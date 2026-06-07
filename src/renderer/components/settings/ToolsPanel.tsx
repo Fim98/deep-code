@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { pi, type SessionToolsData, type ToolInfo } from "@/lib/rpc";
+import { onSessionReloaded } from "@/lib/session-events";
 import { emitToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +21,12 @@ export function ToolsPanel({ sessionId }: Props) {
 
 	useEffect(() => {
 		void refresh();
+	}, [sessionId]);
+
+	useEffect(() => {
+		return onSessionReloaded(({ sessionId: reloadedSessionId }) => {
+			if (reloadedSessionId === sessionId) void refresh();
+		});
 	}, [sessionId]);
 
 	const activeSet = useMemo(() => new Set(data?.active ?? []), [data]);

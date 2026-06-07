@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { type PiPackageEntry, type PiPackageProgressEvent, pi } from "@/lib/rpc";
+import { reloadSessionAndNotify } from "@/lib/session-events";
 import { emitToast } from "@/lib/toast";
 
 interface Props {
@@ -89,7 +90,7 @@ export function PackagesPanel({ cwd, sessionId }: Props) {
 	function emitPackageChangeToast(message: string) {
 		if (sessionId) {
 			emitToast(message, {
-				action: { label: "Reload", onClick: () => void pi.sessions.reload(sessionId) },
+				action: { label: "Reload", onClick: () => void reloadSessionAndNotify(sessionId) },
 			});
 		} else {
 			emitToast(message, "info");

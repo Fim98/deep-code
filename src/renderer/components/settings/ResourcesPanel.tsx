@@ -20,6 +20,7 @@ import {
 	pi,
 	type SessionResourcesData,
 } from "@/lib/rpc";
+import { onSessionReloaded, reloadSessionAndNotify } from "@/lib/session-events";
 import { emitToast } from "@/lib/toast";
 
 interface Props {
@@ -41,6 +42,12 @@ export function ResourcesPanel({ sessionId, cwd }: Props) {
 		void refresh();
 	}, [sessionId]);
 
+	useEffect(() => {
+		return onSessionReloaded(({ sessionId: reloadedSessionId }) => {
+			if (reloadedSessionId === sessionId) void refresh();
+		});
+	}, [sessionId]);
+
 	async function refresh() {
 		if (!sessionId) return;
 		setLoading(true);
@@ -57,7 +64,8 @@ export function ResourcesPanel({ sessionId, cwd }: Props) {
 		if (!sessionId) return;
 		setReloading(true);
 		try {
-			setData(await pi.sessions.reload(sessionId));
+			await reloadSessionAndNotify(sessionId);
+			setData(await pi.sessions.getResources(sessionId));
 			emitToast("Session resources reloaded", "info");
 		} catch (error) {
 			emitToast(formatError(error));

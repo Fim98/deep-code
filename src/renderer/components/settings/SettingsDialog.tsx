@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/select";
 import { LOCALE_LABELS, LOCALES, useI18n } from "@/lib/i18n";
 import { type DesktopSettings, type ProviderEntry, pi } from "@/lib/rpc";
+import { reloadSessionAndNotify } from "@/lib/session-events";
 import { emitToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { ACCENT_PRESETS, useAccent } from "@/stores/accent";
@@ -172,7 +173,7 @@ function GeneralTab({
 			setTrustDecision(decision);
 			if (activeSessionId) {
 				emitToast(t("settings.trustDecisionSaved"), {
-					action: { label: "Reload", onClick: () => void pi.sessions.reload(activeSessionId) },
+					action: { label: "Reload", onClick: () => void reloadSessionAndNotify(activeSessionId) },
 				});
 			} else {
 				emitToast(t("settings.trustDecisionSaved"), "info");
