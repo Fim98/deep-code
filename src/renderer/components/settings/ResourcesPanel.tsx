@@ -87,7 +87,14 @@ export function ResourcesPanel({ sessionId, cwd }: Props) {
 			});
 			setNewName("");
 			setNewDescription("");
-			emitToast(`Created ${path}`, "info");
+			const openError = await pi.shell.openPath(path);
+			if (openError) {
+				emitToast(`Created ${path}`, {
+					action: { label: "Reveal", onClick: () => void pi.shell.showItemInFolder(path) },
+				});
+			} else {
+				emitToast(`Created and opened ${path}`, "info");
+			}
 		} catch (error) {
 			emitToast(formatError(error));
 		} finally {
