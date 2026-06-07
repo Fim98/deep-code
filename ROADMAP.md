@@ -10,13 +10,14 @@ Bash panel, model picker, provider auth UI, session rename/delete, themes,
 keyboard shortcuts, and context/cost display.
 
 The next route is not to turn deepcode into a separate agent platform. The
-primary reference is `~/Documents/pi-mono`: deepcode should keep following pi's
-SDK primitives (`AgentSession`, `AgentSessionRuntime`, `SessionManager`,
+primary reference is `~/Documents/pi`: deepcode should keep following pi's SDK
+primitives (`AgentSession`, `AgentSessionRuntime`, `SessionManager`,
 `AuthStorage`, `ModelRegistry`, `SettingsManager`, `ImageContent`).
 
 `~/Documents/opencode` is useful as a productization reference for packaging,
-PTY terminal architecture, typed local APIs, and MCP/plugin surface area. It is
-not the model for deepcode's current core runtime.
+PTY terminal architecture, and typed local APIs. It is not the model for
+deepcode's current core runtime, and deepcode should not implement MCP or
+permission systems until they exist as supported pi primitives.
 
 Phases are priority bands, not strict release numbers. Effort labels: **S** <=
 0.5d, **M** 1-2d, **L** 3-5d, **XL** > 1w.
