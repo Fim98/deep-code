@@ -8,7 +8,11 @@ const mockPi = window.pi as any;
 const toolsData = {
 	active: ["read"],
 	tools: [
-		{ name: "read", description: "Read files", sourceInfo: { source: "builtin" } },
+		{
+			name: "read",
+			description: "Read files",
+			sourceInfo: { source: "builtin", path: "/tmp/tools/read.ts" },
+		},
 		{ name: "bash", description: "Run shell commands", sourceInfo: { source: "builtin" } },
 	],
 };
@@ -37,6 +41,26 @@ describe("ToolsPanel", () => {
 		expect(screen.getByText("Read files")).toBeInTheDocument();
 		expect(screen.getByLabelText("Toggle read")).toHaveClass("bg-primary");
 		expect(screen.getByLabelText("Toggle bash")).toHaveClass("bg-foreground/15");
+		expect(screen.getByRole("button", { name: "Reveal" })).toBeInTheDocument();
+		expect(screen.getAllByRole("button", { name: "Copy" })).toHaveLength(2);
+	});
+
+	it("reveals and copies tool source paths", async () => {
+		const user = userEvent.setup();
+		const writeText = vi.fn().mockResolvedValue(undefined);
+		Object.defineProperty(navigator, "clipboard", {
+			value: { ...navigator.clipboard, writeText },
+			configurable: true,
+		});
+		await act(async () => {
+			render(<ToolsPanel sessionId="s1" />);
+		});
+
+		await user.click(await screen.findByRole("button", { name: "Reveal" }));
+		expect(mockPi.shell.showItemInFolder).toHaveBeenCalledWith("/tmp/tools/read.ts");
+
+		await user.click(screen.getAllByRole("button", { name: "Copy" })[0]!);
+		expect(writeText).toHaveBeenCalledWith("/tmp/tools/read.ts");
 	});
 
 	it("toggles active tools", async () => {

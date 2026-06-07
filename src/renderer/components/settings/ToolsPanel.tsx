@@ -1,4 +1,4 @@
-import { RefreshCw, ShieldCheck, Wrench, X } from "lucide-react";
+import { Copy, FolderSearch, RefreshCw, ShieldCheck, Wrench, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -160,6 +160,8 @@ function ToolRow({
 	onToggle: (active: boolean) => void;
 }) {
 	const source = tool.sourceInfo?.source ?? "unknown";
+	const sourcePath = tool.sourceInfo?.path ?? tool.sourceInfo?.baseDir;
+	const copyText = sourcePath ?? tool.name;
 	return (
 		<div className="rounded-[18px] border border-border/50 bg-background/50 p-4 shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
 			<div className="flex items-start gap-3">
@@ -175,6 +177,29 @@ function ToolRow({
 					</div>
 					<div className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
 						{tool.description || "No description"}
+					</div>
+					<div className="mt-2 flex gap-1.5">
+						{sourcePath ? (
+							<button
+								type="button"
+								onClick={() => pi.shell.showItemInFolder(sourcePath)}
+								className="inline-flex items-center gap-1 rounded-full bg-foreground/[0.04] px-2 py-1 text-[10px] text-muted-foreground transition-colors hover:bg-foreground/[0.07] hover:text-foreground"
+							>
+								<FolderSearch className="size-3" />
+								Reveal
+							</button>
+						) : null}
+						<button
+							type="button"
+							onClick={() => {
+								void navigator.clipboard.writeText(copyText);
+								emitToast("Copied", "info");
+							}}
+							className="inline-flex items-center gap-1 rounded-full bg-foreground/[0.04] px-2 py-1 text-[10px] text-muted-foreground transition-colors hover:bg-foreground/[0.07] hover:text-foreground"
+						>
+							<Copy className="size-3" />
+							Copy
+						</button>
 					</div>
 				</div>
 				<button
