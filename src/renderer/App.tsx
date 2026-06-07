@@ -687,6 +687,7 @@ export function App() {
 				open={settingsOpen}
 				onOpenChange={setSettingsOpen}
 				activeWorkspacePath={activeWorkspace?.path}
+				activeSessionId={activeSid}
 			/>
 			<CommandPalette
 				open={paletteOpen}
@@ -961,7 +962,9 @@ export function App() {
 					</MainArea>
 
 					{/* Right rail: packages + resources + tools + file preview + file tree */}
-					{packagesOpen ? <PackagesPanel cwd={activeWorkspace?.path} /> : null}
+					{packagesOpen ? (
+						<PackagesPanel cwd={activeWorkspace?.path} sessionId={activeSid} />
+					) : null}
 					{resourcesOpen ? (
 						<ResourcesPanel sessionId={activeSid} cwd={activeWorkspace?.path} />
 					) : null}

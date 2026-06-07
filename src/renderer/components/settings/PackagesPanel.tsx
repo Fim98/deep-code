@@ -8,9 +8,10 @@ import { emitToast } from "@/lib/toast";
 
 interface Props {
 	cwd: string | undefined;
+	sessionId?: string | null;
 }
 
-export function PackagesPanel({ cwd }: Props) {
+export function PackagesPanel({ cwd, sessionId }: Props) {
 	const [items, setItems] = useState<PiPackageEntry[]>([]);
 	const [source, setSource] = useState("");
 	const [local, setLocal] = useState(false);
@@ -47,7 +48,7 @@ export function PackagesPanel({ cwd }: Props) {
 			setProgress([]);
 			setItems(await pi.packages.install({ cwd, source: source.trim(), local }));
 			setSource("");
-			emitToast("Package installed", "info");
+			emitPackageChangeToast("Package installed");
 		} catch (error) {
 			emitToast(formatError(error));
 		} finally {
@@ -63,7 +64,7 @@ export function PackagesPanel({ cwd }: Props) {
 			setItems(
 				await pi.packages.remove({ cwd, source: item.source, local: item.scope === "project" }),
 			);
-			emitToast("Package removed", "info");
+			emitPackageChangeToast("Package removed");
 		} catch (error) {
 			emitToast(formatError(error));
 		} finally {
@@ -77,11 +78,21 @@ export function PackagesPanel({ cwd }: Props) {
 		try {
 			setProgress([]);
 			setItems(await pi.packages.update({ cwd, source }));
-			emitToast("Packages updated", "info");
+			emitPackageChangeToast("Packages updated");
 		} catch (error) {
 			emitToast(formatError(error));
 		} finally {
 			setBusySource(null);
+		}
+	}
+
+	function emitPackageChangeToast(message: string) {
+		if (sessionId) {
+			emitToast(message, {
+				action: { label: "Reload", onClick: () => void pi.sessions.reload(sessionId) },
+			});
+		} else {
+			emitToast(message, "info");
 		}
 	}
 

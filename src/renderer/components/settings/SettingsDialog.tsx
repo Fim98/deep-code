@@ -51,9 +51,15 @@ interface Props {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	activeWorkspacePath?: string;
+	activeSessionId?: string | null;
 }
 
-export function SettingsDialog({ open, onOpenChange, activeWorkspacePath }: Props) {
+export function SettingsDialog({
+	open,
+	onOpenChange,
+	activeWorkspacePath,
+	activeSessionId,
+}: Props) {
 	const { t } = useI18n();
 	const [tab, setTab] = useState<TabId>("general");
 
@@ -104,7 +110,12 @@ export function SettingsDialog({ open, onOpenChange, activeWorkspacePath }: Prop
 					{/* Right panel */}
 					<ScrollArea className="flex-1">
 						<div className="px-7 py-6">
-							{tab === "general" && <GeneralTab activeWorkspacePath={activeWorkspacePath} />}
+							{tab === "general" && (
+								<GeneralTab
+									activeWorkspacePath={activeWorkspacePath}
+									activeSessionId={activeSessionId}
+								/>
+							)}
 							{tab === "providers" && <ProvidersTab />}
 							{tab === "models" && <ModelsTab />}
 							{tab === "about" && <AboutTab />}
@@ -118,7 +129,13 @@ export function SettingsDialog({ open, onOpenChange, activeWorkspacePath }: Prop
 
 // ─── General Tab ─────────────────────────────────────────────────────────────
 
-function GeneralTab({ activeWorkspacePath }: { activeWorkspacePath?: string }) {
+function GeneralTab({
+	activeWorkspacePath,
+	activeSessionId,
+}: {
+	activeWorkspacePath?: string;
+	activeSessionId?: string | null;
+}) {
 	const { t } = useI18n();
 	const [settings, setSettings] = useState<DesktopSettings | null>(null);
 	const [agentDir, setAgentDir] = useState<string | null>(null);
@@ -153,7 +170,13 @@ function GeneralTab({ activeWorkspacePath }: { activeWorkspacePath?: string }) {
 			if (!activeWorkspacePath) return;
 			await pi.settings.setProjectTrust(activeWorkspacePath, decision);
 			setTrustDecision(decision);
-			emitToast(t("settings.trustDecisionSaved"), "info");
+			if (activeSessionId) {
+				emitToast(t("settings.trustDecisionSaved"), {
+					action: { label: "Reload", onClick: () => void pi.sessions.reload(activeSessionId) },
+				});
+			} else {
+				emitToast(t("settings.trustDecisionSaved"), "info");
+			}
 		} catch (error) {
 			emitToast(formatError(error));
 		}
