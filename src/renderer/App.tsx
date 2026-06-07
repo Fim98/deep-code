@@ -97,6 +97,7 @@ export function App() {
 	const [resourcesOpen, setResourcesOpen] = useState(false);
 	const [packagesOpen, setPackagesOpen] = useState(false);
 	const [previewFile, setPreviewFile] = useState<string | null>(null);
+	const [rightRailWidth, setRightRailWidth] = useState(380);
 	const [previewWidth, setPreviewWidth] = useState(480);
 	const [sidebarOpen, setSidebarOpen] = useState(true);
 	const [sessionFilter, setSessionFilter] = useState("");
@@ -981,21 +982,27 @@ export function App() {
 
 					{/* Right rail: packages + resources + tools + file preview + file tree */}
 					{packagesOpen ? (
-						<PackagesPanel
-							cwd={activeWorkspace?.path}
-							sessionId={activeSid}
-							onClose={() => setRightRailPanel(null)}
-						/>
+						<ResizableRightRail width={rightRailWidth} onResize={setRightRailWidth}>
+							<PackagesPanel
+								cwd={activeWorkspace?.path}
+								sessionId={activeSid}
+								onClose={() => setRightRailPanel(null)}
+							/>
+						</ResizableRightRail>
 					) : null}
 					{resourcesOpen ? (
-						<ResourcesPanel
-							sessionId={activeSid}
-							cwd={activeWorkspace?.path}
-							onClose={() => setRightRailPanel(null)}
-						/>
+						<ResizableRightRail width={rightRailWidth} onResize={setRightRailWidth}>
+							<ResourcesPanel
+								sessionId={activeSid}
+								cwd={activeWorkspace?.path}
+								onClose={() => setRightRailPanel(null)}
+							/>
+						</ResizableRightRail>
 					) : null}
 					{toolsOpen ? (
-						<ToolsPanel sessionId={activeSid} onClose={() => setRightRailPanel(null)} />
+						<ResizableRightRail width={rightRailWidth} onResize={setRightRailWidth}>
+							<ToolsPanel sessionId={activeSid} onClose={() => setRightRailPanel(null)} />
+						</ResizableRightRail>
 					) : null}
 					{activeWorkspace && previewFile ? (
 						<>
@@ -1011,19 +1018,21 @@ export function App() {
 						</>
 					) : null}
 					{activeWorkspace && fileTreeOpen ? (
-						<div className="flex h-full shrink-0 flex-col border-l border-border/30 bg-card/50">
-							<div className="min-h-0 flex-1 overflow-hidden">
-								<FileTree
-									rootPath={activeWorkspace.path}
-									open={fileTreeOpen}
-									onOpenChange={setFileTreeOpen}
-									onFileClick={(path) => {
-										setRightRailPanel("preview");
-										setPreviewFile(path);
-									}}
-								/>
+						<ResizableRightRail width={rightRailWidth} onResize={setRightRailWidth}>
+							<div className="flex h-full w-full flex-col border-l border-border/30 bg-card/50">
+								<div className="min-h-0 flex-1 overflow-hidden">
+									<FileTree
+										rootPath={activeWorkspace.path}
+										open={fileTreeOpen}
+										onOpenChange={setFileTreeOpen}
+										onFileClick={(path) => {
+											setRightRailPanel("preview");
+											setPreviewFile(path);
+										}}
+									/>
+								</div>
 							</div>
-						</div>
+						</ResizableRightRail>
 					) : null}
 				</div>
 				{activeSid ? (
@@ -1036,6 +1045,25 @@ export function App() {
 				) : null}
 			</div>
 		</div>
+	);
+}
+
+function ResizableRightRail({
+	width,
+	onResize,
+	children,
+}: {
+	width: number;
+	onResize: (width: number) => void;
+	children: React.ReactNode;
+}) {
+	return (
+		<>
+			<ResizeHandle direction="horizontal" minSize={320} maxSize={560} onResize={onResize} />
+			<div className="h-full shrink-0" style={{ width }}>
+				{children}
+			</div>
+		</>
 	);
 }
 

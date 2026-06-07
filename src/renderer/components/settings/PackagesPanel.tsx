@@ -107,7 +107,7 @@ export function PackagesPanel({ cwd, sessionId, onClose }: Props) {
 	}
 
 	return (
-		<aside className="flex h-full w-[380px] shrink-0 flex-col border-l border-border/50 bg-card/80 backdrop-blur-xl">
+		<aside className="flex h-full w-full shrink-0 flex-col border-l border-border/50 bg-card/80 backdrop-blur-xl">
 			<header className="flex h-[68px] shrink-0 items-center justify-between border-b border-border/40 px-5">
 				<div className="flex items-center gap-3">
 					<div className="flex size-9 items-center justify-center rounded-[14px] bg-primary-soft text-primary">
