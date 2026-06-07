@@ -353,6 +353,12 @@ function ResourceActions({
 	onCreate: () => void;
 	onOpenDir: (scope: PiResourceScope, kind: PiResourceKind) => void;
 }) {
+	const namePlaceholder = kind === "prompts" ? "summarize-code" : "typescript-review";
+	const descriptionPlaceholder =
+		kind === "prompts"
+			? "Summarize changed files and call out risks"
+			: "Use when reviewing TypeScript or React code";
+
 	return (
 		<div className="rounded-[18px] border border-border/50 bg-background/50 p-4 shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
 			<div className="mb-3 text-[12px] font-medium text-foreground">Create or open resources</div>
@@ -369,13 +375,13 @@ function ResourceActions({
 				<Input
 					value={name}
 					onChange={(event) => onNameChange(event.target.value)}
-					placeholder="name"
+					placeholder={namePlaceholder}
 					className="text-[13px]"
 				/>
 				<Input
 					value={description}
 					onChange={(event) => onDescriptionChange(event.target.value)}
-					placeholder="description"
+					placeholder={descriptionPlaceholder}
 					className="text-[13px]"
 				/>
 			</div>
