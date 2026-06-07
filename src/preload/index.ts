@@ -101,6 +101,16 @@ const windowManagement = {
 	new: () => ipcRenderer.invoke("pi:window:new") as Promise<void>,
 };
 
+const packages = {
+	list: (cwd: string) => ipcRenderer.invoke("pi:packages:list", cwd),
+	install: (args: { cwd: string; source: string; local?: boolean }) =>
+		ipcRenderer.invoke("pi:packages:install", args),
+	remove: (args: { cwd: string; source: string; local?: boolean }) =>
+		ipcRenderer.invoke("pi:packages:remove", args),
+	update: (args: { cwd: string; source?: string }) =>
+		ipcRenderer.invoke("pi:packages:update", args),
+};
+
 const telemetry = {
 	get: () => ipcRenderer.invoke("pi:telemetry:get") as Promise<boolean>,
 	set: (value: boolean) => ipcRenderer.invoke("pi:telemetry:set", value) as Promise<void>,
@@ -196,6 +206,7 @@ const api = {
 	fileTree,
 	pty,
 	window: windowManagement,
+	packages,
 	telemetry,
 } as const;
 

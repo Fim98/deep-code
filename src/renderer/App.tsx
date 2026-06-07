@@ -6,6 +6,7 @@ import {
 	FolderPlus,
 	MessageSquarePlus,
 	PackageOpen,
+	PackagePlus,
 	PanelLeft,
 	PanelRight,
 	Search,
@@ -30,6 +31,7 @@ import { Sidebar, SidebarItem, SidebarSection } from "@/components/layout/Sideba
 import { TerminalPanel } from "@/components/panels/TerminalPanel";
 import { ContextBar } from "@/components/settings/ContextBar";
 import { ModelPicker } from "@/components/settings/ModelPicker";
+import { PackagesPanel } from "@/components/settings/PackagesPanel";
 import { ResourcesPanel } from "@/components/settings/ResourcesPanel";
 import { SettingsDialog } from "@/components/settings/SettingsDialog";
 import { ToolsPanel } from "@/components/settings/ToolsPanel";
@@ -91,6 +93,7 @@ export function App() {
 	const [fileTreeOpen, setFileTreeOpen] = useState(false);
 	const [toolsOpen, setToolsOpen] = useState(false);
 	const [resourcesOpen, setResourcesOpen] = useState(false);
+	const [packagesOpen, setPackagesOpen] = useState(false);
 	const [previewFile, setPreviewFile] = useState<string | null>(null);
 	const [previewWidth, setPreviewWidth] = useState(480);
 	const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -879,6 +882,20 @@ export function App() {
 											</button>
 											<button
 												type="button"
+												onClick={() => setPackagesOpen((o) => !o)}
+												aria-label="Toggle packages"
+												title="Packages"
+												className={cn(
+													"flex size-8 cursor-pointer items-center justify-center rounded-[10px] transition-colors",
+													packagesOpen
+														? "bg-foreground/[0.08] text-foreground"
+														: "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
+												)}
+											>
+												<PackagePlus className="size-4" />
+											</button>
+											<button
+												type="button"
 												onClick={() => setBashOpen((o) => !o)}
 												aria-label={t("settings.toggleBash")}
 												title={t("bash.title")}
@@ -943,7 +960,8 @@ export function App() {
 						)}
 					</MainArea>
 
-					{/* Right rail: resources + tools + file preview + file tree */}
+					{/* Right rail: packages + resources + tools + file preview + file tree */}
+					{packagesOpen ? <PackagesPanel cwd={activeWorkspace?.path} /> : null}
 					{resourcesOpen ? <ResourcesPanel sessionId={activeSid} /> : null}
 					{toolsOpen ? <ToolsPanel sessionId={activeSid} /> : null}
 					{activeWorkspace && previewFile ? (

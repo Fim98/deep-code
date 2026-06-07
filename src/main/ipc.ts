@@ -6,6 +6,12 @@ import { clearLogs, getLogs } from "./error-log.js";
 import type { ExtensionUIResponse } from "./extension-ui-bridge.js";
 import { listDirectory, readFileContent } from "./file-tree.js";
 import { createWindow } from "./index.js";
+import {
+	installPiPackage,
+	listPiPackages,
+	removePiPackage,
+	updatePiPackages,
+} from "./pi-packages.js";
 import { ptyManager } from "./pty-manager.js";
 import { deleteSessionFile, listSessionsForCwd } from "./session-fs.js";
 import { sessionRegistry } from "./session-registry.js";
@@ -212,6 +218,19 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 	ipcMain.handle("pi:session:resources:get", (_e, sessionId: string) => {
 		return serializeSessionResources(sessionId);
 	});
+
+	ipcMain.handle("pi:packages:list", (_e, cwd: string) => listPiPackages(cwd));
+	ipcMain.handle(
+		"pi:packages:install",
+		(_e, args: { cwd: string; source: string; local?: boolean }) => installPiPackage(args),
+	);
+	ipcMain.handle(
+		"pi:packages:remove",
+		(_e, args: { cwd: string; source: string; local?: boolean }) => removePiPackage(args),
+	);
+	ipcMain.handle("pi:packages:update", (_e, args: { cwd: string; source?: string }) =>
+		updatePiPackages(args),
+	);
 
 	// Extension UI response: renderer → main process bridge
 	ipcMain.handle(

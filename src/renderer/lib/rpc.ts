@@ -116,6 +116,13 @@ export interface SessionResourcesData {
 	themeDiagnostics: ResourceDiagnostic[];
 }
 
+export interface PiPackageEntry {
+	source: string;
+	scope: "user" | "project";
+	filtered: boolean;
+	installedPath?: string;
+}
+
 export interface DesktopSettings {
 	defaultProvider: string | undefined;
 	defaultModel: string | undefined;
@@ -264,6 +271,12 @@ export interface PiBridge {
 	};
 	window: {
 		new: () => Promise<void>;
+	};
+	packages: {
+		list: (cwd: string) => Promise<PiPackageEntry[]>;
+		install: (args: { cwd: string; source: string; local?: boolean }) => Promise<PiPackageEntry[]>;
+		remove: (args: { cwd: string; source: string; local?: boolean }) => Promise<PiPackageEntry[]>;
+		update: (args: { cwd: string; source?: string }) => Promise<PiPackageEntry[]>;
 	};
 	telemetry: {
 		get: () => Promise<boolean>;

@@ -74,6 +74,12 @@ const mockPi = {
 	window: {
 		new: vi.fn().mockResolvedValue(undefined),
 	},
+	packages: {
+		list: vi.fn().mockResolvedValue([]),
+		install: vi.fn().mockResolvedValue([]),
+		remove: vi.fn().mockResolvedValue([]),
+		update: vi.fn().mockResolvedValue([]),
+	},
 	telemetry: {
 		get: vi.fn().mockResolvedValue(false),
 		set: vi.fn().mockResolvedValue(undefined),
