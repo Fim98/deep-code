@@ -158,7 +158,7 @@ and `.AppImage`.
 
 **Tech**: add `electron-builder.config.ts`, app icons (1024², .icns, .ico,
 .png), `npm run package:mac|win|linux` scripts. Bundle the pi
-dist directly (already on `^0.75.5`), pin runtime deps so
+dist directly (currently on `^0.78.1`), pin runtime deps so
 `asarUnpack` covers `undici` and any native modules. Skip code signing
 + notarization in this milestone (separate cert work).
 
