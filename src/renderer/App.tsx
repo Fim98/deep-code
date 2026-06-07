@@ -57,6 +57,8 @@ import { useSessions } from "@/stores/session-state";
 type Workspace = Awaited<ReturnType<typeof pi.workspaces.list>>[number];
 type SessionInfo = Awaited<ReturnType<typeof pi.sessions.list>>[number];
 
+type RightRailPanel = "tools" | "resources" | "packages" | "files" | "preview";
+
 type SessionRuntimeActivity = {
 	isStreaming?: boolean;
 	pendingSubmissions?: Array<unknown>;
@@ -525,7 +527,30 @@ export function App() {
 	}, [activeSessionByWs, activeWs, sessionSlices]);
 
 	const activeWorkspace = workspaces.find((w) => w.id === activeWs);
+	const activeRightRailPanel: RightRailPanel | null = packagesOpen
+		? "packages"
+		: resourcesOpen
+			? "resources"
+			: toolsOpen
+				? "tools"
+				: previewFile
+					? "preview"
+					: fileTreeOpen
+						? "files"
+						: null;
 	const firstUserMessage = slice ? firstUserMessageText(slice.messages) : "";
+
+	function setRightRailPanel(panel: RightRailPanel | null) {
+		setToolsOpen(panel === "tools");
+		setResourcesOpen(panel === "resources");
+		setPackagesOpen(panel === "packages");
+		setFileTreeOpen(panel === "files");
+		if (panel !== "preview") setPreviewFile(null);
+	}
+
+	function toggleRightRailPanel(panel: RightRailPanel) {
+		setRightRailPanel(activeRightRailPanel === panel ? null : panel);
+	}
 
 	useEffect(() => {
 		if (!activeWs || !activeSid || !activePiSid || !firstUserMessage) return;
@@ -855,12 +880,12 @@ export function App() {
 										<>
 											<button
 												type="button"
-												onClick={() => setToolsOpen((o) => !o)}
+												onClick={() => toggleRightRailPanel("tools")}
 												aria-label="Toggle tools"
 												title="Tools"
 												className={cn(
 													"flex size-8 cursor-pointer items-center justify-center rounded-[10px] transition-colors",
-													toolsOpen
+													activeRightRailPanel === "tools"
 														? "bg-foreground/[0.08] text-foreground"
 														: "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
 												)}
@@ -869,12 +894,12 @@ export function App() {
 											</button>
 											<button
 												type="button"
-												onClick={() => setResourcesOpen((o) => !o)}
+												onClick={() => toggleRightRailPanel("resources")}
 												aria-label="Toggle resources"
 												title="Resources"
 												className={cn(
 													"flex size-8 cursor-pointer items-center justify-center rounded-[10px] transition-colors",
-													resourcesOpen
+													activeRightRailPanel === "resources"
 														? "bg-foreground/[0.08] text-foreground"
 														: "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
 												)}
@@ -883,12 +908,12 @@ export function App() {
 											</button>
 											<button
 												type="button"
-												onClick={() => setPackagesOpen((o) => !o)}
+												onClick={() => toggleRightRailPanel("packages")}
 												aria-label="Toggle packages"
 												title="Packages"
 												className={cn(
 													"flex size-8 cursor-pointer items-center justify-center rounded-[10px] transition-colors",
-													packagesOpen
+													activeRightRailPanel === "packages"
 														? "bg-foreground/[0.08] text-foreground"
 														: "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
 												)}
@@ -914,19 +939,12 @@ export function App() {
 									{activeWorkspace ? (
 										<button
 											type="button"
-											onClick={() => {
-												if (fileTreeOpen || previewFile) {
-													setFileTreeOpen(false);
-													setPreviewFile(null);
-												} else {
-													setFileTreeOpen(true);
-												}
-											}}
+											onClick={() => toggleRightRailPanel("files")}
 											aria-label={t("fileTree.toggle")}
 											title={t("fileTree.title")}
 											className={cn(
 												"flex size-8 cursor-pointer items-center justify-center rounded-[10px] transition-colors",
-												fileTreeOpen || previewFile
+												activeRightRailPanel === "files" || activeRightRailPanel === "preview"
 													? "bg-foreground/[0.08] text-foreground"
 													: "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
 											)}
@@ -990,6 +1008,7 @@ export function App() {
 									open={fileTreeOpen}
 									onOpenChange={setFileTreeOpen}
 									onFileClick={(path) => {
+										setRightRailPanel("preview");
 										setPreviewFile(path);
 									}}
 								/>
