@@ -40,11 +40,15 @@ export function ResourcesPanel({ sessionId, cwd, onClose }: Props) {
 	const [newName, setNewName] = useState("");
 	const [newDescription, setNewDescription] = useState("");
 	const [newKind, setNewKind] = useState<PiResourceKind>("prompts");
-	const [newScope, setNewScope] = useState<PiResourceScope>("global");
+	const [newScope, setNewScope] = useState<PiResourceScope>(cwd ? "project" : "global");
 
 	useEffect(() => {
 		void refresh();
 	}, [sessionId]);
+
+	useEffect(() => {
+		setNewScope(cwd ? "project" : "global");
+	}, [cwd]);
 
 	useEffect(() => {
 		if (!cwd) {
@@ -206,6 +210,7 @@ export function ResourcesPanel({ sessionId, cwd, onClose }: Props) {
 					kind={newKind}
 					scope={newScope}
 					creating={creating}
+					targetPath={paths?.[newScope]?.[newKind]}
 					onNameChange={setNewName}
 					onDescriptionChange={setNewDescription}
 					onKindChange={setNewKind}
@@ -326,6 +331,7 @@ function ResourceActions({
 	kind,
 	scope,
 	creating,
+	targetPath,
 	onNameChange,
 	onDescriptionChange,
 	onKindChange,
@@ -339,6 +345,7 @@ function ResourceActions({
 	kind: PiResourceKind;
 	scope: PiResourceScope;
 	creating: boolean;
+	targetPath?: string;
 	onNameChange: (value: string) => void;
 	onDescriptionChange: (value: string) => void;
 	onKindChange: (value: PiResourceKind) => void;
@@ -353,6 +360,11 @@ function ResourceActions({
 				<SelectPill value={scope} values={["global", "project"]} onChange={onScopeChange} />
 				<SelectPill value={kind} values={["prompts", "skills"]} onChange={onKindChange} />
 			</div>
+			{targetPath ? (
+				<div className="mt-2 truncate rounded-full bg-foreground/[0.035] px-3 py-1.5 text-[11px] text-muted-foreground">
+					Target: {targetPath}
+				</div>
+			) : null}
 			<div className="mt-3 space-y-2">
 				<Input
 					value={name}
