@@ -222,14 +222,22 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | undefined):
 	ipcMain.handle("pi:packages:list", (_e, cwd: string) => listPiPackages(cwd));
 	ipcMain.handle(
 		"pi:packages:install",
-		(_e, args: { cwd: string; source: string; local?: boolean }) => installPiPackage(args),
+		(event, args: { cwd: string; source: string; local?: boolean }) =>
+			installPiPackage(args, (progress) => {
+				if (!event.sender.isDestroyed()) event.sender.send("pi:packages:progress", progress);
+			}),
 	);
 	ipcMain.handle(
 		"pi:packages:remove",
-		(_e, args: { cwd: string; source: string; local?: boolean }) => removePiPackage(args),
+		(event, args: { cwd: string; source: string; local?: boolean }) =>
+			removePiPackage(args, (progress) => {
+				if (!event.sender.isDestroyed()) event.sender.send("pi:packages:progress", progress);
+			}),
 	);
-	ipcMain.handle("pi:packages:update", (_e, args: { cwd: string; source?: string }) =>
-		updatePiPackages(args),
+	ipcMain.handle("pi:packages:update", (event, args: { cwd: string; source?: string }) =>
+		updatePiPackages(args, (progress) => {
+			if (!event.sender.isDestroyed()) event.sender.send("pi:packages:progress", progress);
+		}),
 	);
 
 	// Extension UI response: renderer → main process bridge

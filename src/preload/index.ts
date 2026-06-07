@@ -109,6 +109,16 @@ const packages = {
 		ipcRenderer.invoke("pi:packages:remove", args),
 	update: (args: { cwd: string; source?: string }) =>
 		ipcRenderer.invoke("pi:packages:update", args),
+	onProgress: (
+		cb: (event: { type: string; action: string; source: string; message?: string }) => void,
+	) => {
+		const handler = (
+			_e: Electron.IpcRendererEvent,
+			event: { type: string; action: string; source: string; message?: string },
+		) => cb(event);
+		ipcRenderer.on("pi:packages:progress", handler);
+		return () => ipcRenderer.off("pi:packages:progress", handler);
+	},
 };
 
 const telemetry = {

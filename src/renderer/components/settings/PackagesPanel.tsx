@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
-import { type PiPackageEntry, pi } from "@/lib/rpc";
+import { type PiPackageEntry, type PiPackageProgressEvent, pi } from "@/lib/rpc";
 import { emitToast } from "@/lib/toast";
 
 interface Props {
@@ -16,10 +16,17 @@ export function PackagesPanel({ cwd }: Props) {
 	const [local, setLocal] = useState(false);
 	const [loading, setLoading] = useState(false);
 	const [busySource, setBusySource] = useState<string | null>(null);
+	const [progress, setProgress] = useState<PiPackageProgressEvent[]>([]);
 
 	useEffect(() => {
 		void refresh();
 	}, [cwd]);
+
+	useEffect(() => {
+		return pi.packages.onProgress((event) => {
+			setProgress((prev) => [event, ...prev].slice(0, 12));
+		});
+	}, []);
 
 	async function refresh() {
 		if (!cwd) return;
@@ -37,6 +44,7 @@ export function PackagesPanel({ cwd }: Props) {
 		if (!cwd || !source.trim()) return;
 		setBusySource(source.trim());
 		try {
+			setProgress([]);
 			setItems(await pi.packages.install({ cwd, source: source.trim(), local }));
 			setSource("");
 			emitToast("Package installed", "info");
@@ -51,6 +59,7 @@ export function PackagesPanel({ cwd }: Props) {
 		if (!cwd) return;
 		setBusySource(item.source);
 		try {
+			setProgress([]);
 			setItems(
 				await pi.packages.remove({ cwd, source: item.source, local: item.scope === "project" }),
 			);
@@ -66,6 +75,7 @@ export function PackagesPanel({ cwd }: Props) {
 		if (!cwd) return;
 		setBusySource(source ?? "*");
 		try {
+			setProgress([]);
 			setItems(await pi.packages.update({ cwd, source }));
 			emitToast("Packages updated", "info");
 		} catch (error) {
@@ -118,6 +128,7 @@ export function PackagesPanel({ cwd }: Props) {
 			</header>
 
 			<div className="space-y-4 overflow-auto p-5">
+				{progress.length > 0 ? <ProgressLog events={progress} /> : null}
 				<div className="rounded-[18px] border border-border/50 bg-background/50 p-4 shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
 					<form
 						className="space-y-3"
@@ -175,6 +186,26 @@ export function PackagesPanel({ cwd }: Props) {
 				</div>
 			</div>
 		</aside>
+	);
+}
+
+function ProgressLog({ events }: { events: PiPackageProgressEvent[] }) {
+	return (
+		<div className="rounded-[18px] border border-border/50 bg-background/50 p-4 shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
+			<div className="mb-2 text-[12px] font-medium text-foreground">Progress</div>
+			<div className="space-y-1.5">
+				{events.map((event, index) => (
+					<div
+						key={`${event.type}-${event.action}-${event.source}-${index}`}
+						className="text-[11px] text-muted-foreground"
+					>
+						<span className="font-medium text-foreground/80">{event.action}</span> · {event.type} ·{" "}
+						{event.source}
+						{event.message ? <span> — {event.message}</span> : null}
+					</div>
+				))}
+			</div>
+		</div>
 	);
 }
 

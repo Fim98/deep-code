@@ -123,6 +123,13 @@ export interface PiPackageEntry {
 	installedPath?: string;
 }
 
+export interface PiPackageProgressEvent {
+	type: "start" | "progress" | "complete" | "error";
+	action: "install" | "remove" | "update" | "clone" | "pull";
+	source: string;
+	message?: string;
+}
+
 export interface DesktopSettings {
 	defaultProvider: string | undefined;
 	defaultModel: string | undefined;
@@ -277,6 +284,7 @@ export interface PiBridge {
 		install: (args: { cwd: string; source: string; local?: boolean }) => Promise<PiPackageEntry[]>;
 		remove: (args: { cwd: string; source: string; local?: boolean }) => Promise<PiPackageEntry[]>;
 		update: (args: { cwd: string; source?: string }) => Promise<PiPackageEntry[]>;
+		onProgress: (cb: (event: PiPackageProgressEvent) => void) => () => void;
 	};
 	telemetry: {
 		get: () => Promise<boolean>;
