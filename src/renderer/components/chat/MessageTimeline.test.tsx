@@ -30,6 +30,24 @@ describe("MessageTimeline", () => {
 			command: "get_fork_messages",
 			data: { messages: [] },
 		});
+		mockPi.settings.get.mockResolvedValue({
+			defaultProvider: undefined,
+			defaultModel: undefined,
+			defaultThinkingLevel: "off",
+			transport: "sse",
+			steeringMode: "all",
+			followUpMode: "all",
+			theme: undefined,
+			compactionEnabled: true,
+			retryEnabled: true,
+			hideThinkingBlock: false,
+			showImages: true,
+			imageAutoResize: true,
+			blockImages: false,
+			enabledModels: undefined,
+			globalSettings: {},
+			projectSettings: {},
+		});
 		useSessions.setState({ bySession: {}, currentSessionId: null });
 	});
 
@@ -114,6 +132,82 @@ describe("MessageTimeline", () => {
 		expect(await screen.findByText("bash")).toBeInTheDocument();
 		expect(screen.getByText("npm test")).toBeInTheDocument();
 		expect(screen.getByText("live")).toBeInTheDocument();
+	});
+
+	it("respects hideThinkingBlock display setting", async () => {
+		mockPi.settings.get.mockResolvedValueOnce({
+			defaultProvider: undefined,
+			defaultModel: undefined,
+			defaultThinkingLevel: "off",
+			transport: "sse",
+			steeringMode: "all",
+			followUpMode: "all",
+			theme: undefined,
+			compactionEnabled: true,
+			retryEnabled: true,
+			hideThinkingBlock: true,
+			showImages: true,
+			imageAutoResize: true,
+			blockImages: false,
+			enabledModels: undefined,
+			globalSettings: {},
+			projectSettings: {},
+		});
+		setSession([
+			{
+				role: "assistant",
+				timestamp: 1,
+				content: [{ type: "thinking", thinking: "private chain of thought" }],
+			},
+		]);
+
+		render(<MessageTimeline sessionId="s1" />);
+
+		expect(await screen.findByText("Thinking...")).toBeInTheDocument();
+		expect(screen.queryByText("private chain of thought")).not.toBeInTheDocument();
+	});
+
+	it("respects showImages display setting", async () => {
+		mockPi.settings.get.mockResolvedValueOnce({
+			defaultProvider: undefined,
+			defaultModel: undefined,
+			defaultThinkingLevel: "off",
+			transport: "sse",
+			steeringMode: "all",
+			followUpMode: "all",
+			theme: undefined,
+			compactionEnabled: true,
+			retryEnabled: true,
+			hideThinkingBlock: false,
+			showImages: false,
+			imageAutoResize: true,
+			blockImages: false,
+			enabledModels: undefined,
+			globalSettings: {},
+			projectSettings: {},
+		});
+		setSession([
+			{
+				role: "assistant",
+				timestamp: 1,
+				content: [{ type: "image", data: "abc", mimeType: "image/png" }],
+			},
+			{
+				role: "toolResult",
+				toolCallId: "image-1",
+				toolName: "read",
+				content: [{ type: "image", data: "def", mimeType: "image/jpeg" }],
+				isError: false,
+				timestamp: 2,
+			},
+		]);
+
+		render(<MessageTimeline sessionId="s1" />);
+
+		expect(await screen.findAllByText("Image hidden")).toHaveLength(2);
+		expect(screen.getByText("image/png")).toBeInTheDocument();
+		expect(screen.getByText("image/jpeg")).toBeInTheDocument();
+		expect(document.querySelectorAll("img")).toHaveLength(0);
 	});
 
 	it("renders diff previews from tool result details", async () => {

@@ -6,6 +6,7 @@ import {
 	FilePen,
 	FileText,
 	GitFork,
+	Image as ImageIcon,
 	Info,
 	RefreshCw,
 	RotateCcw,
@@ -25,7 +26,7 @@ import {
 import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { t as translate, useI18n } from "@/lib/i18n";
-import { pi } from "@/lib/rpc";
+import { type DesktopSettings, pi } from "@/lib/rpc";
 import { emitToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import {
@@ -124,6 +125,30 @@ export function MessageTimeline({ sessionId }: Props) {
 	const activeTools = slice?.activeTools ?? {};
 	const pendingSubmissions = slice?.pendingSubmissions ?? [];
 	const hydrate = useSessions((s) => s.hydrate);
+	const [displaySettings, setDisplaySettings] = useState<
+		Pick<DesktopSettings, "hideThinkingBlock" | "showImages">
+	>({
+		hideThinkingBlock: false,
+		showImages: true,
+	});
+
+	useEffect(() => {
+		let cancelled = false;
+		pi.settings
+			.get()
+			.then((settings) => {
+				if (!cancelled) {
+					setDisplaySettings({
+						hideThinkingBlock: settings.hideThinkingBlock,
+						showImages: settings.showImages,
+					});
+				}
+			})
+			.catch(() => {});
+		return () => {
+			cancelled = true;
+		};
+	}, []);
 
 	const [forkMessages, setForkMessages] = useState<Array<{ entryId: string; text: string }>>([]);
 	useEffect(() => {
@@ -267,6 +292,7 @@ export function MessageTimeline({ sessionId }: Props) {
 								onFork={handleFork}
 								sessionId={sessionId}
 								globalStreaming={isStreaming}
+								displaySettings={displaySettings}
 							/>
 						))}
 						{pendingSubmissions.map((submission) => (
@@ -295,6 +321,7 @@ function TranscriptRow({
 	onFork,
 	sessionId,
 	globalStreaming,
+	displaySettings,
 }: {
 	entry: TranscriptEntry;
 	toolResults: Map<string, ToolResultInfo>;
@@ -303,6 +330,7 @@ function TranscriptRow({
 	onFork: (entryId: string) => void;
 	sessionId: string;
 	globalStreaming: boolean;
+	displaySettings: Pick<DesktopSettings, "hideThinkingBlock" | "showImages">;
 }) {
 	switch (entry.type) {
 		case "user":
@@ -318,9 +346,9 @@ function TranscriptRow({
 				<AssistantTextRow entry={entry} sessionId={sessionId} globalStreaming={globalStreaming} />
 			);
 		case "thinking":
-			return <ThinkingRow entry={entry} />;
+			return <ThinkingRow entry={entry} hideThinkingBlock={displaySettings.hideThinkingBlock} />;
 		case "assistantImage":
-			return <AssistantImageRow entry={entry} />;
+			return <AssistantImageRow entry={entry} showImages={displaySettings.showImages} />;
 		case "toolCall":
 			return (
 				<ToolCallRow
@@ -331,7 +359,7 @@ function TranscriptRow({
 				/>
 			);
 		case "toolResult":
-			return <ToolResultRow message={entry.message} />;
+			return <ToolResultRow message={entry.message} showImages={displaySettings.showImages} />;
 		case "assistantError":
 			return <AssistantErrorNotice stopReason={entry.stopReason} message={entry.message} />;
 		case "custom":
@@ -520,8 +548,15 @@ function AssistantTextRow({
 	);
 }
 
-function ThinkingRow({ entry }: { entry: Extract<TranscriptEntry, { type: "thinking" }> }) {
+function ThinkingRow({
+	entry,
+	hideThinkingBlock,
+}: {
+	entry: Extract<TranscriptEntry, { type: "thinking" }>;
+	hideThinkingBlock: boolean;
+}) {
 	const [open, setOpen] = useState(false);
+	const text = hideThinkingBlock ? "Thinking..." : entry.text;
 	return (
 		<Message from="assistant">
 			<MessageContent className="w-full max-w-full py-1">
@@ -537,9 +572,11 @@ function ThinkingRow({ entry }: { entry: Extract<TranscriptEntry, { type: "think
 							className={cn("ml-auto size-3.5 transition-transform", open && "rotate-180")}
 						/>
 					</button>
-					{open ? (
+					{hideThinkingBlock ? (
+						<div className="mt-2 text-[12px] italic text-muted-foreground/75">{text}</div>
+					) : open ? (
 						<div className="mt-3 border-t border-border/50 pt-3 italic leading-6 text-muted-foreground/85">
-							<MessageResponse>{entry.text}</MessageResponse>
+							<MessageResponse>{text}</MessageResponse>
 						</div>
 					) : null}
 				</div>
@@ -550,19 +587,35 @@ function ThinkingRow({ entry }: { entry: Extract<TranscriptEntry, { type: "think
 
 function AssistantImageRow({
 	entry,
+	showImages,
 }: {
 	entry: Extract<TranscriptEntry, { type: "assistantImage" }>;
+	showImages: boolean;
 }) {
 	return (
 		<Message from="assistant">
 			<MessageContent className="w-full max-w-full py-1">
-				<img
-					alt=""
-					src={`data:${entry.mimeType};base64,${entry.data}`}
-					className="max-h-96 rounded-[18px] border border-border/50 object-contain shadow-[0_2px_8px_rgba(0,0,0,0.03)]"
-				/>
+				{showImages ? (
+					<img
+						alt=""
+						src={`data:${entry.mimeType};base64,${entry.data}`}
+						className="max-h-96 rounded-[18px] border border-border/50 object-contain shadow-[0_2px_8px_rgba(0,0,0,0.03)]"
+					/>
+				) : (
+					<ImagePlaceholder mimeType={entry.mimeType} />
+				)}
 			</MessageContent>
 		</Message>
+	);
+}
+
+function ImagePlaceholder({ mimeType }: { mimeType: string }) {
+	return (
+		<div className="inline-flex max-w-full items-center gap-2 rounded-[16px] border border-border/50 bg-card/55 px-3 py-2 text-[12px] text-muted-foreground shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+			<ImageIcon className="size-4 text-primary/70" />
+			<span className="truncate">Image hidden</span>
+			<span className="rounded-full bg-foreground/[0.045] px-2 py-0.5 text-[10px]">{mimeType}</span>
+		</div>
 	);
 }
 
@@ -632,7 +685,13 @@ function ToolCallRow({
 	);
 }
 
-function ToolResultRow({ message }: { message: Extract<ChatMessage, { role: "toolResult" }> }) {
+function ToolResultRow({
+	message,
+	showImages,
+}: {
+	message: Extract<ChatMessage, { role: "toolResult" }>;
+	showImages: boolean;
+}) {
 	const text = extractTextFromContent(message.content);
 	const images = extractImagesFromContent(message.content);
 	const diff = diffFromDetails(message.details);
@@ -678,14 +737,18 @@ function ToolResultRow({ message }: { message: Extract<ChatMessage, { role: "too
 					</div>
 					{images.length > 0 ? (
 						<div className="mb-3 flex flex-wrap gap-2">
-							{images.map((img, index) => (
-								<img
-									key={`${img.mimeType}-${index}`}
-									alt=""
-									src={`data:${img.mimeType};base64,${img.data}`}
-									className="max-h-64 rounded-[14px] border border-border/50 object-contain"
-								/>
-							))}
+							{showImages
+								? images.map((img, index) => (
+										<img
+											key={`${img.mimeType}-${index}`}
+											alt=""
+											src={`data:${img.mimeType};base64,${img.data}`}
+											className="max-h-64 rounded-[14px] border border-border/50 object-contain"
+										/>
+									))
+								: images.map((img, index) => (
+										<ImagePlaceholder key={`${img.mimeType}-${index}`} mimeType={img.mimeType} />
+									))}
 						</div>
 					) : null}
 					{truncation ? <ToolNotice>{truncation}</ToolNotice> : null}
