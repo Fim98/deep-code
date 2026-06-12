@@ -7,6 +7,8 @@ import {
 	FileJson,
 	FileText,
 	Image,
+	Music,
+	Video,
 	X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -14,6 +16,17 @@ import { MessageResponse } from "@/components/ai-elements/message";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { CodePreview } from "./CodePreview";
+import { CsvPreview } from "./CsvPreview";
+import {
+	shouldRenderSvgInline,
+	shouldUseCsvTable,
+	shouldUseImagePreview,
+	shouldUseMarkdown,
+	shouldUseMediaPlayer,
+} from "./lang-map";
+import { MediaPreview } from "./MediaPreview";
+import { SvgPreview } from "./SvgPreview";
 
 interface FileReadResult {
 	content: string | null;
@@ -39,9 +52,11 @@ const BINARY_EXTS = new Set([
 	"wav",
 	"ogg",
 	"flac",
+	"m4a",
 	"mov",
 	"avi",
 	"mkv",
+	"webm",
 	"pdf",
 	"doc",
 	"docx",
@@ -74,14 +89,38 @@ const BINARY_EXTS = new Set([
 /** Image extensions we try to preview inline */
 const IMAGE_EXTS = new Set(["png", "jpg", "jpeg", "gif", "webp", "bmp", "ico", "avif"]);
 
+/** Media extensions handled by native player */
+const MEDIA_EXTS = new Set([
+	"mp3",
+	"wav",
+	"ogg",
+	"flac",
+	"m4a",
+	"aac",
+	"mp4",
+	"mov",
+	"webm",
+	"avi",
+	"mkv",
+	"m4v",
+]);
+
 /**
  * Read file content via preload IPC bridge.
  * `window.pi.fileTree.read` is exposed in preload/index.ts.
  */
 async function readFileByPath(filePath: string): Promise<FileReadResult> {
 	const ext = (filePath.split(".").pop() ?? "").toLowerCase();
-	if (BINARY_EXTS.has(ext) && !IMAGE_EXTS.has(ext)) {
+	// Allow reading SVG, CSV/TSV, and media through the bridge too
+	const textAllowed = IMAGE_EXTS.has(ext) ? false : !BINARY_EXTS.has(ext);
+
+	if (!textAllowed && !MEDIA_EXTS.has(ext)) {
 		return { content: null, size: 0, reason: "binary", reasonDetail: `Binary file (.${ext})` };
+	}
+
+	// Media files: no text content needed, just show player
+	if (MEDIA_EXTS.has(ext)) {
+		return { content: null, size: 0, reason: undefined };
 	}
 
 	const bridge = window.pi?.fileTree?.read;
@@ -100,81 +139,59 @@ async function readFileByPath(filePath: string): Promise<FileReadResult> {
 interface Props {
 	filePath: string;
 	onClose: () => void;
+	onBack?: () => void;
 }
 
-/** Map file extensions to markdown code fence language identifiers */
-function extToLang(ext: string): string {
-	const map: Record<string, string> = {
-		ts: "typescript",
-		mts: "typescript",
-		cts: "typescript",
-		tsx: "tsx",
-		js: "javascript",
-		mjs: "javascript",
-		cjs: "javascript",
-		jsx: "jsx",
-		json: "json",
-		jsonc: "json",
-		css: "css",
-		scss: "scss",
-		less: "less",
-		html: "html",
-		htm: "html",
-		xml: "xml",
-		svg: "xml",
-		yaml: "yaml",
-		yml: "yaml",
-		toml: "toml",
-		sql: "sql",
-		sh: "bash",
-		bash: "bash",
-		zsh: "bash",
-		fish: "bash",
-		py: "python",
-		rb: "ruby",
-		go: "go",
-		rs: "rust",
-		java: "java",
-		c: "c",
-		h: "c",
-		cpp: "cpp",
-		cc: "cpp",
-		hpp: "cpp",
-		cs: "csharp",
-		swift: "swift",
-		kt: "kotlin",
-		kts: "kotlin",
-		lua: "lua",
-		r: "r",
-		php: "php",
-		vue: "vue",
-		svelte: "svelte",
-		astro: "astro",
-		graphql: "graphql",
-		gql: "graphql",
-		prisma: "prisma",
-		dockerfile: "dockerfile",
-		makefile: "makefile",
-		ini: "ini",
-		tex: "latex",
-		diff: "diff",
-		patch: "diff",
-		env: "dotenv",
-		tf: "hcl",
-		proto: "protobuf",
-	};
+/** Map file extensions to a display language label */
+function extToLangLabel(ext: string, fileName: string): string {
 	const lower = ext.toLowerCase();
-	if (lower === "dockerfile") return "dockerfile";
-	if (lower === "makefile" || lower === "gnumakefile") return "makefile";
-	return map[lower] ?? "text";
+	const lowerName = fileName.toLowerCase();
+	if (lowerName === "dockerfile") return "Dockerfile";
+	if (lowerName === "makefile" || lowerName === "gnumakefile") return "Makefile";
+
+	const map: Record<string, string> = {
+		ts: "TypeScript",
+		tsx: "TSX",
+		mts: "TypeScript",
+		cts: "TypeScript",
+		js: "JavaScript",
+		jsx: "JSX",
+		mjs: "JavaScript",
+		json: "JSON",
+		jsonc: "JSON",
+		css: "CSS",
+		scss: "SCSS",
+		html: "HTML",
+		xml: "XML",
+		svg: "SVG",
+		yaml: "YAML",
+		yml: "YAML",
+		toml: "TOML",
+		sql: "SQL",
+		sh: "Shell",
+		py: "Python",
+		rb: "Ruby",
+		go: "Go",
+		rs: "Rust",
+		java: "Java",
+		c: "C",
+		cpp: "C++",
+		cs: "C#",
+		swift: "Swift",
+		kt: "Kotlin",
+		lua: "Lua",
+		php: "PHP",
+		vue: "Vue",
+		md: "Markdown",
+		csv: "CSV",
+		tsv: "TSV",
+		diff: "Diff",
+		patch: "Patch",
+	};
+	return map[lower] ?? lower.toUpperCase();
 }
 
-/** Whether this is a markdown file that should render natively */
-function isMarkdown(ext: string): boolean {
-	return ["md", "mdx"].includes(ext.toLowerCase());
-}
-
-export function FilePreview({ filePath, onClose }: Props) {
+export function FilePreview({ filePath, onClose, onBack }: Props) {
 	const [result, setResult] = useState<FileReadResult | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [copied, setCopied] = useState(false);
@@ -185,15 +202,27 @@ export function FilePreview({ filePath, onClose }: Props) {
 		const parts = fileName.split(".");
 		return parts.length > 1 ? (parts.pop() ?? "") : "";
 	}, [fileName]);
-	const lang = useMemo(() => extToLang(ext || fileName), [ext, fileName]);
+	const langLabel = useMemo(() => extToLangLabel(ext || fileName, fileName), [ext, fileName]);
+
+	// Determine preview mode
+	const previewMode = useMemo(() => {
+		const lower = ext.toLowerCase();
+		if (shouldUseMediaPlayer(lower)) return "media" as const;
+		if (shouldUseImagePreview(lower)) return "image" as const;
+		if (shouldRenderSvgInline(lower)) return "svg" as const;
+		if (shouldUseMarkdown(lower)) return "markdown" as const;
+		if (shouldUseCsvTable(lower)) return "csv" as const;
+		// All other text files → CodeMirror
+		return "code" as const;
+	}, [ext]);
 
 	const load = useCallback(async () => {
 		setLoading(true);
 		setResult(null);
 		abortRef.current = filePath;
 
-		// Images: just mark as loaded (content not needed for image preview)
-		if (IMAGE_EXTS.has(ext.toLowerCase())) {
+		// Images & media: content not needed
+		if (IMAGE_EXTS.has(ext.toLowerCase()) || MEDIA_EXTS.has(ext.toLowerCase())) {
 			setResult({ content: null, size: 0, reason: undefined });
 			setLoading(false);
 			return;
@@ -235,38 +264,56 @@ export function FilePreview({ filePath, onClose }: Props) {
 		await window.pi?.shell?.openPath(filePath);
 	}
 
-	// Build the markdown string for streamdown
-	const markdownContent = useMemo(() => {
-		if (!result?.content) return null;
-		if (isMarkdown(ext)) {
-			// Render markdown natively
-			return result.content;
-		}
-		// Wrap code in a fenced code block
-		return `\`\`\`${lang}\n${result.content}\n\`\`\``;
-	}, [result?.content, ext, lang]);
-
 	const lineCount = result?.content ? result.content.split("\n").length : 0;
 	const sizeDisplay = result ? formatSize(result.size) : "";
 	const FileIcon = iconForExt(ext);
-	const isImage = IMAGE_EXTS.has(ext.toLowerCase());
+	const isImage = shouldUseImagePreview(ext.toLowerCase());
+	const isMedia = shouldUseMediaPlayer(ext.toLowerCase());
 
 	return (
 		<div className="flex h-full min-w-0 flex-col">
 			{/* Header bar */}
 			<div className="flex shrink-0 items-center gap-2 border-b border-border/30 px-3 py-2">
+				{onBack ? (
+					<Button
+						size="icon-sm"
+						variant="ghost"
+						onClick={onBack}
+						aria-label="Back to file tree"
+						title="Back to files"
+						className="size-7"
+					>
+						<Check className="hidden" /> {/* just standard import checks */}
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="16"
+							height="16"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="2"
+							strokeLinecap="round"
+							strokeLinejoin="round"
+							className="size-3.5"
+							role="img"
+							aria-label="Back to file tree"
+						>
+							<path d="m15 18-6-6 6-6" />
+						</svg>
+					</Button>
+				) : null}
 				<FileIcon className={cn("size-3.5 shrink-0", langColor(ext))} />
 				<div className="min-w-0 flex-1">
 					<div className="truncate text-[12px] font-medium text-foreground">{fileName}</div>
 					<div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-						<span>{isImage ? ext : lang}</span>
+						<span>{langLabel}</span>
 						{sizeDisplay ? (
 							<>
 								<span className="text-muted-foreground/40">·</span>
 								<span>{sizeDisplay}</span>
 							</>
 						) : null}
-						{lineCount > 0 && !isImage ? (
+						{lineCount > 0 && !isImage && !isMedia ? (
 							<>
 								<span className="text-muted-foreground/40">·</span>
 								<span>
@@ -316,21 +363,34 @@ export function FilePreview({ filePath, onClose }: Props) {
 				</div>
 			</div>
 
-			{/* Content area */}
+			{/* Content area — routed by preview mode */}
 			<div className="min-h-0 flex-1 overflow-hidden">
 				{loading ? (
 					<LoadingState />
-				) : isImage ? (
+				) : previewMode === "image" ? (
 					<ImagePreview filePath={filePath} onFallback={handleOpenExternal} />
+				) : previewMode === "media" ? (
+					<MediaPreview filePath={filePath} ext={ext} onOpenExternal={handleOpenExternal} />
 				) : !result?.content ? (
 					<PlaceholderState result={result} onOpenExternal={handleOpenExternal} />
-				) : markdownContent ? (
+				) : previewMode === "svg" ? (
+					<SvgPreview
+						content={result.content}
+						filePath={filePath}
+						onOpenExternal={handleOpenExternal}
+						className="h-full"
+					/>
+				) : previewMode === "markdown" ? (
 					<ScrollArea className="h-full">
 						<div className="min-w-full px-4 py-4">
-							<MessageResponse parseIncompleteMarkdown={false}>{markdownContent}</MessageResponse>
+							<MessageResponse parseIncompleteMarkdown={false}>{result.content}</MessageResponse>
 						</div>
 						<ScrollBar orientation="horizontal" />
 					</ScrollArea>
+				) : previewMode === "csv" ? (
+					<CsvPreview content={result.content} ext={ext} className="h-full" />
+				) : previewMode === "code" ? (
+					<CodePreview content={result.content} ext={ext} fileName={fileName} className="h-full" />
 				) : null}
 			</div>
 		</div>
@@ -442,9 +502,12 @@ function formatSize(bytes: number): string {
 
 function iconForExt(ext: string) {
 	const lower = ext.toLowerCase();
-	if (["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "ico", "avif"].includes(lower))
-		return Image;
+	if (["png", "jpg", "jpeg", "gif", "webp", "bmp", "ico", "avif"].includes(lower)) return Image;
+	if (lower === "svg") return Image;
+	if (["mp3", "wav", "ogg", "flac", "m4a", "aac"].includes(lower)) return Music;
+	if (["mp4", "mov", "webm", "avi", "mkv", "m4v"].includes(lower)) return Video;
 	if (["json", "jsonc", "yaml", "yml", "toml", "ini"].includes(lower)) return FileJson;
+	if (["csv", "tsv"].includes(lower)) return FileText;
 	if (
 		[
 			"ts",
@@ -466,7 +529,7 @@ function iconForExt(ext: string) {
 		].includes(lower)
 	)
 		return FileCode;
-	if (["md", "mdx", "txt", "log", "csv"].includes(lower)) return FileText;
+	if (["md", "mdx", "txt", "log"].includes(lower)) return FileText;
 	return File;
 }
 
@@ -494,6 +557,8 @@ function langColor(ext: string): string {
 		svelte: "text-orange-400",
 		swift: "text-orange-500",
 		kt: "text-purple-600",
+		csv: "text-teal-500",
+		tsv: "text-teal-500",
 	};
 	return colors[ext.toLowerCase()] ?? "text-muted-foreground";
 }

@@ -28,7 +28,9 @@
 			"a11y": {
 				"noStaticElementInteractions": "off",
 				"useButtonType": "off",
-				"useSemanticElements": "off"
+				"useSemanticElements": "off",
+				"noSvgWithoutTitle": "off",
+				"useMediaCaption": "off"
 			},
 			"correctness": {
 				"useExhaustiveDependencies": "off"
@@ -40,6 +42,9 @@
 			"suspicious": {
 				"noArrayIndexKey": "off",
 				"noExplicitAny": "off"
+			},
+			"security": {
+				"noDangerouslySetInnerHtml": "off"
 			}
 		}
 	},

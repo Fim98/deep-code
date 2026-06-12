@@ -7,13 +7,10 @@ import {
 	MessageSquarePlus,
 	PackageOpen,
 	PackagePlus,
-	PanelLeft,
-	PanelRight,
 	Search,
 	Settings as SettingsIcon,
 	Share2,
 	Sparkles,
-	SquareTerminal,
 	Trash2,
 	Wrench,
 } from "lucide-react";
@@ -26,6 +23,7 @@ import { CommandPalette } from "@/components/command-palette/CommandPalette";
 import { ExtensionUIHost } from "@/components/extension-ui/ExtensionUIHost";
 import { FilePreview } from "@/components/file-tree/FilePreview";
 import { FileTree } from "@/components/file-tree/FileTree";
+import { FloatingChromeControls } from "@/components/layout/FloatingChromeControls";
 import { MainArea } from "@/components/layout/MainArea";
 import { Sidebar, SidebarItem, SidebarSection } from "@/components/layout/Sidebar";
 import { TerminalPanel } from "@/components/panels/TerminalPanel";
@@ -98,7 +96,7 @@ export function App() {
 	const [packagesOpen, setPackagesOpen] = useState(false);
 	const [previewFile, setPreviewFile] = useState<string | null>(null);
 	const [rightRailWidth, setRightRailWidth] = useState(380);
-	const [previewWidth, setPreviewWidth] = useState(480);
+	const [_previewWidth, _setPreviewWidth] = useState(480);
 	const [sidebarOpen, setSidebarOpen] = useState(true);
 	const [sessionFilter, setSessionFilter] = useState("");
 	const [deleteTarget, setDeleteTarget] = useState<{
@@ -621,9 +619,20 @@ export function App() {
 		: "";
 
 	return (
-		<div className="flex h-full w-full bg-background">
+		<div className="relative flex h-full w-full bg-background">
 			<ToastHost />
 			<ExtensionUIHost />
+			<FloatingChromeControls
+				sidebarOpen={sidebarOpen}
+				bashOpen={bashOpen}
+				rightRailActive={activeRightRailPanel === "files" || activeRightRailPanel === "preview"}
+				sidebarLabel={sidebarOpen ? t("sidebar.hide") : t("sidebar.show")}
+				bashTitle={t("bash.title")}
+				fileTreeTitle={t("fileTree.title")}
+				onToggleSidebar={() => setSidebarOpen((o) => !o)}
+				onToggleBash={() => setBashOpen((o) => !o)}
+				onToggleRightRail={() => toggleRightRailPanel("files")}
+			/>
 
 			{/* Delete session confirmation dialog */}
 			<Dialog
@@ -838,20 +847,6 @@ export function App() {
 									</div>
 								</div>
 								<div className="ml-auto flex items-center gap-0.5">
-									<button
-										type="button"
-										onClick={() => setSidebarOpen((o) => !o)}
-										aria-label={sidebarOpen ? t("sidebar.hide") : t("sidebar.show")}
-										title={sidebarOpen ? t("sidebar.hide") : t("sidebar.show")}
-										className={cn(
-											"flex size-8 cursor-pointer items-center justify-center rounded-[10px] transition-colors",
-											!sidebarOpen
-												? "bg-foreground/[0.08] text-foreground"
-												: "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
-										)}
-									>
-										<PanelLeft className="size-4" />
-									</button>
 									{activeSid ? (
 										<>
 											<Button
@@ -921,37 +916,7 @@ export function App() {
 											>
 												<PackagePlus className="size-4" />
 											</button>
-											<button
-												type="button"
-												onClick={() => setBashOpen((o) => !o)}
-												aria-label={t("settings.toggleBash")}
-												title={t("bash.title")}
-												className={cn(
-													"flex size-8 cursor-pointer items-center justify-center rounded-[10px] transition-colors",
-													bashOpen
-														? "bg-foreground/[0.08] text-foreground"
-														: "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
-												)}
-											>
-												<SquareTerminal className="size-4" />
-											</button>
 										</>
-									) : null}
-									{activeWorkspace ? (
-										<button
-											type="button"
-											onClick={() => toggleRightRailPanel("files")}
-											aria-label={t("fileTree.toggle")}
-											title={t("fileTree.title")}
-											className={cn(
-												"flex size-8 cursor-pointer items-center justify-center rounded-[10px] transition-colors",
-												activeRightRailPanel === "files" || activeRightRailPanel === "preview"
-													? "bg-foreground/[0.08] text-foreground"
-													: "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
-											)}
-										>
-											<PanelRight className="size-4" />
-										</button>
 									) : null}
 								</div>
 							</>
@@ -1005,21 +970,19 @@ export function App() {
 						</ResizableRightRail>
 					) : null}
 					{activeWorkspace && previewFile ? (
-						<>
-							<ResizeHandle
-								direction="horizontal"
-								minSize={280}
-								maxSize={900}
-								onResize={setPreviewWidth}
-							/>
-							<div className="h-full shrink-0" style={{ width: previewWidth }}>
-								<FilePreview filePath={previewFile} onClose={() => setPreviewFile(null)} />
+						<ResizableRightRail width={rightRailWidth} onResize={setRightRailWidth}>
+							<div className="flex h-full w-full flex-col border-l border-border/40 bg-card/75 backdrop-blur-xl">
+								<FilePreview
+									filePath={previewFile}
+									onClose={() => setRightRailPanel(null)}
+									onBack={() => setRightRailPanel("files")}
+								/>
 							</div>
-						</>
+						</ResizableRightRail>
 					) : null}
 					{activeWorkspace && fileTreeOpen ? (
 						<ResizableRightRail width={rightRailWidth} onResize={setRightRailWidth}>
-							<div className="flex h-full w-full flex-col border-l border-border/30 bg-card/50">
+							<div className="flex h-full w-full flex-col border-l border-border/40 bg-card/75 backdrop-blur-xl">
 								<div className="min-h-0 flex-1 overflow-hidden">
 									<FileTree
 										rootPath={activeWorkspace.path}

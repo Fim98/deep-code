@@ -2,6 +2,7 @@
 @import "streamdown/styles.css";
 
 @source "../../../node_modules/streamdown/dist/*.js";
+@source "../../../node_modules/@uiw/react-codemirror/dist/*.js";
 
 @theme inline {
 	--color-background: var(--background);
@@ -210,4 +211,46 @@
 
 .dark .model-picker-scroll::-webkit-scrollbar-thumb:hover {
 	background: rgba(255, 255, 255, 0.18);
+}
+
+/* ─── CodeMirror overrides (align with app design tokens) ─── */
+.pi-code-preview .cm-editor {
+	font-family: "SF Mono", "Fira Code", "JetBrains Mono", "Menlo", monospace;
+	font-size: 12.5px;
+	line-height: 1.55;
+	height: 100%;
+}
+
+.pi-code-preview .cm-editor.cm-focused {
+	outline: none;
+}
+
+.pi-code-preview .cm-scroller {
+	overflow-x: auto;
+	overflow-y: auto;
+}
+
+.pi-code-preview .cm-gutters {
+	border-right: 1px solid var(--border);
+	font-size: 11px;
+	min-width: 40px;
+}
+
+.pi-code-preview .cm-foldGutter .cm-gutterElement {
+	cursor: pointer;
+	opacity: 0.6;
+	transition: opacity 0.15s ease;
+}
+
+.pi-code-preview .cm-foldGutter .cm-gutterElement:hover {
+	opacity: 1;
+}
+
+.pi-code-preview .cm-activeLineGutter {
+	border-radius: 4px;
+}
+
+.pi-code-preview .cm-line {
+	padding-left: 8px;
+	padding-right: 12px;
 }
