@@ -55,7 +55,7 @@ import { useSessions } from "@/stores/session-state";
 type Workspace = Awaited<ReturnType<typeof pi.workspaces.list>>[number];
 type SessionInfo = Awaited<ReturnType<typeof pi.sessions.list>>[number];
 
-type RightRailPanel = "tools" | "resources" | "packages" | "files" | "preview";
+type RightRailPanel = "tools" | "resources" | "packages" | "files";
 
 type SessionRuntimeActivity = {
 	isStreaming?: boolean;
@@ -96,7 +96,7 @@ export function App() {
 	const [packagesOpen, setPackagesOpen] = useState(false);
 	const [previewFile, setPreviewFile] = useState<string | null>(null);
 	const [rightRailWidth, setRightRailWidth] = useState(380);
-	const [_previewWidth, _setPreviewWidth] = useState(480);
+	const [previewWidth, setPreviewWidth] = useState(480);
 	const [sidebarOpen, setSidebarOpen] = useState(true);
 	const [sessionFilter, setSessionFilter] = useState("");
 	const [deleteTarget, setDeleteTarget] = useState<{
@@ -532,11 +532,9 @@ export function App() {
 			? "resources"
 			: toolsOpen
 				? "tools"
-				: previewFile
-					? "preview"
-					: fileTreeOpen
-						? "files"
-						: null;
+				: fileTreeOpen
+					? "files"
+					: null;
 	const firstUserMessage = slice ? firstUserMessageText(slice.messages) : "";
 
 	function setRightRailPanel(panel: RightRailPanel | null) {
@@ -544,7 +542,6 @@ export function App() {
 		setResourcesOpen(panel === "resources");
 		setPackagesOpen(panel === "packages");
 		setFileTreeOpen(panel === "files");
-		if (panel !== "preview") setPreviewFile(null);
 	}
 
 	function toggleRightRailPanel(panel: RightRailPanel) {
@@ -625,7 +622,7 @@ export function App() {
 			<FloatingChromeControls
 				sidebarOpen={sidebarOpen}
 				bashOpen={bashOpen}
-				rightRailActive={activeRightRailPanel === "files" || activeRightRailPanel === "preview"}
+				rightRailActive={activeRightRailPanel === "files"}
 				sidebarLabel={sidebarOpen ? t("sidebar.hide") : t("sidebar.show")}
 				bashTitle={t("bash.title")}
 				fileTreeTitle={t("fileTree.title")}
@@ -945,7 +942,21 @@ export function App() {
 						)}
 					</MainArea>
 
-					{/* Right rail: packages + resources + tools + file preview + file tree */}
+					{/* Preview column — independent, sits left of the tool/tree column */}
+					{activeWorkspace && previewFile ? (
+						<ResizableRightRail
+							width={previewWidth}
+							onResize={setPreviewWidth}
+							minSize={360}
+							maxSize={720}
+						>
+							<div className="flex h-full w-full flex-col border-l border-border/40 bg-card/75 backdrop-blur-xl">
+								<FilePreview filePath={previewFile} onClose={() => setPreviewFile(null)} />
+							</div>
+						</ResizableRightRail>
+					) : null}
+
+					{/* Right rail column: packages + resources + tools + file tree (mutually exclusive) */}
 					{packagesOpen ? (
 						<ResizableRightRail width={rightRailWidth} onResize={setRightRailWidth}>
 							<PackagesPanel
@@ -969,17 +980,6 @@ export function App() {
 							<ToolsPanel sessionId={activeSid} onClose={() => setRightRailPanel(null)} />
 						</ResizableRightRail>
 					) : null}
-					{activeWorkspace && previewFile ? (
-						<ResizableRightRail width={rightRailWidth} onResize={setRightRailWidth}>
-							<div className="flex h-full w-full flex-col border-l border-border/40 bg-card/75 backdrop-blur-xl">
-								<FilePreview
-									filePath={previewFile}
-									onClose={() => setRightRailPanel(null)}
-									onBack={() => setRightRailPanel("files")}
-								/>
-							</div>
-						</ResizableRightRail>
-					) : null}
 					{activeWorkspace && fileTreeOpen ? (
 						<ResizableRightRail width={rightRailWidth} onResize={setRightRailWidth}>
 							<div className="flex h-full w-full flex-col border-l border-border/40 bg-card/75 backdrop-blur-xl">
@@ -988,10 +988,7 @@ export function App() {
 										rootPath={activeWorkspace.path}
 										open={fileTreeOpen}
 										onOpenChange={setFileTreeOpen}
-										onFileClick={(path) => {
-											setRightRailPanel("preview");
-											setPreviewFile(path);
-										}}
+										onFileClick={(path) => setPreviewFile(path)}
 									/>
 								</div>
 							</div>
@@ -1015,14 +1012,23 @@ function ResizableRightRail({
 	width,
 	onResize,
 	children,
+	minSize = 320,
+	maxSize = 560,
 }: {
 	width: number;
 	onResize: (width: number) => void;
 	children: React.ReactNode;
+	minSize?: number;
+	maxSize?: number;
 }) {
 	return (
 		<>
-			<ResizeHandle direction="horizontal" minSize={320} maxSize={560} onResize={onResize} />
+			<ResizeHandle
+				direction="horizontal"
+				minSize={minSize}
+				maxSize={maxSize}
+				onResize={onResize}
+			/>
 			<div className="h-full shrink-0" style={{ width }}>
 				{children}
 			</div>
