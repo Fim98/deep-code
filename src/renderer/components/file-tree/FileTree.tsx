@@ -247,24 +247,22 @@ export function FileTree({
 	return (
 		<div className="flex h-full w-full flex-col">
 			{/* Header */}
-			<div className="flex shrink-0 items-center justify-between border-b border-border/30 px-3 py-2">
+			<div className="flex shrink-0 items-center gap-1 border-b border-border/30 px-2 py-2">
+				<Button
+					size="icon-sm"
+					variant="ghost"
+					onClick={() => {
+						setDirStates({});
+						void loadRoot();
+					}}
+					aria-label="Refresh"
+					className="size-6 shrink-0 rounded-[8px]"
+				>
+					<RefreshCw className={cn("size-3", loading && "animate-spin")} />
+				</Button>
 				<span className="select-none text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
 					{t("fileTree.title")}
 				</span>
-				<div className="flex items-center gap-0.5">
-					<Button
-						size="icon-sm"
-						variant="ghost"
-						onClick={() => {
-							setDirStates({});
-							void loadRoot();
-						}}
-						aria-label="Refresh"
-						className="size-6 rounded-[8px]"
-					>
-						<RefreshCw className={cn("size-3", loading && "animate-spin")} />
-					</Button>
-				</div>
 			</div>
 			{/* Tree */}
 			<ScrollArea className="flex-1 px-1 py-1">
