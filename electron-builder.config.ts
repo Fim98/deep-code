@@ -28,8 +28,8 @@ async function removeUnusedNativePackages(context: AfterPackContext) {
 }
 
 const config: Configuration = {
-	appId: "com.deepcode.app",
-	productName: "deepcode",
+	appId: "com.antcode.app",
+	productName: "antcode",
 
 	// asar 打包
 	asar: true,

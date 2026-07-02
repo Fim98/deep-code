@@ -46,7 +46,7 @@ describe("i18n", () => {
 
 	it("setLocale persists to localStorage", () => {
 		setLocale("zh-CN");
-		expect(localStorage.getItem("deepcode.locale")).toBe("zh-CN");
+		expect(localStorage.getItem("antcode.locale")).toBe("zh-CN");
 	});
 
 	it("setLocale sets document lang attribute", () => {

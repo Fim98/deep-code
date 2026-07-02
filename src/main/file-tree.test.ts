@@ -8,7 +8,7 @@ describe("file-tree", () => {
 	let testDir: string;
 
 	beforeEach(async () => {
-		testDir = await mkdtemp(join(tmpdir(), "deepcode-filetree-"));
+		testDir = await mkdtemp(join(tmpdir(), "antcode-filetree-"));
 	});
 
 	afterEach(async () => {

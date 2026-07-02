@@ -903,7 +903,7 @@ function AboutTab() {
 	return (
 		<div className="space-y-8">
 			<section className="space-y-4">
-				<SectionHeader title="deepcode" />
+				<SectionHeader title="antcode" />
 				<div className="rounded-[18px] border border-border/60 bg-card p-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
 					<div className="space-y-3">
 						<InfoRow label="Version" value={version} />

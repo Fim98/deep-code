@@ -40,7 +40,7 @@ class PtyManager extends EventEmitter {
 		// Create a zsh shim directory with a .zshenv that disables PROMPT_SP.
 		// This prevents zsh from outputting the reverse-video "%" marker on startup.
 		// The shim .zshrc sources the real ~/.zshrc so oh-my-zsh etc. still loads.
-		this.shimDir = join(tmpdir(), "deepcode-zsh-shim");
+		this.shimDir = join(tmpdir(), "antcode-zsh-shim");
 		if (!existsSync(this.shimDir)) mkdirSync(this.shimDir, { recursive: true });
 
 		// .zshenv — loaded first, before anything else. Disable PROMPT_SP here.
@@ -58,7 +58,7 @@ class PtyManager extends EventEmitter {
 		const homeDir = process.env.HOME || "";
 		const zshrcPath = join(this.shimDir, ".zshrc");
 		const realRc = join(homeDir, ".zshrc");
-		const zshrcContent = `# deepcode shim\nunsetopt prompt_sp 2>/dev/null\nif [ -f "${realRc}" ]; then\n  source "${realRc}"\nfi\n`;
+		const zshrcContent = `# antcode shim\nunsetopt prompt_sp 2>/dev/null\nif [ -f "${realRc}" ]; then\n  source "${realRc}"\nfi\n`;
 		try {
 			if (!existsSync(zshrcPath) || readFileSync(zshrcPath, "utf-8") !== zshrcContent) {
 				writeFileSync(zshrcPath, zshrcContent);
@@ -80,8 +80,8 @@ class PtyManager extends EventEmitter {
 			...options.env,
 			TERM: "xterm-256color",
 			COLORTERM: "truecolor",
-			TERM_PROGRAM: "DeepCode",
-			DEEPCODE_TERMINAL: "1",
+			TERM_PROGRAM: "AntCode",
+			ANTCODE_TERMINAL: "1",
 		} as Record<string, string>;
 		const utf8Locale = this.getUtf8Locale(env);
 		env.LANG = utf8Locale;

@@ -1,4 +1,4 @@
-# deepcode Roadmap
+# antcode Roadmap
 
 Status as of 2026-06-07.
 
@@ -9,14 +9,14 @@ in-process pi SDK bridge, chat timeline, composer, live tool cards, diff view,
 Bash panel, model picker, provider auth UI, session rename/delete, themes,
 keyboard shortcuts, and context/cost display.
 
-The next route is not to turn deepcode into a separate agent platform. The
-primary reference is `~/Documents/pi`: deepcode should keep following pi's SDK
+The next route is not to turn antcode into a separate agent platform. The
+primary reference is `~/Documents/pi`: antcode should keep following pi's SDK
 primitives (`AgentSession`, `AgentSessionRuntime`, `SessionManager`,
 `AuthStorage`, `ModelRegistry`, `SettingsManager`, `ImageContent`).
 
 `~/Documents/opencode` is useful as a productization reference for packaging,
 PTY terminal architecture, and typed local APIs. It is not the model for
-deepcode's current core runtime, and deepcode should not implement MCP or
+antcode's current core runtime, and antcode should not implement MCP or
 permission systems until they exist as supported pi primitives.
 
 Phases are priority bands, not strict release numbers. Effort labels: **S** <=
@@ -177,7 +177,7 @@ dist directly (currently on `^0.78.1`), pin runtime deps so
 
 ### C2 · Fork / branch tree visualization — **M** — Done
 pi tracks session branches (`getEntries`, `getTree`, `fork`, `clone`).
-Today there's no way to fork or visualize branches in deepcode.
+Today there's no way to fork or visualize branches in antcode.
 
 **Tech**: new "Branches" panel that opens in the right side of the
 session (or as a popover under the session header). Build a tree from
@@ -277,7 +277,7 @@ with localStorage override. Language picker in Settings → General.
 For edit/write tool calls, let the user approve / tweak the proposed
 diff before pi applies it. Requires a preview-then-confirm RPC, which
 pi exposes via the extension system (`BeforeToolCallContext` returns
-allow/deny/modified args). Could ship deepcode as a built-in pi
+allow/deny/modified args). Could ship antcode as a built-in pi
 extension that intercepts edit/write.
 
 **Status**: Deferred — requires deep integration with pi's extension
@@ -413,7 +413,7 @@ above.
 17. ~~**E4** Telemetry/Sentry (M)~~ — **Done** (opt-in Sentry + PII filtering + Settings toggle).
 18. ~~**E5** Broader tests (L)~~ — **Done** (260 tests: +55 across plan-tracker, settings, ansi, ThemeSwitcher).
 
-After this sprint, deepcode is closer to a real alpha than a dev demo.
+After this sprint, antcode is closer to a real alpha than a dev demo.
 
 ---
 
@@ -509,7 +509,7 @@ inventing opencode-style systems.
 Connect to external tool servers via MCP protocol.
 
 **Status**: Deferred. Current pi README/API does not expose MCP as a native
-runtime primitive. deepcode should not invent a parallel MCP layer unless pi
+runtime primitive. antcode should not invent a parallel MCP layer unless pi
 adds one upstream. Revisit when pi ships MCP support or a supported extension
 bridge for MCP-backed tools.
 
@@ -518,6 +518,6 @@ Tool execution approval and permission rules.
 
 **Status**: Deferred. Current pi security/product model is Project Trust,
 containerization, extension/package provenance, and active tool selection. pi
-does not currently expose native permission popups. deepcode should keep using
+does not currently expose native permission popups. antcode should keep using
 Project Trust and Active Tools instead of building a divergent custom permission
 system.

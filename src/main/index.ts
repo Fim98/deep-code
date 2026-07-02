@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { app, BrowserWindow, nativeImage, nativeTheme, shell } from "electron";
 import { installErrorHandlers } from "./error-log.js";
 import { registerIpcHandlers } from "./ipc.js";
@@ -9,6 +10,7 @@ import { destroyUpdater, initAutoUpdater } from "./updater.js";
 
 const isDev = !app.isPackaged;
 const defaultAppIcon = "app-icon-apple.png";
+const macDockIcon = "app-icon-apple.icns";
 const windowIconByPlatform: Partial<Record<NodeJS.Platform, string>> = {
 	win32: "app-icon-apple.ico",
 };
@@ -21,12 +23,20 @@ function revealWindow(win: BrowserWindow) {
 	win.focus();
 }
 
+function getResourceCandidates(fileName: string) {
+	const mainDir = dirname(fileURLToPath(import.meta.url));
+	return [
+		join(process.cwd(), "resources", fileName),
+		join(mainDir, "../../resources", fileName),
+		join(mainDir, "../../../resources", fileName),
+		join(app.getAppPath(), "resources", fileName),
+		join(process.resourcesPath, "resources", fileName),
+		join(process.resourcesPath, fileName),
+	];
+}
+
 function findResourcePath(fileName: string) {
-	const basePaths = isDev
-		? [process.cwd(), app.getAppPath()]
-		: [process.resourcesPath, app.getAppPath()];
-	for (const basePath of basePaths) {
-		const resourcePath = join(basePath, "resources", fileName);
+	for (const resourcePath of getResourceCandidates(fileName)) {
 		if (existsSync(resourcePath)) return resourcePath;
 	}
 	return undefined;
@@ -39,12 +49,19 @@ function getNativeIcon(fileName = defaultAppIcon) {
 	return icon.isEmpty() ? undefined : icon;
 }
 
-function getWindowIconPath() {
-	return findResourcePath(windowIconByPlatform[process.platform] ?? defaultAppIcon);
+function getWindowIcon() {
+	const fileName = windowIconByPlatform[process.platform] ?? defaultAppIcon;
+	return getNativeIcon(fileName);
+}
+
+function setDockIcon() {
+	if (process.platform !== "darwin" || !app.dock) return;
+	const dockIcon = getNativeIcon(macDockIcon) ?? getNativeIcon(defaultAppIcon);
+	if (dockIcon) app.dock.setIcon(dockIcon);
 }
 
 export async function createWindow(): Promise<BrowserWindow> {
-	const icon = getWindowIconPath();
+	const icon = getWindowIcon();
 
 	const win = new BrowserWindow({
 		width: 1280,
@@ -112,11 +129,11 @@ app.whenReady().then(async () => {
 	initTelemetry();
 	registerIpcHandlers(getAnyWindow);
 	initAutoUpdater();
-	const icon = getNativeIcon();
-	if (process.platform === "darwin" && icon) app.dock?.setIcon(icon);
+	setDockIcon();
 	await createWindow();
 
 	app.on("activate", async () => {
+		setDockIcon();
 		const win = getAnyWindow();
 		if (win) revealWindow(win);
 		else await createWindow();

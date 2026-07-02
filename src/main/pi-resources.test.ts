@@ -7,7 +7,7 @@ import { createPiResource, ensurePiResourceDir, getPiResourcePaths } from "./pi-
 
 vi.mock("./shared-services.js", () => ({
 	getSharedServices: () => ({
-		agentDir: "/tmp/deepcode-test-agent",
+		agentDir: "/tmp/antcode-test-agent",
 	}),
 }));
 
@@ -15,19 +15,19 @@ describe("pi-resources", () => {
 	let cwd: string;
 
 	beforeEach(async () => {
-		cwd = await mkdtemp(join(tmpdir(), "deepcode-pi-resources-"));
+		cwd = await mkdtemp(join(tmpdir(), "antcode-pi-resources-"));
 	});
 
 	afterEach(async () => {
 		await rm(cwd, { recursive: true, force: true });
-		await rm("/tmp/deepcode-test-agent", { recursive: true, force: true });
+		await rm("/tmp/antcode-test-agent", { recursive: true, force: true });
 	});
 
 	it("returns pi global and project resource paths", () => {
 		expect(getPiResourcePaths(cwd)).toEqual({
 			global: {
-				prompts: "/tmp/deepcode-test-agent/prompts",
-				skills: "/tmp/deepcode-test-agent/skills",
+				prompts: "/tmp/antcode-test-agent/prompts",
+				skills: "/tmp/antcode-test-agent/skills",
 			},
 			project: {
 				prompts: join(cwd, ".pi", "prompts"),

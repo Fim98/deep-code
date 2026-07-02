@@ -1,6 +1,6 @@
 export const en: Record<string, string> = {
 	// ─── App shell ──────────────────────────────────────────────────────────
-	"app.title": "deepcode",
+	"app.title": "antcode",
 
 	// ─── Sidebar ────────────────────────────────────────────────────────────
 	"sidebar.workspaces": "Workspaces",
@@ -16,7 +16,7 @@ export const en: Record<string, string> = {
 	"sidebar.deleteLabel": "Delete session",
 	"sidebar.removeWorkspace": "Remove workspace",
 	"sidebar.removeWorkspaceConfirm":
-		'Remove workspace "{{name}}" from deepcode?\n\nThe project folder and its files will not be deleted.',
+		'Remove workspace "{{name}}" from antcode?\n\nThe project folder and its files will not be deleted.',
 	"sidebar.remove": "Remove",
 	"sidebar.cancel": "Cancel",
 	"sidebar.delete": "Delete",
@@ -122,7 +122,7 @@ export const en: Record<string, string> = {
 
 	// ─── Settings dialog ────────────────────────────────────────────────────
 	"settings.title": "Settings",
-	"settings.description": "Configure your deepcode experience",
+	"settings.description": "Configure your antcode experience",
 	"settings.tab.general": "General",
 	"settings.tab.providers": "Providers",
 	"settings.tab.models": "Models",
@@ -216,7 +216,7 @@ export const en: Record<string, string> = {
 		"Trust decision saved. Reopen the session to reload project resources.",
 
 	// About
-	"settings.about": "deepcode",
+	"settings.about": "antcode",
 	"settings.version": "Version",
 	"settings.agentDirectory": "Agent directory",
 	"settings.updates": "Updates",
@@ -408,5 +408,5 @@ export const en: Record<string, string> = {
 	"telemetry.privacy": "Privacy",
 	"telemetry.crashReports": "Send anonymous crash reports",
 	"telemetry.crashReportsDescription":
-		"Help improve deepcode by sending error data. No personal information is collected.",
+		"Help improve antcode by sending error data. No personal information is collected.",
 };

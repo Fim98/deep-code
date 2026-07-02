@@ -45,7 +45,7 @@ describe("accent store", () => {
 
 	it("setAccent persists to localStorage", () => {
 		useAccent.getState().setAccent("emerald");
-		expect(localStorage.getItem("deepcode.accent")).toBe("emerald");
+		expect(localStorage.getItem("antcode.accent")).toBe("emerald");
 	});
 
 	it("setAccent applies CSS variables to document root", () => {

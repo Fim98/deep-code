@@ -1,4 +1,4 @@
-export const SESSION_RELOADED_EVENT = "deepcode:session-reloaded";
+export const SESSION_RELOADED_EVENT = "antcode:session-reloaded";
 
 export interface SessionReloadedDetail {
 	sessionId: string;

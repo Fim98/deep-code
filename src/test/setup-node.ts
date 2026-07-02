@@ -12,8 +12,8 @@ import { vi } from "vitest";
 // ---------------------------------------------------------------------------
 vi.mock("electron", () => ({
 	app: {
-		getPath: vi.fn(() => "/tmp/deepcode-test"),
-		getName: vi.fn(() => "deepcode-test"),
+		getPath: vi.fn(() => "/tmp/antcode-test"),
+		getName: vi.fn(() => "antcode-test"),
 		getVersion: vi.fn(() => "0.0.0-test"),
 	},
 	ipcMain: {

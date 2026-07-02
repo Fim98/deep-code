@@ -1,6 +1,6 @@
-# Contributing to deepcode
+# Contributing to antcode
 
-Thank you for your interest in contributing to deepcode! This document provides guidelines and information to help you get started.
+Thank you for your interest in contributing to antcode! This document provides guidelines and information to help you get started.
 
 ## Code of Conduct
 
@@ -226,8 +226,8 @@ When you contribute, add yourself to the contributors list in README.md:
 
 ## License
 
-By contributing to deepcode, you agree that your contributions will be licensed under the [MIT License](LICENSE).
+By contributing to antcode, you agree that your contributions will be licensed under the [MIT License](LICENSE).
 
 ---
 
-Thank you for contributing to deepcode! 🚀
+Thank you for contributing to antcode! 🚀

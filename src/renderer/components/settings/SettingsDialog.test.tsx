@@ -83,7 +83,7 @@ describe("SettingsDialog", () => {
 			await user.click(screen.getByText("About"));
 		});
 
-		expect(await screen.findByText("deepcode")).toBeInTheDocument();
+		expect(await screen.findByText("antcode")).toBeInTheDocument();
 		expect(screen.getByText("0.0.0-test")).toBeInTheDocument();
 	});
 

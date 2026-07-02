@@ -70,7 +70,7 @@ export const ACCENT_PRESETS: AccentPreset[] = [
 	},
 ];
 
-const STORAGE_KEY = "deepcode.accent";
+const STORAGE_KEY = "antcode.accent";
 
 function readAccent(): string {
 	try {

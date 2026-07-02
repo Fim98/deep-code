@@ -14,7 +14,7 @@
 
 import { app } from "electron";
 
-const STORAGE_KEY = "deepcode.telemetry.enabled";
+const STORAGE_KEY = "antcode.telemetry.enabled";
 
 let sentryInitialized = false;
 let enabled = false;
@@ -52,7 +52,7 @@ export function initTelemetry(): void {
 		const Sentry = require("@sentry/electron/main");
 		Sentry.init({
 			dsn: "https://placeholder@sentry.io/0", // Replace with real DSN
-			appName: "deepcode",
+			appName: "antcode",
 			release: app.getVersion(),
 			environment: app.isPackaged ? "production" : "development",
 			// Disable performance monitoring to minimize overhead
@@ -103,7 +103,7 @@ export function setTelemetryEnabled(value: boolean): void {
 			const Sentry = require("@sentry/electron/main");
 			Sentry.init({
 				dsn: "https://placeholder@sentry.io/0",
-				appName: "deepcode",
+				appName: "antcode",
 				release: app.getVersion(),
 				environment: app.isPackaged ? "production" : "development",
 				tracesSampleRate: 0,

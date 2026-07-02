@@ -1,5 +1,5 @@
 /**
- * Lightweight i18n for deepcode — function-based, no runtime library.
+ * Lightweight i18n for antcode — function-based, no runtime library.
  *
  * Pattern: flat key→value dictionaries. The `t()` function resolves a key
  * against the active dictionary, falling back to English. Supports simple
@@ -16,7 +16,7 @@ type Dict = Record<string, string>;
 
 const DICTS: Record<Locale, Dict> = { en, "zh-CN": zhCN };
 
-const STORAGE_KEY = "deepcode.locale";
+const STORAGE_KEY = "antcode.locale";
 
 // ─── Detection ──────────────────────────────────────────────────────────────
 

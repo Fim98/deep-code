@@ -1,9 +1,9 @@
 {
-	"name": "deepcode",
+	"name": "antcode",
 	"private": true,
 	"version": "0.0.4",
 	"description": "Apple Music style Electron desktop client for the pi coding agent",
-	"author": "deepcode contributors",
+	"author": "antcode contributors",
 	"license": "MIT",
 	"homepage": "https://github.com/Fim98/deep-code#readme",
 	"repository": {
@@ -19,7 +19,7 @@
 		"coding-agent",
 		"desktop",
 		"pi",
-		"deepcode"
+		"antcode"
 	],
 	"type": "module",
 	"main": "./out/main/index.js",

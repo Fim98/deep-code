@@ -1,6 +1,6 @@
 <div align="center">
 
-# deepcode
+# antcode
 
 ### Apple Music 风格的 [pi](https://www.npmjs.com/package/@earendil-works/pi-coding-agent) 编程智能体桌面客户端
 
@@ -19,11 +19,11 @@
 </div>
 
 <p align="center">
-  <img src="resources/dark-theme.png" alt="deepcode 深色主题" width="800" />
+  <img src="resources/dark-theme.png" alt="antcode 深色主题" width="800" />
 </p>
 
 <p align="center">
-  <img src="resources/light-theme.png" alt="deepcode 浅色主题" width="390" /> <img src="resources/detail.png" alt="deepcode 详情视图" width="390" />
+  <img src="resources/light-theme.png" alt="antcode 浅色主题" width="390" /> <img src="resources/detail.png" alt="antcode 详情视图" width="390" />
 </p>
 
 ---
@@ -146,7 +146,7 @@ deep-code/
 
 ### 贡献者
 
-感谢所有为 deepcode 做出贡献的人：
+感谢所有为 antcode 做出贡献的人：
 
 <!-- ALL-CONTRIBUTORS-LIST:START -->
 <!-- ALL-CONTRIBUTORS-LIST:END -->
@@ -161,7 +161,7 @@ deep-code/
 
 ## 🙏 致谢
 
-- [pi coding agent](https://www.npmjs.com/package/@earendil-works/pi-coding-agent) — 驱动 deepcode 的 AI 编程智能体 SDK
+- [pi coding agent](https://www.npmjs.com/package/@earendil-works/pi-coding-agent) — 驱动 antcode 的 AI 编程智能体 SDK
 - [Electron](https://www.electronjs.org/) — 桌面应用框架
 - [React](https://react.dev/) — UI 库
 - [Tailwind CSS](https://tailwindcss.com/) — 原子化 CSS 框架
@@ -171,6 +171,6 @@ deep-code/
 
 <div align="center">
 
-用 ❤️ 打造，by [deepcode 贡献者](https://github.com/Fim98/deep-code/graphs/contributors)
+用 ❤️ 打造，by [antcode 贡献者](https://github.com/Fim98/deep-code/graphs/contributors)
 
 </div>

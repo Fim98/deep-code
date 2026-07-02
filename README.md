@@ -1,6 +1,6 @@
 <div align="center">
 
-# deepcode
+# antcode
 
 ### Apple Music–style desktop client for the [pi](https://www.npmjs.com/package/@earendil-works/pi-coding-agent) coding agent
 
@@ -19,11 +19,11 @@
 </div>
 
 <p align="center">
-  <img src="resources/dark-theme.png" alt="deepcode dark theme" width="800" />
+  <img src="resources/dark-theme.png" alt="antcode dark theme" width="800" />
 </p>
 
 <p align="center">
-  <img src="resources/light-theme.png" alt="deepcode light theme" width="390" /> <img src="resources/detail.png" alt="deepcode detail view" width="390" />
+  <img src="resources/light-theme.png" alt="antcode light theme" width="390" /> <img src="resources/detail.png" alt="antcode detail view" width="390" />
 </p>
 
 ---
@@ -146,7 +146,7 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 
 ### Contributors
 
-Thanks to all the people who have contributed to deepcode:
+Thanks to all the people who have contributed to antcode:
 
 <!-- ALL-CONTRIBUTORS-LIST:START -->
 <!-- ALL-CONTRIBUTORS-LIST:END -->
@@ -161,7 +161,7 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## 🙏 Acknowledgments
 
-- [pi coding agent](https://www.npmjs.com/package/@earendil-works/pi-coding-agent) — The AI agent SDK that powers deepcode
+- [pi coding agent](https://www.npmjs.com/package/@earendil-works/pi-coding-agent) — The AI agent SDK that powers antcode
 - [Electron](https://www.electronjs.org/) — Desktop application framework
 - [React](https://react.dev/) — UI library
 - [Tailwind CSS](https://tailwindcss.com/) — Utility-first CSS framework
@@ -171,6 +171,6 @@ This project is licensed under the [MIT License](LICENSE).
 
 <div align="center">
 
-Made with ❤️ by [deepcode contributors](https://github.com/Fim98/deep-code/graphs/contributors)
+Made with ❤️ by [antcode contributors](https://github.com/Fim98/deep-code/graphs/contributors)
 
 </div>

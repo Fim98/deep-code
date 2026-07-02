@@ -1,6 +1,6 @@
 export const zhCN: Record<string, string> = {
 	// ─── App shell ──────────────────────────────────────────────────────────
-	"app.title": "deepcode",
+	"app.title": "antcode",
 
 	// ─── Sidebar ────────────────────────────────────────────────────────────
 	"sidebar.workspaces": "工作区",
@@ -15,7 +15,8 @@ export const zhCN: Record<string, string> = {
 	"sidebar.deleteLabel": "删除会话",
 	"sidebar.removeWorkspace": "移除工作区",
 	"sidebar.removeWorkspaceConfirm":
-		"从 deepcode 中移除工作区「{{name}}」？\n\n项目文件夹及其文件不会被删除。",
+		"从 antcode 中移除工作区「{{name}}」？\n\n项目文件夹及其文件不会被删除。",
+
 	"sidebar.remove": "移除",
 	"sidebar.cancel": "取消",
 	"sidebar.delete": "删除",
@@ -120,7 +121,7 @@ export const zhCN: Record<string, string> = {
 
 	// ─── Settings dialog ────────────────────────────────────────────────────
 	"settings.title": "设置",
-	"settings.description": "配置你的 deepcode 体验",
+	"settings.description": "配置你的 antcode 体验",
 	"settings.tab.general": "通用",
 	"settings.tab.providers": "提供商",
 	"settings.tab.models": "模型",
@@ -210,7 +211,7 @@ export const zhCN: Record<string, string> = {
 	"settings.trustDecisionSaved": "信任决定已保存。重新打开会话后会重新加载项目资源。",
 
 	// About
-	"settings.about": "deepcode",
+	"settings.about": "antcode",
 	"settings.version": "版本",
 	"settings.agentDirectory": "代理目录",
 	"settings.updates": "更新",
@@ -401,5 +402,5 @@ export const zhCN: Record<string, string> = {
 	// ─── Telemetry ──────────────────────────────────────────────────────────
 	"telemetry.privacy": "隐私",
 	"telemetry.crashReports": "发送匿名崩溃报告",
-	"telemetry.crashReportsDescription": "通过发送错误数据帮助改进 deepcode。不会收集个人信息。",
+	"telemetry.crashReportsDescription": "通过发送错误数据帮助改进 antcode。不会收集个人信息。",
 };
