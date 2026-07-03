@@ -28,7 +28,7 @@ describe("cn", () => {
 	});
 
 	it("merges tailwind classes with cn-specific variants", () => {
-		const result = cn("rounded-[18px] px-4 py-2", "rounded-[24px]");
-		expect(result).toBe("px-4 py-2 rounded-[24px]");
+		const result = cn("rounded-[14px] px-4 py-2", "rounded-[16px]");
+		expect(result).toBe("px-4 py-2 rounded-[16px]");
 	});
 });

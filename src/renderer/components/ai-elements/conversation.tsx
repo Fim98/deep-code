@@ -109,7 +109,7 @@ export function ConversationEmptyState({
 			)}
 			{...props}
 		>
-			<div className="mb-5 flex size-16 items-center justify-center rounded-[24px] bg-primary-soft text-primary shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
+			<div className="mb-5 flex size-16 items-center justify-center rounded-[16px] bg-primary-soft text-primary">
 				{icon}
 			</div>
 			<div className="text-[24px] font-medium leading-tight tracking-normal text-foreground">

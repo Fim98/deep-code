@@ -71,9 +71,7 @@ export async function createWindow(): Promise<BrowserWindow> {
 		icon,
 		titleBarStyle: "hiddenInset",
 		trafficLightPosition: { x: 16, y: 16 },
-		vibrancy: "sidebar",
-		visualEffectState: "active",
-		backgroundColor: nativeTheme.shouldUseDarkColors ? "#1c1c1e" : "#f5f5f7",
+		backgroundColor: nativeTheme.shouldUseDarkColors ? "#0d0d0d" : "#ffffff",
 		show: true,
 		webPreferences: {
 			preload: join(__dirname, "../preload/index.cjs"),
@@ -107,7 +105,7 @@ export async function createWindow(): Promise<BrowserWindow> {
 
 	const refreshBg = () => {
 		if (win.isDestroyed()) return;
-		win.setBackgroundColor(nativeTheme.shouldUseDarkColors ? "#1c1c1e" : "#f5f5f7");
+		win.setBackgroundColor(nativeTheme.shouldUseDarkColors ? "#0d0d0d" : "#ffffff");
 	};
 	nativeTheme.on("updated", refreshBg);
 

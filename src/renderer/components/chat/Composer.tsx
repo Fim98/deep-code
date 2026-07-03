@@ -289,7 +289,7 @@ export function Composer({ sessionId, isStreaming }: Props) {
 		<div onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop} className="relative">
 			{/* Drag overlay */}
 			{dragOver && (
-				<div className="absolute inset-0 z-10 flex items-center justify-center rounded-[32px] border-2 border-dashed border-primary/50 bg-primary/5 backdrop-blur-sm">
+				<div className="absolute inset-0 z-10 flex items-center justify-center rounded-[16px] border-2 border-dashed border-primary/50 bg-primary/5 backdrop-blur-sm">
 					<div className="flex flex-col items-center gap-2 text-primary">
 						<ImagePlus className="size-6" />
 						<span className="text-[13px] font-medium">{t("composer.dropImages")}</span>
@@ -301,7 +301,7 @@ export function Composer({ sessionId, isStreaming }: Props) {
 			{slashOpen && (
 				<div
 					ref={slashRef}
-					className="absolute bottom-full left-4 right-4 z-20 mb-2 max-h-[280px] overflow-y-auto rounded-[18px] border border-border/60 bg-card shadow-[0_10px_30px_rgba(0,0,0,0.08)]"
+					className="absolute bottom-full left-4 right-4 z-20 mb-2 max-h-[280px] overflow-y-auto rounded-[14px] border border-border/60 bg-card shadow-[0_10px_30px_rgba(0,0,0,0.08)]"
 				>
 					<div className="px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/60">
 						{t("composer.slashCommands")}
@@ -352,7 +352,7 @@ export function Composer({ sessionId, isStreaming }: Props) {
 						{attachments.map((att) => (
 							<div
 								key={att.id}
-								className="group/att relative flex items-center gap-2 rounded-[14px] border border-border/60 bg-card px-2 py-1.5 shadow-[0_2px_8px_rgba(0,0,0,0.03)]"
+								className="group/att relative flex items-center gap-2 rounded-[12px] border border-border/60 bg-card px-2 py-1.5 shadow-[0_2px_8px_rgba(0,0,0,0.03)]"
 							>
 								<img
 									src={att.preview}
@@ -404,7 +404,7 @@ export function Composer({ sessionId, isStreaming }: Props) {
 							variant="ghost"
 							onClick={() => fileInputRef.current?.click()}
 							aria-label={t("composer.attachImage")}
-							className="size-8 rounded-[12px] text-muted-foreground"
+							className="size-8 rounded-[10px] text-muted-foreground"
 						>
 							<ImagePlus className="size-3.5" />
 						</Button>

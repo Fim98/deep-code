@@ -31,7 +31,7 @@ export function Reasoning({
 				onOpenChange?.(next);
 			}}
 			className={cn(
-				"rounded-[18px] border border-border/50 bg-card/55 px-4 py-3 text-[13px] shadow-[0_2px_8px_rgba(0,0,0,0.03)] backdrop-blur-xl",
+				"rounded-[14px] border border-border/50 bg-card/55 px-4 py-3 text-[13px] shadow-[0_2px_8px_rgba(0,0,0,0.03)] backdrop-blur-xl",
 				className,
 			)}
 			{...props}

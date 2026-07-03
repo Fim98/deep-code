@@ -73,10 +73,10 @@ export function ToolsPanel({ sessionId, onClose }: Props) {
 	}
 
 	return (
-		<aside className="flex h-full w-full shrink-0 flex-col border-l border-border/50 bg-card/80 backdrop-blur-xl">
+		<aside className="flex h-full w-full flex-col">
 			<header className="flex h-[68px] shrink-0 items-center justify-between border-b border-border/40 px-5">
 				<div className="flex items-center gap-3">
-					<div className="flex size-9 items-center justify-center rounded-[14px] bg-primary-soft text-primary">
+					<div className="flex size-9 items-center justify-center rounded-[12px] bg-primary-soft text-primary">
 						<ShieldCheck className="size-4" />
 					</div>
 					<div>
@@ -110,7 +110,7 @@ export function ToolsPanel({ sessionId, onClose }: Props) {
 				</div>
 
 				{loading && !data ? (
-					<div className="flex items-center justify-center rounded-[18px] border border-border/50 bg-background/40 p-8">
+					<div className="flex items-center justify-center rounded-[14px] border border-border/50 bg-background/40 p-8">
 						<Spinner size="sm" />
 					</div>
 				) : (
@@ -125,7 +125,7 @@ export function ToolsPanel({ sessionId, onClose }: Props) {
 							/>
 						))}
 						{(data?.tools ?? []).length === 0 ? (
-							<div className="rounded-[18px] border border-dashed border-border/60 px-5 py-8 text-center text-[13px] text-muted-foreground">
+							<div className="rounded-[14px] border border-dashed border-border/60 px-5 py-8 text-center text-[13px] text-muted-foreground">
 								No tools registered for this session.
 							</div>
 						) : null}
@@ -141,7 +141,7 @@ function PresetButton({ label, onClick }: { label: string; onClick: () => void }
 		<button
 			type="button"
 			onClick={onClick}
-			className="rounded-[14px] bg-foreground/[0.04] px-3 py-2 text-[12px] font-medium text-foreground/70 transition-colors hover:bg-foreground/[0.07] hover:text-foreground"
+			className="rounded-[12px] bg-foreground/[0.04] px-3 py-2 text-[12px] font-medium text-foreground/70 transition-colors hover:bg-foreground/[0.07] hover:text-foreground"
 		>
 			{label}
 		</button>
@@ -163,9 +163,9 @@ function ToolRow({
 	const sourcePath = tool.sourceInfo?.path ?? tool.sourceInfo?.baseDir;
 	const copyText = sourcePath ?? tool.name;
 	return (
-		<div className="rounded-[18px] border border-border/50 bg-background/50 p-4 shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
+		<div className="rounded-[14px] border border-border/50 bg-background/50 p-4 shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
 			<div className="flex items-start gap-3">
-				<div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-[12px] bg-primary/10 text-primary">
+				<div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-primary/10 text-primary">
 					<Wrench className="size-3.5" />
 				</div>
 				<div className="min-w-0 flex-1">

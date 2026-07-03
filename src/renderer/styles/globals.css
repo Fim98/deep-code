@@ -31,82 +31,89 @@
 	--color-ring: var(--ring);
 	--color-sidebar: var(--sidebar);
 	--color-sidebar-foreground: var(--sidebar-foreground);
-	--radius-xs: 10px;
-	--radius-sm: 14px;
-	--radius-md: 18px;
-	--radius-lg: 24px;
-	--radius-xl: 32px;
+	--radius-xs: 6px;
+	--radius-sm: 8px;
+	--radius-md: 12px;
+	--radius-lg: 16px;
+	--radius-xl: 20px;
 	--radius-full: 9999px;
 }
 
-/* ─── Light theme (Apple-inspired) ─── */
+/* ─── OpenAI / Codex aesthetic — Light ───
+ * True white canvas (#ffffff) against deep teal-black ink (#0d0d0d).
+ * Single brand color: OpenAI Teal (#10a37f) — the lone accent.
+ * Hairline borders (#e5e5e5) used sparingly; whitespace as primary divider.
+ * Soft 8–16px radii; 9999px pills for chips. Minimal shadows. */
 :root,
 .light,
 [data-theme="light"] {
-	--background: #f5f5f7;
-	--foreground: #111111;
+	--background: #ffffff;
+	--foreground: #0d0d0d;
 	--card: #ffffff;
-	--card-foreground: #111111;
+	--card-foreground: #0d0d0d;
 	--popover: #ffffff;
-	--popover-foreground: #111111;
-	--primary: #5b5bf7;
+	--popover-foreground: #0d0d0d;
+	--primary: #10a37f;
 	--primary-foreground: #ffffff;
-	--primary-hover: #6b6bff;
-	--primary-soft: #ececff;
-	--secondary: rgba(0, 0, 0, 0.04);
-	--secondary-foreground: #111111;
-	--muted: rgba(0, 0, 0, 0.04);
-	--muted-foreground: #999999;
-	--accent: rgba(91, 91, 247, 0.08);
-	--accent-foreground: #5b5bf7;
-	--success: #34c759;
+	--primary-hover: #0a7a5e;
+	--primary-soft: #e8f5f0;
+	--secondary: #f5f5f5;
+	--secondary-foreground: #0d0d0d;
+	--muted: #f5f5f5;
+	--muted-foreground: #6e6e6e;
+	--accent: #f5f5f5;
+	--accent-foreground: #0d0d0d;
+	--success: #10a37f;
 	--success-foreground: #ffffff;
-	--warning: #ff9f0a;
-	--destructive: #ff3b30;
+	--warning: #f5a623;
+	--destructive: #ef4146;
 	--destructive-foreground: #ffffff;
-	--border: rgba(0, 0, 0, 0.06);
-	--input: rgba(0, 0, 0, 0.04);
-	--ring: #5b5bf7;
-	--sidebar: rgba(255, 255, 255, 0.75);
-	--sidebar-foreground: #111111;
-	--shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.03);
-	--shadow-md: 0 10px 30px rgba(0, 0, 0, 0.04);
-	--shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.06);
+	--border: #e5e5e5;
+	--input: #e5e5e5;
+	--ring: #10a37f;
+	--sidebar: #f5f5f5;
+	--sidebar-foreground: #0d0d0d;
+	--shadow-sm: 0 1px 2px rgba(13, 13, 13, 0.04);
+	--shadow-md: 0 4px 16px rgba(13, 13, 13, 0.06);
+	--shadow-lg: 0 8px 24px rgba(13, 13, 13, 0.08);
 	color-scheme: light;
 }
 
-/* ─── Dark theme (Apple-inspired) ─── */
+/* ─── OpenAI / Codex aesthetic — Dark (derived) ───
+ * Inverted: ink black (#0d0d0d) becomes the canvas, surfaces step up to
+ * soft black (#1a1a1a). Teal brightens for contrast. Hairline borders
+ * read as the absence of light rather than its presence. */
 .dark,
 [data-theme="dark"] {
-	--background: #1c1c1e;
-	--foreground: #f5f5f7;
-	--card: #2c2c2e;
-	--card-foreground: #f5f5f7;
-	--popover: #2c2c2e;
-	--popover-foreground: #f5f5f7;
-	--primary: #7b7bff;
-	--primary-foreground: #ffffff;
-	--primary-hover: #8b8bff;
-	--primary-soft: rgba(123, 123, 255, 0.15);
-	--secondary: rgba(255, 255, 255, 0.06);
-	--secondary-foreground: #f5f5f7;
-	--muted: rgba(255, 255, 255, 0.06);
-	--muted-foreground: #98989d;
-	--accent: rgba(123, 123, 255, 0.12);
-	--accent-foreground: #7b7bff;
-	--success: #30d158;
-	--success-foreground: #ffffff;
-	--warning: #ffd60a;
-	--destructive: #ff453a;
+	--background: #0d0d0d;
+	--foreground: #ededed;
+	--card: #1a1a1a;
+	--card-foreground: #ededed;
+	--popover: #1a1a1a;
+	--popover-foreground: #ededed;
+	--primary: #1ab391;
+	--primary-foreground: #0d0d0d;
+	--primary-hover: #10a37f;
+	--primary-soft: rgba(26, 179, 145, 0.14);
+	--secondary: #1f1f1f;
+	--secondary-foreground: #ededed;
+	--muted: #1f1f1f;
+	--muted-foreground: #8e8e8e;
+	--accent: #1f1f1f;
+	--accent-foreground: #ededed;
+	--success: #1ab391;
+	--success-foreground: #0d0d0d;
+	--warning: #f5a623;
+	--destructive: #ef4146;
 	--destructive-foreground: #ffffff;
-	--border: rgba(255, 255, 255, 0.08);
-	--input: rgba(255, 255, 255, 0.06);
-	--ring: #7b7bff;
-	--sidebar: rgba(44, 44, 46, 0.8);
-	--sidebar-foreground: #f5f5f7;
-	--shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.15);
-	--shadow-md: 0 10px 30px rgba(0, 0, 0, 0.2);
-	--shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.3);
+	--border: #262626;
+	--input: #262626;
+	--ring: #1ab391;
+	--sidebar: #161616;
+	--sidebar-foreground: #ededed;
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+	--shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+	--shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
 	color-scheme: dark;
 }
 
@@ -121,15 +128,15 @@
 	body {
 		font-feature-settings:
 			"rlig" 1,
-			"calt" 1,
-			"ss01" 1;
+			"calt" 1;
 		background: transparent;
 		color: var(--foreground);
 		font-family:
-			"Inter", "SF Pro Display", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Helvetica Neue",
-			system-ui, sans-serif;
+			"Inter", "Söhne", system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI",
+			sans-serif;
 		-webkit-font-smoothing: antialiased;
 		-moz-osx-font-smoothing: grayscale;
+		letter-spacing: -0.005em;
 	}
 
 	* {
@@ -150,9 +157,12 @@
 	.app-drag {
 		-webkit-app-region: drag;
 	}
+	.font-mono {
+		font-family: var(--font-mono, ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace);
+	}
 }
 
-/* ─── Scrollbar styling (thin, Apple-like) ─── */
+/* ─── Scrollbar styling (thin, unobtrusive) ─── */
 ::-webkit-scrollbar {
 	width: 6px;
 	height: 6px;
@@ -168,7 +178,7 @@
 }
 
 .dark ::-webkit-scrollbar-thumb {
-	background: rgba(255, 255, 255, 0.12);
+	background: rgba(255, 255, 255, 0.1);
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -176,7 +186,7 @@
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-	background: rgba(255, 255, 255, 0.2);
+	background: rgba(255, 255, 255, 0.18);
 }
 
 .model-picker-scroll {
@@ -185,7 +195,7 @@
 }
 
 .dark .model-picker-scroll {
-	scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+	scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
 
 .model-picker-scroll::-webkit-scrollbar {
@@ -202,7 +212,7 @@
 }
 
 .dark .model-picker-scroll::-webkit-scrollbar-thumb {
-	background: rgba(255, 255, 255, 0.12);
+	background: rgba(255, 255, 255, 0.1);
 }
 
 .model-picker-scroll::-webkit-scrollbar-thumb:hover {
@@ -210,12 +220,12 @@
 }
 
 .dark .model-picker-scroll::-webkit-scrollbar-thumb:hover {
-	background: rgba(255, 255, 255, 0.18);
+	background: rgba(255, 255, 255, 0.16);
 }
 
 /* ─── CodeMirror overrides (align with app design tokens) ─── */
 .pi-code-preview .cm-editor {
-	font-family: "SF Mono", "Fira Code", "JetBrains Mono", "Menlo", monospace;
+	font-family: ui-monospace, "SF Mono", "Fira Code", "JetBrains Mono", "Menlo", monospace;
 	font-size: 12.5px;
 	line-height: 1.55;
 	height: 100%;

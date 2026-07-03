@@ -154,7 +154,7 @@ export function LogViewerDialog({ open, onOpenChange }: Props) {
 				<DialogHeader className="shrink-0 border-b border-border/40 px-6 py-4">
 					<div className="flex items-center justify-between">
 						<div className="flex items-center gap-3">
-							<div className="flex size-9 shrink-0 items-center justify-center rounded-[14px] bg-destructive/10 text-destructive">
+							<div className="flex size-9 shrink-0 items-center justify-center rounded-[12px] bg-destructive/10 text-destructive">
 								<FileText className="size-4" />
 							</div>
 							<div>
@@ -175,7 +175,7 @@ export function LogViewerDialog({ open, onOpenChange }: Props) {
 								variant="ghost"
 								onClick={refresh}
 								aria-label={t("logs.refresh")}
-								className="size-8 rounded-[12px]"
+								className="size-8 rounded-[10px]"
 							>
 								<RefreshCw className={cn("size-3.5", loading && "animate-spin")} />
 							</Button>
@@ -186,7 +186,7 @@ export function LogViewerDialog({ open, onOpenChange }: Props) {
 								onClick={handleCopy}
 								aria-label={t("logs.copyLogs")}
 								disabled={entries.length === 0}
-								className="size-8 rounded-[12px]"
+								className="size-8 rounded-[10px]"
 							>
 								<Copy className="size-3.5" />
 							</Button>
@@ -197,7 +197,7 @@ export function LogViewerDialog({ open, onOpenChange }: Props) {
 								onClick={handleClear}
 								aria-label={t("logs.clearLogs")}
 								disabled={entries.length === 0}
-								className="size-8 rounded-[12px] hover:text-destructive"
+								className="size-8 rounded-[10px] hover:text-destructive"
 							>
 								<Eraser className="size-3.5" />
 							</Button>

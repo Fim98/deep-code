@@ -11,12 +11,17 @@ import {
 	ListFilter,
 	Monitor,
 	Moon,
+	Package,
 	Plus,
 	Sun,
 	Trash2,
+	Wrench,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { LogViewerDialog } from "@/components/log-viewer/LogViewerDialog";
+import { PackagesPanel } from "@/components/settings/PackagesPanel";
+import { ResourcesPanel } from "@/components/settings/ResourcesPanel";
+import { ToolsPanel } from "@/components/settings/ToolsPanel";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -44,7 +49,7 @@ import { type ThemeChoice, useTheme } from "@/stores/theme";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-type TabId = "general" | "providers" | "models" | "about";
+type TabId = "general" | "providers" | "models" | "tools" | "resources" | "packages" | "about";
 
 // ─── Main Dialog ─────────────────────────────────────────────────────────────
 
@@ -68,6 +73,9 @@ export function SettingsDialog({
 		{ id: "general", label: t("settings.tab.general"), icon: <Cog className="size-4" /> },
 		{ id: "providers", label: t("settings.tab.providers"), icon: <Key className="size-4" /> },
 		{ id: "models", label: t("settings.tab.models"), icon: <ListFilter className="size-4" /> },
+		{ id: "tools", label: t("settings.tab.tools"), icon: <Wrench className="size-4" /> },
+		{ id: "resources", label: t("settings.tab.resources"), icon: <FileText className="size-4" /> },
+		{ id: "packages", label: t("settings.tab.packages"), icon: <Package className="size-4" /> },
 		{ id: "about", label: t("settings.tab.about"), icon: <Info className="size-4" /> },
 	];
 
@@ -97,7 +105,7 @@ export function SettingsDialog({
 								key={item.id}
 								onClick={() => setTab(item.id)}
 								className={cn(
-									"flex cursor-pointer items-center gap-2.5 rounded-[12px] px-3 py-2 text-left text-[13px] font-medium transition-colors duration-100",
+									"flex cursor-pointer items-center gap-2.5 rounded-[10px] px-3 py-2 text-left text-[13px] font-medium transition-colors duration-100",
 									tab === item.id
 										? "bg-primary/10 text-primary"
 										: "text-foreground/60 hover:bg-foreground/[0.04] hover:text-foreground",
@@ -109,19 +117,31 @@ export function SettingsDialog({
 						))}
 					</nav>
 					{/* Right panel */}
-					<ScrollArea className="flex-1">
-						<div className="px-7 py-6">
-							{tab === "general" && (
-								<GeneralTab
-									activeWorkspacePath={activeWorkspacePath}
-									activeSessionId={activeSessionId}
-								/>
+					{tab === "tools" || tab === "resources" || tab === "packages" ? (
+						<div className="min-h-0 flex-1">
+							{tab === "tools" && <ToolsPanel sessionId={activeSessionId ?? null} />}
+							{tab === "resources" && (
+								<ResourcesPanel sessionId={activeSessionId ?? null} cwd={activeWorkspacePath} />
 							)}
-							{tab === "providers" && <ProvidersTab />}
-							{tab === "models" && <ModelsTab />}
-							{tab === "about" && <AboutTab />}
+							{tab === "packages" && (
+								<PackagesPanel cwd={activeWorkspacePath} sessionId={activeSessionId ?? null} />
+							)}
 						</div>
-					</ScrollArea>
+					) : (
+						<ScrollArea className="flex-1">
+							<div className="px-7 py-6">
+								{tab === "general" && (
+									<GeneralTab
+										activeWorkspacePath={activeWorkspacePath}
+										activeSessionId={activeSessionId}
+									/>
+								)}
+								{tab === "providers" && <ProvidersTab />}
+								{tab === "models" && <ModelsTab />}
+								{tab === "about" && <AboutTab />}
+							</div>
+						</ScrollArea>
+					)}
 				</div>
 			</DialogContent>
 		</Dialog>
@@ -204,7 +224,7 @@ function GeneralTab({
 			{/* Project trust */}
 			<section className="space-y-3">
 				<SectionHeader title={t("settings.projectTrust")} />
-				<div className="rounded-[18px] border border-border/60 bg-card p-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
+				<div className="rounded-[14px] border border-border/60 bg-card p-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
 					<div className="text-[12px] leading-relaxed text-muted-foreground">
 						{t("settings.projectTrustDescription")}
 					</div>
@@ -355,7 +375,7 @@ function GeneralTab({
 			{/* Keyboard shortcuts */}
 			<section className="space-y-3">
 				<SectionHeader title={t("settings.shortcuts")} />
-				<div className="rounded-[18px] border border-border/60 bg-card p-4 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
+				<div className="rounded-[14px] border border-border/60 bg-card p-4 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
 					<div className="space-y-2.5">
 						<ShortcutRow keys={["⌘", "K"]} label={t("settings.commandPalette")} />
 						<ShortcutRow keys={["⌘", "N"]} label={t("settings.newSession")} />
@@ -569,7 +589,7 @@ function ConnectedProviderRow({
 		<div className="group flex items-center gap-3 rounded-[16px] border border-border/40 bg-card px-4 py-3 shadow-[0_1px_4px_rgba(0,0,0,0.02)] transition-colors hover:border-border/60">
 			{/* Brand icon */}
 			<div
-				className="flex size-9 shrink-0 items-center justify-center rounded-[12px] text-[13px] font-bold text-white"
+				className="flex size-9 shrink-0 items-center justify-center rounded-[10px] text-[13px] font-bold text-white"
 				style={{ backgroundColor: hint?.color ?? "#888" }}
 			>
 				{hint?.icon ?? entry.provider.charAt(0).toUpperCase()}
@@ -594,7 +614,7 @@ function ConnectedProviderRow({
 				type="button"
 				onClick={onRemove}
 				aria-label={t("settings.removeProvider")}
-				className="flex size-7 shrink-0 items-center justify-center rounded-[10px] text-muted-foreground/50 opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+				className="flex size-7 shrink-0 items-center justify-center rounded-[8px] text-muted-foreground/50 opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
 			>
 				<Trash2 className="size-3.5" />
 			</button>
@@ -640,7 +660,7 @@ function AddProviderForm({
 	}
 
 	return (
-		<div className="rounded-[18px] border border-border/50 bg-card p-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
+		<div className="rounded-[14px] border border-border/50 bg-card p-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
 			<form
 				onSubmit={(e) => {
 					e.preventDefault();
@@ -651,7 +671,7 @@ function AddProviderForm({
 				{/* Provider select + brand preview */}
 				<div className="flex items-center gap-3">
 					<div
-						className="flex size-10 shrink-0 items-center justify-center rounded-[14px] text-[14px] font-bold text-white transition-colors duration-200"
+						className="flex size-10 shrink-0 items-center justify-center rounded-[12px] text-[14px] font-bold text-white transition-colors duration-200"
 						style={{ backgroundColor: hint?.color ?? "#888" }}
 					>
 						{hint?.icon ?? "?"}
@@ -707,7 +727,7 @@ function AddProviderForm({
 						<button
 							type="button"
 							onClick={() => setReveal((v) => !v)}
-							className="flex size-9 shrink-0 items-center justify-center rounded-[12px] text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+							className="flex size-9 shrink-0 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
 							aria-label={reveal ? t("settings.hideApiKey") : t("settings.showApiKey")}
 						>
 							{reveal ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
@@ -792,7 +812,7 @@ function ModelsTab() {
 		<div className="space-y-8">
 			<section className="space-y-3">
 				<SectionHeader title={t("settings.enabledModels")} />
-				<div className="rounded-[18px] border border-border/60 bg-card p-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
+				<div className="rounded-[14px] border border-border/60 bg-card p-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
 					<div className="mb-3 text-[12px] leading-relaxed text-muted-foreground">
 						{t("settings.enabledModelsDescription")}
 					</div>
@@ -845,7 +865,7 @@ function SettingsJsonPreview({ label, value }: { label: string; value: unknown }
 	return (
 		<details className="rounded-[16px] border border-border/50 bg-card px-4 py-3 text-[12px] shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
 			<summary className="cursor-pointer font-medium text-foreground">{label}</summary>
-			<pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap rounded-[12px] bg-foreground/[0.03] p-3 font-mono text-[11px] text-muted-foreground">
+			<pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap rounded-[10px] bg-foreground/[0.03] p-3 font-mono text-[11px] text-muted-foreground">
 				{JSON.stringify(value ?? {}, null, 2)}
 			</pre>
 		</details>
@@ -904,7 +924,7 @@ function AboutTab() {
 		<div className="space-y-8">
 			<section className="space-y-4">
 				<SectionHeader title="antcode" />
-				<div className="rounded-[18px] border border-border/60 bg-card p-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
+				<div className="rounded-[14px] border border-border/60 bg-card p-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
 					<div className="space-y-3">
 						<InfoRow label="Version" value={version} />
 						<InfoRow label="Agent directory" value={agentDir} mono />
@@ -914,7 +934,7 @@ function AboutTab() {
 
 			<section className="space-y-4">
 				<SectionHeader title="Updates" />
-				<div className="flex items-center justify-between rounded-[18px] border border-border/60 bg-card px-5 py-4 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
+				<div className="flex items-center justify-between rounded-[14px] border border-border/60 bg-card px-5 py-4 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
 					<div className="min-w-0">
 						<div className="text-[13px] font-medium text-foreground">
 							{statusLabel[updateStatus] || "Check for updates"}
@@ -1189,7 +1209,7 @@ function InfoRow({ label, value, mono }: { label: string; value: string; mono?: 
 function ConfigFileRow({ label, path }: { label: string; path: string }) {
 	const { t } = useI18n();
 	return (
-		<div className="flex items-center justify-between gap-3 rounded-[14px] border border-border/40 bg-card px-4 py-2.5 shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
+		<div className="flex items-center justify-between gap-3 rounded-[12px] border border-border/40 bg-card px-4 py-2.5 shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
 			<div className="min-w-0">
 				<div className="text-[12px] font-medium text-foreground">{label}</div>
 				<div className="truncate font-mono text-[11px] text-muted-foreground">{path}</div>

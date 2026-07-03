@@ -18,8 +18,8 @@ export function PromptInput({ className, onSubmit, children, ...props }: PromptI
 	return (
 		<form
 			className={cn(
-				"mx-auto w-full max-w-3xl rounded-[32px] border border-border/60 bg-card/95 p-3 shadow-[0_10px_30px_rgba(0,0,0,0.04)] backdrop-blur-xl",
-				"transition-all duration-200 focus-within:border-primary/35 focus-within:shadow-[0_10px_30px_rgba(91,91,247,0.08)]",
+				"mx-auto w-full max-w-3xl rounded-[16px] border border-border bg-card p-3",
+				"transition-colors duration-200 focus-within:border-primary/40",
 				className,
 			)}
 			onSubmit={(event) => {
@@ -74,7 +74,7 @@ export const PromptInputTextarea = React.forwardRef<HTMLTextAreaElement, Textare
 		return (
 			<Textarea
 				className={cn(
-					"max-h-44 min-h-[56px] flex-1 rounded-[24px] px-4 py-3 text-[14px] leading-6",
+					"max-h-44 min-h-[56px] flex-1 rounded-[16px] px-4 py-3 text-[14px] leading-6",
 					className,
 				)}
 				name={name}

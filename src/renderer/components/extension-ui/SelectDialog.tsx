@@ -59,7 +59,7 @@ export function SelectDialog({ request, onSelect, onCancel }: Props) {
 				if (!open) onCancel();
 			}}
 		>
-			<DialogContent className="max-w-[420px] rounded-[24px] p-0">
+			<DialogContent className="max-w-[420px] rounded-[16px] p-0">
 				<DialogHeader className="border-b border-border/30 px-5 pt-5 pb-3">
 					<DialogTitle className="text-[16px] font-medium tracking-tight">
 						{request.title}
@@ -73,7 +73,7 @@ export function SelectDialog({ request, onSelect, onCancel }: Props) {
 						onChange={(e) => setFilter(e.target.value)}
 						onKeyDown={onKeyDown}
 						placeholder="Search..."
-						className="w-full rounded-[12px] border border-border/40 bg-background px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/50 focus:border-primary/40 focus:outline-none"
+						className="w-full rounded-[10px] border border-border/40 bg-background px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/50 focus:border-primary/40 focus:outline-none"
 					/>
 				</div>
 
@@ -90,7 +90,7 @@ export function SelectDialog({ request, onSelect, onCancel }: Props) {
 								onClick={() => handleSelect(option)}
 								onMouseEnter={() => setHighlighted(idx)}
 								className={cn(
-									"flex w-full cursor-pointer items-center gap-2.5 rounded-[12px] px-3 py-2.5 text-left transition-colors duration-75",
+									"flex w-full cursor-pointer items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-left transition-colors duration-75",
 									idx === highlighted
 										? "bg-foreground/[0.05] text-foreground"
 										: "text-foreground/80 hover:bg-foreground/[0.03]",

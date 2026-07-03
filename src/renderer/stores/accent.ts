@@ -14,6 +14,17 @@ export interface AccentPreset {
 
 export const ACCENT_PRESETS: AccentPreset[] = [
 	{
+		id: "teal",
+		label: "Teal",
+		swatch: "#10a37f",
+		primary: "#10a37f",
+		primaryHover: "#0a7a5e",
+		primarySoft: "#e8f5f0",
+		accent: "rgba(16, 163, 127, 0.08)",
+		accentForeground: "#10a37f",
+		ring: "#10a37f",
+	},
+	{
 		id: "indigo",
 		label: "Indigo",
 		swatch: "#5b5bf7",
@@ -71,13 +82,22 @@ export const ACCENT_PRESETS: AccentPreset[] = [
 ];
 
 const STORAGE_KEY = "antcode.accent";
+const STORAGE_VERSION_KEY = "antcode.accent.v";
+// Bumped when the default brand identity changed (indigo → teal).
+// A version mismatch clears the stale persisted preset once.
+const STORAGE_VERSION = "2";
 
 function readAccent(): string {
 	try {
+		if (localStorage.getItem(STORAGE_VERSION_KEY) !== STORAGE_VERSION) {
+			localStorage.removeItem(STORAGE_KEY);
+			localStorage.setItem(STORAGE_VERSION_KEY, STORAGE_VERSION);
+			return "teal";
+		}
 		const raw = localStorage.getItem(STORAGE_KEY);
 		if (raw && ACCENT_PRESETS.some((p) => p.id === raw)) return raw;
 	} catch {}
-	return "indigo";
+	return "teal";
 }
 
 interface Store {

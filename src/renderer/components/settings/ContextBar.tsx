@@ -104,7 +104,7 @@ export function ContextBar({ sessionId, modelId, modelContextWindow }: Props) {
 						</div>
 					</div>
 
-					<div className="rounded-[18px] bg-foreground/[0.03] px-3 py-3">
+					<div className="rounded-[14px] bg-foreground/[0.03] px-3 py-3">
 						<div className="mb-2 flex items-baseline justify-between gap-3">
 							<div className="text-[12px] text-muted-foreground">{t("context.load")}</div>
 							<div className="text-[12px] font-medium tabular-nums text-foreground">
@@ -165,7 +165,7 @@ export function ContextBar({ sessionId, modelId, modelContextWindow }: Props) {
 
 function UsageStat({ label, value }: { label: string; value: number | null | undefined }) {
 	return (
-		<div className="rounded-[14px] bg-foreground/[0.03] px-3 py-2.5">
+		<div className="rounded-[12px] bg-foreground/[0.03] px-3 py-2.5">
 			<div className="text-muted-foreground/80">{label}</div>
 			<div className="mt-1 font-mono text-foreground">{formatTokens(value)}</div>
 		</div>

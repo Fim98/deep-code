@@ -175,7 +175,7 @@ export function BranchesPanel({ sessionId, onForked }: Props) {
 									<div
 										key={msg.entryId}
 										className={cn(
-											"group flex items-center gap-2 rounded-[12px] px-3 py-2 transition-colors",
+											"group flex items-center gap-2 rounded-[10px] px-3 py-2 transition-colors",
 											isActive ? "bg-foreground/[0.04]" : "hover:bg-foreground/[0.02]",
 										)}
 									>
@@ -209,7 +209,7 @@ export function BranchesPanel({ sessionId, onForked }: Props) {
 											onClick={() => handleFork(msg.entryId)}
 											aria-label={`Fork from message ${index + 1}`}
 											className={cn(
-												"size-7 shrink-0 rounded-[10px]",
+												"size-7 shrink-0 rounded-[8px]",
 												"opacity-0 transition-opacity group-hover:opacity-100",
 												isActive && "opacity-0 pointer-events-none",
 											)}

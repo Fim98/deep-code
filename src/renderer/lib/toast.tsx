@@ -32,7 +32,7 @@ export function ToastHost() {
 		<Toaster
 			position="bottom-right"
 			toastOptions={{
-				className: "rounded-[18px] border border-border bg-card text-card-foreground shadow-md",
+				className: "rounded-[14px] border border-border bg-card text-card-foreground shadow-md",
 				style: {
 					fontSize: "13px",
 				},

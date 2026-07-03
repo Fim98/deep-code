@@ -156,7 +156,7 @@ function WidgetOverlay({
 						widget.placement === "belowEditor" ? "mt-2" : "mb-2",
 					)}
 				>
-					<div className="rounded-[14px] border border-border/40 bg-card/80 px-4 py-3 shadow-[0_2px_8px_rgba(0,0,0,0.03)] backdrop-blur-xl">
+					<div className="rounded-[12px] border border-border/40 bg-card/80 px-4 py-3 shadow-[0_2px_8px_rgba(0,0,0,0.03)] backdrop-blur-xl">
 						<pre className="whitespace-pre-wrap font-mono text-[11px] leading-relaxed text-muted-foreground">
 							{widget.lines.join("\n")}
 						</pre>

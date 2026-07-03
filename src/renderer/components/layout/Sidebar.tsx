@@ -11,7 +11,7 @@ export function Sidebar({ children, footer, collapsed = false }: Props) {
 	return (
 		<aside
 			className={cn(
-				"relative z-10 flex shrink-0 basis-auto flex-col overflow-hidden border-r border-border/50 bg-sidebar backdrop-blur-xl text-sidebar-foreground transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+				"relative z-10 flex shrink-0 basis-auto flex-col overflow-hidden border-r border-border bg-sidebar text-sidebar-foreground transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
 				collapsed ? "w-0 min-w-0" : "w-[280px] min-w-[280px] max-w-[280px]",
 			)}
 			style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
@@ -102,7 +102,7 @@ export function SidebarItem({
 				}}
 				aria-label={title2}
 				className={cn(
-					"group flex min-h-[40px] w-full cursor-pointer items-center gap-3 rounded-[14px] px-3 py-2 text-left text-[14px] transition-colors duration-150",
+					"group flex min-h-[40px] w-full cursor-pointer items-center gap-3 rounded-[12px] px-3 py-2 text-left text-[14px] transition-colors duration-150",
 					active
 						? cn("bg-foreground/[0.06] text-foreground", activeClassName)
 						: "text-foreground/70 hover:bg-foreground/[0.04] hover:text-foreground",

@@ -23,7 +23,7 @@ export function ConfirmDialog({ request, onConfirm, onCancel }: Props) {
 				if (!open) onCancel();
 			}}
 		>
-			<DialogContent className="max-w-[400px] rounded-[24px] p-0">
+			<DialogContent className="max-w-[400px] rounded-[16px] p-0">
 				<div className="flex flex-col items-center px-8 pt-8">
 					<div className="mb-5 flex size-12 items-center justify-center rounded-full bg-primary/10">
 						<AlertTriangle className="size-5 text-primary" />

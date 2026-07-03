@@ -10,7 +10,7 @@ export function Tool({ className, ...props }: ComponentProps<typeof Collapsible>
 	return (
 		<Collapsible
 			className={cn(
-				"w-full overflow-hidden rounded-[18px] border border-border/50 bg-card/65 text-[12px] shadow-[0_2px_8px_rgba(0,0,0,0.03)] backdrop-blur-xl",
+				"w-full overflow-hidden rounded-[14px] border border-border/50 bg-card/65 text-[12px] shadow-[0_2px_8px_rgba(0,0,0,0.03)] backdrop-blur-xl",
 				className,
 			)}
 			{...props}

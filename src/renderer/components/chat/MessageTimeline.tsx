@@ -231,7 +231,7 @@ export function MessageTimeline({ sessionId }: Props) {
 			{messages.length > 0 ? (
 				<div className="relative px-4 pt-3">
 					{searchOpen ? (
-						<div className="flex items-center gap-2 rounded-[12px] border border-border/50 bg-card px-3 py-1.5 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+						<div className="flex items-center gap-2 rounded-[10px] border border-border/50 bg-card px-3 py-1.5 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
 							<Search className="size-3.5 shrink-0 text-muted-foreground" />
 							<input
 								value={searchQuery}
@@ -265,7 +265,7 @@ export function MessageTimeline({ sessionId }: Props) {
 						<button
 							type="button"
 							onClick={() => setSearchOpen(true)}
-							className="flex items-center gap-1.5 rounded-[10px] px-2 py-1 text-[11px] font-medium text-muted-foreground/60 transition-colors hover:bg-foreground/[0.04] hover:text-muted-foreground"
+							className="flex items-center gap-1.5 rounded-[8px] px-2 py-1 text-[11px] font-medium text-muted-foreground/60 transition-colors hover:bg-foreground/[0.04] hover:text-muted-foreground"
 						>
 							<Search className="size-3" />
 							{t("timeline.search")}
@@ -385,7 +385,7 @@ function PendingSubmissionTurn({ submission }: { submission: PendingSubmission }
 			<UserRow content={submission.content} forkEntryId={undefined} onFork={undefined} />
 			<Message from="assistant">
 				<MessageContent className="w-full max-w-full">
-					<div className="flex items-center gap-2 rounded-[18px] border border-border/40 bg-card/50 px-4 py-3 text-[13px] text-muted-foreground shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
+					<div className="flex items-center gap-2 rounded-[14px] border border-border/40 bg-card/50 px-4 py-3 text-[13px] text-muted-foreground shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
 						<Sparkles className="size-4 text-primary" />
 						<Shimmer>{translate("timeline.preparingNextStep")}</Shimmer>
 					</div>
@@ -399,9 +399,9 @@ function QueuedMessageRow({ content, type }: { content: string; type: "steering"
 	const { t } = useI18n();
 	return (
 		<Message from="user">
-			<div className="flex min-w-0 w-fit max-w-[76%] flex-col gap-2 rounded-[22px] rounded-br-[10px] border border-primary/15 bg-card/90 px-4 py-3 text-[14px] leading-6 text-foreground shadow-[0_10px_30px_rgba(0,0,0,0.04)] backdrop-blur-xl">
-				<div className="flex items-center gap-2 text-[11px] font-medium text-primary/70">
-					<span className="size-1.5 rounded-full bg-primary/50" />
+			<div className="flex min-w-0 w-fit max-w-[76%] flex-col gap-2 rounded-[12px] border border-border bg-muted px-4 py-3 text-[14px] leading-6 text-foreground">
+				<div className="flex items-center gap-2 text-[11px] font-medium text-primary">
+					<span className="size-1.5 rounded-full bg-primary/60" />
 					{type === "steering" ? t("timeline.queuedSteer") : t("timeline.queuedFollowUp")}
 				</div>
 				<div className="min-w-0 whitespace-pre-wrap break-words text-foreground/85 [overflow-wrap:anywhere]">
@@ -433,7 +433,7 @@ function UserRow({
 							key={`${img.mimeType}-${i}`}
 							alt=""
 							src={`data:${img.mimeType};base64,${img.data}`}
-							className="max-h-72 self-end rounded-[18px] border border-white/25 object-contain"
+							className="max-h-72 self-end rounded-[14px] border border-white/25 object-contain"
 						/>
 					))}
 					{text ? (
@@ -560,7 +560,7 @@ function ThinkingRow({
 	return (
 		<Message from="assistant">
 			<MessageContent className="w-full max-w-full py-1">
-				<div className="rounded-[18px] border border-border/40 bg-card/45 px-4 py-3 text-[13px] text-muted-foreground shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+				<div className="rounded-[14px] border border-border/40 bg-card/45 px-4 py-3 text-[13px] text-muted-foreground shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
 					<button
 						type="button"
 						onClick={() => setOpen((value) => !value)}
@@ -599,7 +599,7 @@ function AssistantImageRow({
 					<img
 						alt=""
 						src={`data:${entry.mimeType};base64,${entry.data}`}
-						className="max-h-96 rounded-[18px] border border-border/50 object-contain shadow-[0_2px_8px_rgba(0,0,0,0.03)]"
+						className="max-h-96 rounded-[14px] border border-border/50 object-contain shadow-[0_2px_8px_rgba(0,0,0,0.03)]"
 					/>
 				) : (
 					<ImagePlaceholder mimeType={entry.mimeType} />
@@ -640,14 +640,14 @@ function ToolCallRow({
 			<MessageContent className="w-full max-w-full py-1">
 				<div
 					className={cn(
-						"rounded-[18px] border px-4 py-3 shadow-[0_2px_8px_rgba(0,0,0,0.025)]",
+						"rounded-[14px] border px-4 py-3 shadow-[0_2px_8px_rgba(0,0,0,0.025)]",
 						tone.card,
 					)}
 				>
 					<div className="flex min-w-0 items-start gap-3">
 						<div
 							className={cn(
-								"flex size-8 shrink-0 items-center justify-center rounded-[12px]",
+								"flex size-8 shrink-0 items-center justify-center rounded-[10px]",
 								tone.icon,
 							)}
 						>
@@ -672,7 +672,7 @@ function ToolCallRow({
 							) : status === "error" ? (
 								<AlertCircle className="size-4 text-destructive" />
 							) : (
-								<CheckCircle2 className="size-4 text-emerald-600" />
+								<CheckCircle2 className="size-4 text-success" />
 							)}
 						</div>
 					</div>
@@ -702,7 +702,7 @@ function ToolResultRow({
 			<MessageContent className="w-full max-w-full py-1">
 				<div
 					className={cn(
-						"rounded-[18px] border px-4 py-3 shadow-[0_2px_8px_rgba(0,0,0,0.025)]",
+						"rounded-[14px] border px-4 py-3 shadow-[0_2px_8px_rgba(0,0,0,0.025)]",
 						message.isError
 							? "border-destructive/25 bg-destructive/[0.04]"
 							: "border-border/50 bg-background/50",
@@ -714,7 +714,7 @@ function ToolResultRow({
 								"rounded-full px-2 py-0.5 text-[10px] font-medium",
 								message.isError
 									? "bg-destructive/10 text-destructive"
-									: "bg-emerald-500/10 text-emerald-700",
+									: "bg-success/10 text-success",
 							)}
 						>
 							{message.isError ? "error" : "result"}
@@ -743,7 +743,7 @@ function ToolResultRow({
 											key={`${img.mimeType}-${index}`}
 											alt=""
 											src={`data:${img.mimeType};base64,${img.data}`}
-											className="max-h-64 rounded-[14px] border border-border/50 object-contain"
+											className="max-h-64 rounded-[12px] border border-border/50 object-contain"
 										/>
 									))
 								: images.map((img, index) => (
@@ -808,7 +808,7 @@ function ResultText({
 	return (
 		<pre
 			className={cn(
-				"overflow-auto whitespace-pre-wrap break-words rounded-[14px] border px-3 py-2 font-mono text-[11.5px] leading-5 [overflow-wrap:anywhere]",
+				"overflow-auto whitespace-pre-wrap break-words rounded-[12px] border px-3 py-2 font-mono text-[11.5px] leading-5 [overflow-wrap:anywhere]",
 				compact ? "max-h-44" : "max-h-80",
 				isError
 					? "border-destructive/15 bg-destructive/[0.035] text-destructive"
@@ -824,7 +824,7 @@ function DiffPreview({ diff }: { diff: string }) {
 	const lines = diff.split("\n");
 	const preview = lines.slice(0, 160);
 	return (
-		<div className="overflow-hidden rounded-[14px] border border-border/50 bg-card/45 font-mono text-[11.5px] leading-5">
+		<div className="overflow-hidden rounded-[12px] border border-border/50 bg-card/45 font-mono text-[11.5px] leading-5">
 			<div className="border-b border-border/40 px-3 py-2 text-[10px] font-medium text-muted-foreground">
 				Diff · {diffStatFromPatch(diff) ?? "changes"}
 			</div>
@@ -834,9 +834,7 @@ function DiffPreview({ diff }: { diff: string }) {
 						key={`${index}-${line}`}
 						className={cn(
 							"px-3 whitespace-pre-wrap break-words [overflow-wrap:anywhere]",
-							line.startsWith("+") &&
-								!line.startsWith("+++") &&
-								"bg-emerald-500/[0.06] text-emerald-700",
+							line.startsWith("+") && !line.startsWith("+++") && "bg-success/[0.06] text-success",
 							line.startsWith("-") &&
 								!line.startsWith("---") &&
 								"bg-destructive/[0.05] text-destructive",
@@ -862,7 +860,7 @@ function DiffPreview({ diff }: { diff: string }) {
 
 function ToolNotice({ children }: { children: React.ReactNode }) {
 	return (
-		<div className="mb-2 rounded-[12px] border border-amber-400/25 bg-amber-400/[0.055] px-3 py-2 text-[11px] text-amber-700">
+		<div className="mb-2 rounded-[10px] border border-amber-400/25 bg-amber-400/[0.055] px-3 py-2 text-[11px] text-amber-700">
 			{children}
 		</div>
 	);
@@ -871,7 +869,7 @@ function ToolNotice({ children }: { children: React.ReactNode }) {
 function ToolDetails({ title, value }: { title: string; value: unknown }) {
 	if (value == null) return null;
 	return (
-		<details className="mt-2 rounded-[12px] bg-foreground/[0.035] px-3 py-2 text-[11px] text-muted-foreground">
+		<details className="mt-2 rounded-[10px] bg-foreground/[0.035] px-3 py-2 text-[11px] text-muted-foreground">
 			<summary className="cursor-pointer font-medium text-muted-foreground/85">{title}</summary>
 			<pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-words font-mono leading-5 [overflow-wrap:anywhere]">
 				{summarize(value, 2000)}
@@ -889,7 +887,7 @@ function AssistantErrorNotice({ stopReason, message }: { stopReason?: string; me
 			<MessageContent className="w-full max-w-full py-1">
 				<div
 					className={cn(
-						"flex min-w-0 items-start gap-3 rounded-[18px] border px-4 py-3 text-[13px] leading-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)]",
+						"flex min-w-0 items-start gap-3 rounded-[14px] border px-4 py-3 text-[13px] leading-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)]",
 						aborted
 							? "border-warning/25 bg-warning/5 text-foreground"
 							: "border-destructive/25 bg-destructive/5 text-destructive",
@@ -918,7 +916,7 @@ function CustomRow({ data }: { data: ChatMessage & { role: "custom" } }) {
 	return (
 		<Message from="assistant">
 			<MessageContent className="w-full max-w-full py-1">
-				<div className="rounded-[18px] border border-border/40 bg-card/50 px-4 py-3 text-[12px] text-muted-foreground shadow-[0_2px_8px_rgba(0,0,0,0.03)] backdrop-blur-xl">
+				<div className="rounded-[14px] border border-border/40 bg-card/50 px-4 py-3 text-[12px] text-muted-foreground shadow-[0_2px_8px_rgba(0,0,0,0.03)] backdrop-blur-xl">
 					<div className="font-medium uppercase tracking-[0.08em] opacity-70">{data.subtype}</div>
 					<pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-5 [overflow-wrap:anywhere]">
 						{summarize(data.data)}
@@ -938,7 +936,7 @@ function RuntimeEventRow({ event }: { event: unknown }) {
 			<MessageContent className="w-full max-w-full py-1">
 				<div
 					className={cn(
-						"rounded-[18px] border px-4 py-3 text-[13px] leading-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)] backdrop-blur-xl",
+						"rounded-[14px] border px-4 py-3 text-[13px] leading-5 shadow-[0_2px_8px_rgba(0,0,0,0.03)] backdrop-blur-xl",
 						display.severity === "error" &&
 							"border-destructive/25 bg-destructive/5 text-destructive",
 						display.severity === "warning" && "border-warning/25 bg-warning/5 text-foreground",
@@ -1154,8 +1152,8 @@ function statusTone(status: ToolStatus) {
 		default:
 			return {
 				card: "border-border/50 bg-background/50",
-				icon: "bg-emerald-500/10 text-emerald-700",
-				badge: "bg-emerald-500/10 text-emerald-700",
+				icon: "bg-success/10 text-success",
+				badge: "bg-success/10 text-success",
 			};
 	}
 }

@@ -10,7 +10,6 @@ import {
 	Palette,
 	Search,
 	Sun,
-	Terminal,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -42,12 +41,10 @@ interface CommandPaletteProps {
 	sessions: SessionInfo[];
 	activeSessionId: string | null;
 	activePiSessionId: string | null;
-	bashOpen: boolean;
 	settingsOpen: boolean;
 	onSelectWorkspace: (id: string) => void;
 	onAddWorkspace: () => void;
 	onOpenSession: (sessionFile?: string) => void;
-	onToggleBash: () => void;
 	onToggleSettings: () => void;
 }
 
@@ -102,12 +99,10 @@ export function CommandPalette({
 	sessions,
 	activeSessionId,
 	activePiSessionId,
-	bashOpen,
 	settingsOpen,
 	onSelectWorkspace,
 	onAddWorkspace,
 	onOpenSession,
-	onToggleBash,
 	onToggleSettings,
 }: CommandPaletteProps) {
 	const { t } = useI18n();
@@ -214,17 +209,6 @@ export function CommandPalette({
 
 		// UI toggles
 		items.push({
-			id: "ui:bash",
-			group: t("palette.group.interface"),
-			label: bashOpen ? t("palette.hideBash") : t("palette.showBash"),
-			icon: <Terminal className="size-4" />,
-			action: () => {
-				onOpenChange(false);
-				onToggleBash();
-			},
-		});
-
-		items.push({
 			id: "ui:settings",
 			group: t("palette.group.interface"),
 			label: settingsOpen ? t("palette.closeSettings") : t("palette.openSettings"),
@@ -323,7 +307,6 @@ export function CommandPalette({
 		sessions,
 		activeSessionId,
 		activePiSessionId,
-		bashOpen,
 		settingsOpen,
 		choice,
 		models,
@@ -332,7 +315,6 @@ export function CommandPalette({
 		onSelectWorkspace,
 		onAddWorkspace,
 		onOpenSession,
-		onToggleBash,
 		onToggleSettings,
 		setChoice,
 		t,
@@ -403,7 +385,7 @@ export function CommandPalette({
 				<DialogPrimitive.Content
 					className={cn(
 						"fixed left-[50%] top-[15%] z-50 w-full max-w-[580px] translate-x-[-50%] overflow-hidden",
-						"rounded-[24px] border border-border/60 bg-card shadow-[0_25px_60px_rgba(0,0,0,0.12)]",
+						"rounded-[16px] border border-border/60 bg-card shadow-[0_25px_60px_rgba(0,0,0,0.12)]",
 						"data-[state=open]:animate-in data-[state=closed]:animate-out",
 						"data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
 						"data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
@@ -461,7 +443,7 @@ export function CommandPalette({
 											>
 												<span
 													className={cn(
-														"flex size-7 shrink-0 items-center justify-center rounded-[10px]",
+														"flex size-7 shrink-0 items-center justify-center rounded-[8px]",
 														isSelected
 															? "bg-primary/10 text-primary"
 															: "bg-foreground/[0.04] text-muted-foreground",

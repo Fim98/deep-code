@@ -38,7 +38,7 @@ export function PlanTrackerWidget({ sessionId }: Props) {
 			{/* Card container */}
 			<div
 				className={cn(
-					"overflow-hidden rounded-[18px] border transition-colors duration-200",
+					"overflow-hidden rounded-[14px] border transition-colors duration-200",
 					allComplete ? "border-success/20 bg-success/[0.03]" : "border-border bg-card",
 				)}
 			>
@@ -193,7 +193,7 @@ function TaskRow({ task, index }: { task: PlanTrackerTask; index: number }) {
 	return (
 		<div
 			className={cn(
-				"flex items-center gap-3 rounded-[14px] px-3 py-2 transition-colors duration-150",
+				"flex items-center gap-3 rounded-[12px] px-3 py-2 transition-colors duration-150",
 				task.status === "in_progress" ? "bg-primary/[0.04]" : "hover:bg-foreground/[0.02]",
 			)}
 		>

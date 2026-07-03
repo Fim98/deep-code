@@ -42,7 +42,7 @@ export function EditorDialog({ request, onSubmit, onCancel }: Props) {
 				if (!open) onCancel();
 			}}
 		>
-			<DialogContent className="max-w-[600px] rounded-[24px] p-0">
+			<DialogContent className="max-w-[600px] rounded-[16px] p-0">
 				<DialogHeader className="border-b border-border/30 px-6 pt-6 pb-4">
 					<DialogTitle className="text-[16px] font-medium tracking-tight">
 						{request.title}
@@ -59,7 +59,7 @@ export function EditorDialog({ request, onSubmit, onCancel }: Props) {
 						onChange={(e) => setValue(e.target.value)}
 						onKeyDown={onKeyDown}
 						rows={12}
-						className="w-full resize-y rounded-[14px] border border-border/40 bg-background px-4 py-3 font-mono text-[12px] leading-relaxed text-foreground placeholder:text-muted-foreground/50 focus:border-primary/40 focus:outline-none"
+						className="w-full resize-y rounded-[12px] border border-border/40 bg-background px-4 py-3 font-mono text-[12px] leading-relaxed text-foreground placeholder:text-muted-foreground/50 focus:border-primary/40 focus:outline-none"
 					/>
 				</div>
 

@@ -162,10 +162,10 @@ export function ResourcesPanel({ sessionId, cwd, onClose }: Props) {
 	}
 
 	return (
-		<aside className="flex h-full w-full shrink-0 flex-col border-l border-border/50 bg-card/80 backdrop-blur-xl">
+		<aside className="flex h-full w-full flex-col">
 			<header className="flex h-[68px] shrink-0 items-center justify-between border-b border-border/40 px-5">
 				<div className="flex items-center gap-3">
-					<div className="flex size-9 items-center justify-center rounded-[14px] bg-primary-soft text-primary">
+					<div className="flex size-9 items-center justify-center rounded-[12px] bg-primary-soft text-primary">
 						<Box className="size-4" />
 					</div>
 					<div>
@@ -360,7 +360,7 @@ function ResourceActions({
 			: "Use when reviewing TypeScript or React code";
 
 	return (
-		<div className="rounded-[18px] border border-border/50 bg-background/50 p-4 shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
+		<div className="rounded-[14px] border border-border/50 bg-background/50 p-4 shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
 			<div className="mb-3 text-[12px] font-medium text-foreground">Create or open resources</div>
 			<div className="grid grid-cols-2 gap-2">
 				<SelectPill value={scope} values={["global", "project"]} onChange={onScopeChange} />

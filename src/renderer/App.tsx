@@ -1,18 +1,14 @@
 import {
 	AlertTriangle,
-	Copy,
 	Folder,
 	FolderOpen,
 	FolderPlus,
 	MessageSquarePlus,
-	PackageOpen,
-	PackagePlus,
 	Search,
 	Settings as SettingsIcon,
 	Share2,
 	Sparkles,
 	Trash2,
-	Wrench,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BranchesPanel } from "@/components/chat/BranchesPanel";
@@ -21,18 +17,12 @@ import { MessageTimeline } from "@/components/chat/MessageTimeline";
 import { PlanTrackerWidget } from "@/components/chat/PlanTrackerWidget";
 import { CommandPalette } from "@/components/command-palette/CommandPalette";
 import { ExtensionUIHost } from "@/components/extension-ui/ExtensionUIHost";
-import { FilePreview } from "@/components/file-tree/FilePreview";
-import { FileTree } from "@/components/file-tree/FileTree";
 import { FloatingChromeControls } from "@/components/layout/FloatingChromeControls";
 import { MainArea } from "@/components/layout/MainArea";
 import { Sidebar, SidebarItem, SidebarSection } from "@/components/layout/Sidebar";
-import { TerminalPanel } from "@/components/panels/TerminalPanel";
 import { ContextBar } from "@/components/settings/ContextBar";
 import { ModelPicker } from "@/components/settings/ModelPicker";
-import { PackagesPanel } from "@/components/settings/PackagesPanel";
-import { ResourcesPanel } from "@/components/settings/ResourcesPanel";
 import { SettingsDialog } from "@/components/settings/SettingsDialog";
-import { ToolsPanel } from "@/components/settings/ToolsPanel";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -43,7 +33,6 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { ResizeHandle } from "@/components/ui/resize-handle";
 import { Spinner } from "@/components/ui/spinner";
 import { useI18n } from "@/lib/i18n";
 import { useKeyboardShortcuts } from "@/lib/keyboard";
@@ -54,8 +43,6 @@ import { useSessions } from "@/stores/session-state";
 
 type Workspace = Awaited<ReturnType<typeof pi.workspaces.list>>[number];
 type SessionInfo = Awaited<ReturnType<typeof pi.sessions.list>>[number];
-
-type RightRailPanel = "tools" | "resources" | "packages" | "files";
 
 type SessionRuntimeActivity = {
 	isStreaming?: boolean;
@@ -86,17 +73,9 @@ export function App() {
 	const [activeSessionByWs, setActiveSessionByWs] = useState<
 		Record<string, { sessionId: string; piSessionId: string }>
 	>({});
-	const [bashOpen, setBashOpen] = useState(false);
 	const [renamingId, setRenamingId] = useState<string | null>(null);
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const [paletteOpen, setPaletteOpen] = useState(false);
-	const [fileTreeOpen, setFileTreeOpen] = useState(false);
-	const [toolsOpen, setToolsOpen] = useState(false);
-	const [resourcesOpen, setResourcesOpen] = useState(false);
-	const [packagesOpen, setPackagesOpen] = useState(false);
-	const [previewFile, setPreviewFile] = useState<string | null>(null);
-	const [rightRailWidth, setRightRailWidth] = useState(380);
-	const [previewWidth, setPreviewWidth] = useState(480);
 	const [sidebarOpen, setSidebarOpen] = useState(true);
 	const [sessionFilter, setSessionFilter] = useState("");
 	const [deleteTarget, setDeleteTarget] = useState<{
@@ -180,15 +159,8 @@ export function App() {
 					setSidebarOpen((o) => !o);
 				},
 			},
-			{
-				key: "j",
-				meta: true,
-				handler: () => {
-					if (activeSid) setBashOpen((o) => !o);
-				},
-			},
 		],
-		[activeSid, activeWs],
+		[activeWs],
 	);
 	useKeyboardShortcuts(shortcuts);
 
@@ -267,7 +239,6 @@ export function App() {
 					setActiveWs(workspaceId);
 					await pi.workspaces.setActive(workspaceId);
 				}
-				setBashOpen(false);
 				return;
 			}
 
@@ -301,7 +272,6 @@ export function App() {
 				setActiveWs(workspaceId);
 				await pi.workspaces.setActive(workspaceId);
 			}
-			setBashOpen(false);
 			if (!sessionFile) {
 				setSessionsByWs((prev) => {
 					const existing = prev[workspaceId] ?? [];
@@ -383,9 +353,6 @@ export function App() {
 					// Ignore
 				}
 			}
-			if (activeWs === ws.id) {
-				setBashOpen(false);
-			}
 			await pi.workspaces.remove(ws.id);
 			setSessionsByWs((prev) => {
 				const next = { ...prev };
@@ -397,24 +364,6 @@ export function App() {
 			emitToast(
 				t("toast.removeWorkspaceFailed", { error: e instanceof Error ? e.message : String(e) }),
 			);
-		}
-	}
-
-	async function copyLastMessage() {
-		if (!activeSid) return;
-		try {
-			const resp = await pi.rpc.send(activeSid, { type: "get_last_assistant_text" });
-			if (resp.success && resp.command === "get_last_assistant_text") {
-				const text = (resp.data as { text: string | null }).text;
-				if (text) {
-					await navigator.clipboard.writeText(text);
-					emitToast(t("toast.messageCopied"), "info");
-				} else {
-					emitToast(t("toast.noMessageToCopy"), "info");
-				}
-			}
-		} catch (e) {
-			emitToast(t("toast.copyFailed", { error: e instanceof Error ? e.message : String(e) }));
 		}
 	}
 
@@ -526,27 +475,7 @@ export function App() {
 	}, [activeSessionByWs, activeWs, sessionSlices]);
 
 	const activeWorkspace = workspaces.find((w) => w.id === activeWs);
-	const activeRightRailPanel: RightRailPanel | null = packagesOpen
-		? "packages"
-		: resourcesOpen
-			? "resources"
-			: toolsOpen
-				? "tools"
-				: fileTreeOpen
-					? "files"
-					: null;
 	const firstUserMessage = slice ? firstUserMessageText(slice.messages) : "";
-
-	function setRightRailPanel(panel: RightRailPanel | null) {
-		setToolsOpen(panel === "tools");
-		setResourcesOpen(panel === "resources");
-		setPackagesOpen(panel === "packages");
-		setFileTreeOpen(panel === "files");
-	}
-
-	function toggleRightRailPanel(panel: RightRailPanel) {
-		setRightRailPanel(activeRightRailPanel === panel ? null : panel);
-	}
 
 	useEffect(() => {
 		if (!activeWs || !activeSid || !activePiSid || !firstUserMessage) return;
@@ -621,14 +550,8 @@ export function App() {
 			<ExtensionUIHost />
 			<FloatingChromeControls
 				sidebarOpen={sidebarOpen}
-				bashOpen={bashOpen}
-				rightRailActive={activeRightRailPanel === "files"}
 				sidebarLabel={sidebarOpen ? t("sidebar.hide") : t("sidebar.show")}
-				bashTitle={t("bash.title")}
-				fileTreeTitle={t("fileTree.title")}
 				onToggleSidebar={() => setSidebarOpen((o) => !o)}
-				onToggleBash={() => setBashOpen((o) => !o)}
-				onToggleRightRail={() => toggleRightRailPanel("files")}
 			/>
 
 			{/* Delete session confirmation dialog */}
@@ -638,7 +561,7 @@ export function App() {
 					if (!open) setDeleteTarget(null);
 				}}
 			>
-				<DialogContent className="max-w-[400px] rounded-[24px] p-0">
+				<DialogContent className="max-w-[400px] rounded-[16px] p-0">
 					<div className="flex flex-col items-center px-8 pt-8">
 						<div className="mb-5 flex size-12 items-center justify-center rounded-full bg-destructive/10">
 							<AlertTriangle className="size-5 text-destructive" />
@@ -680,7 +603,7 @@ export function App() {
 					if (!open) setRemoveWsTarget(null);
 				}}
 			>
-				<DialogContent className="max-w-[400px] rounded-[24px] p-0">
+				<DialogContent className="max-w-[400px] rounded-[16px] p-0">
 					<div className="flex flex-col items-center px-8 pt-8">
 						<div className="mb-5 flex size-12 items-center justify-center rounded-full bg-destructive/10">
 							<AlertTriangle className="size-5 text-destructive" />
@@ -729,12 +652,10 @@ export function App() {
 				sessions={activeWs ? (sessionsByWs[activeWs] ?? []) : []}
 				activeSessionId={activeSid}
 				activePiSessionId={activePiSid}
-				bashOpen={bashOpen}
 				settingsOpen={settingsOpen}
 				onSelectWorkspace={selectWorkspace}
 				onAddWorkspace={addWorkspace}
 				onOpenSession={openSession}
-				onToggleBash={() => setBashOpen((o) => !o)}
 				onToggleSettings={() => setSettingsOpen((o) => !o)}
 			/>
 			<Sidebar
@@ -744,7 +665,7 @@ export function App() {
 						type="button"
 						onClick={() => setSettingsOpen(true)}
 						className={cn(
-							"flex w-full cursor-pointer items-center gap-2.5 rounded-[14px] px-3 py-2.5 text-left text-[13px] font-medium transition-colors duration-150",
+							"flex w-full cursor-pointer items-center gap-2.5 rounded-[12px] px-3 py-2.5 text-left text-[13px] font-medium transition-colors duration-150",
 							"text-foreground/70 hover:bg-foreground/[0.04] hover:text-foreground",
 						)}
 					>
@@ -773,12 +694,12 @@ export function App() {
 								value={sessionFilter}
 								onChange={(e) => setSessionFilter(e.target.value)}
 								placeholder={t("sidebar.filterSessions")}
-								className="h-8 w-full rounded-[10px] border border-border/40 bg-foreground/[0.03] pl-8 pr-3 text-[12px] text-foreground placeholder:text-muted-foreground/40 focus:border-primary/30 focus:outline-none"
+								className="h-8 w-full rounded-[8px] border border-border/40 bg-foreground/[0.03] pl-8 pr-3 text-[12px] text-foreground placeholder:text-muted-foreground/40 focus:border-primary/30 focus:outline-none"
 							/>
 						</div>
 					) : null}
 					{workspaces.length === 0 ? (
-						<div className="rounded-[14px] px-4 py-3 text-[11px] font-medium text-muted-foreground/50">
+						<div className="rounded-[12px] px-4 py-3 text-[11px] font-medium text-muted-foreground/50">
 							{t("sidebar.noWorkspaces")}
 						</div>
 					) : (
@@ -845,75 +766,16 @@ export function App() {
 								</div>
 								<div className="ml-auto flex items-center gap-0.5">
 									{activeSid ? (
-										<>
-											<Button
-												size="sm"
-												variant="ghost"
-												aria-label={t("header.copy")}
-												onClick={copyLastMessage}
-												className="h-8 rounded-full px-2.5 text-[13px] font-medium"
-											>
-												<Copy className="size-3.5" />
-												{t("header.copy")}
-											</Button>
-											<Button
-												size="sm"
-												variant="ghost"
-												aria-label={t("header.share")}
-												onClick={exportSession}
-												className="h-8 rounded-full px-2.5 text-[13px] font-medium"
-											>
-												<Share2 className="size-3.5" />
-												{t("header.share")}
-											</Button>
-										</>
-									) : null}
-									<div className="mx-1 h-5 w-px bg-border/60" />
-									{activeSid ? (
-										<>
-											<button
-												type="button"
-												onClick={() => toggleRightRailPanel("tools")}
-												aria-label="Toggle tools"
-												title="Tools"
-												className={cn(
-													"flex size-8 cursor-pointer items-center justify-center rounded-[10px] transition-colors",
-													activeRightRailPanel === "tools"
-														? "bg-foreground/[0.08] text-foreground"
-														: "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
-												)}
-											>
-												<Wrench className="size-4" />
-											</button>
-											<button
-												type="button"
-												onClick={() => toggleRightRailPanel("resources")}
-												aria-label="Toggle resources"
-												title="Resources"
-												className={cn(
-													"flex size-8 cursor-pointer items-center justify-center rounded-[10px] transition-colors",
-													activeRightRailPanel === "resources"
-														? "bg-foreground/[0.08] text-foreground"
-														: "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
-												)}
-											>
-												<PackageOpen className="size-4" />
-											</button>
-											<button
-												type="button"
-												onClick={() => toggleRightRailPanel("packages")}
-												aria-label="Toggle packages"
-												title="Packages"
-												className={cn(
-													"flex size-8 cursor-pointer items-center justify-center rounded-[10px] transition-colors",
-													activeRightRailPanel === "packages"
-														? "bg-foreground/[0.08] text-foreground"
-														: "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
-												)}
-											>
-												<PackagePlus className="size-4" />
-											</button>
-										</>
+										<Button
+											size="sm"
+											variant="ghost"
+											aria-label={t("header.share")}
+											onClick={exportSession}
+											className="h-8 rounded-full px-2.5 text-[13px] font-medium"
+										>
+											<Share2 className="size-3.5" />
+											{t("header.share")}
+										</Button>
 									) : null}
 								</div>
 							</>
@@ -941,98 +803,9 @@ export function App() {
 							/>
 						)}
 					</MainArea>
-
-					{/* Preview column — independent, sits left of the tool/tree column */}
-					{activeWorkspace && previewFile ? (
-						<ResizableRightRail
-							width={previewWidth}
-							onResize={setPreviewWidth}
-							minSize={360}
-							maxSize={720}
-						>
-							<div className="flex h-full w-full flex-col border-l border-border/40 bg-card/75 backdrop-blur-xl">
-								<FilePreview filePath={previewFile} onClose={() => setPreviewFile(null)} />
-							</div>
-						</ResizableRightRail>
-					) : null}
-
-					{/* Right rail column: packages + resources + tools + file tree (mutually exclusive) */}
-					{packagesOpen ? (
-						<ResizableRightRail width={rightRailWidth} onResize={setRightRailWidth}>
-							<PackagesPanel
-								cwd={activeWorkspace?.path}
-								sessionId={activeSid}
-								onClose={() => setRightRailPanel(null)}
-							/>
-						</ResizableRightRail>
-					) : null}
-					{resourcesOpen ? (
-						<ResizableRightRail width={rightRailWidth} onResize={setRightRailWidth}>
-							<ResourcesPanel
-								sessionId={activeSid}
-								cwd={activeWorkspace?.path}
-								onClose={() => setRightRailPanel(null)}
-							/>
-						</ResizableRightRail>
-					) : null}
-					{toolsOpen ? (
-						<ResizableRightRail width={rightRailWidth} onResize={setRightRailWidth}>
-							<ToolsPanel sessionId={activeSid} onClose={() => setRightRailPanel(null)} />
-						</ResizableRightRail>
-					) : null}
-					{activeWorkspace && fileTreeOpen ? (
-						<ResizableRightRail width={rightRailWidth} onResize={setRightRailWidth}>
-							<div className="flex h-full w-full flex-col border-l border-border/40 bg-card/75 backdrop-blur-xl">
-								<div className="min-h-0 flex-1 overflow-hidden">
-									<FileTree
-										rootPath={activeWorkspace.path}
-										open={fileTreeOpen}
-										onOpenChange={setFileTreeOpen}
-										onFileClick={(path) => setPreviewFile(path)}
-									/>
-								</div>
-							</div>
-						</ResizableRightRail>
-					) : null}
 				</div>
-				{activeSid ? (
-					<TerminalPanel
-						cwd={activeWorkspace?.path}
-						expanded={bashOpen}
-						onToggle={() => setBashOpen((o) => !o)}
-						onClose={() => setBashOpen(false)}
-					/>
-				) : null}
 			</div>
 		</div>
-	);
-}
-
-function ResizableRightRail({
-	width,
-	onResize,
-	children,
-	minSize = 320,
-	maxSize = 560,
-}: {
-	width: number;
-	onResize: (width: number) => void;
-	children: React.ReactNode;
-	minSize?: number;
-	maxSize?: number;
-}) {
-	return (
-		<>
-			<ResizeHandle
-				direction="horizontal"
-				minSize={minSize}
-				maxSize={maxSize}
-				onResize={onResize}
-			/>
-			<div className="h-full shrink-0" style={{ width }}>
-				{children}
-			</div>
-		</>
 	);
 }
 
@@ -1089,10 +862,12 @@ function WorkspaceWithSessions({
 				icon={
 					expanded ? (
 						<FolderOpen
-							className={cn("size-3.5", active ? "text-foreground" : "text-blue-500/80")}
+							className={cn("size-3.5", active ? "text-foreground" : "text-muted-foreground")}
 						/>
 					) : (
-						<Folder className={cn("size-3.5", active ? "text-foreground" : "text-blue-500/80")} />
+						<Folder
+							className={cn("size-3.5", active ? "text-foreground" : "text-muted-foreground")}
+						/>
 					)
 				}
 				title={workspace.name}
@@ -1152,7 +927,7 @@ function WorkspaceWithSessions({
 							/>
 						))
 					) : active ? (
-						<div className="rounded-[14px] px-3 py-2 text-[10.5px] font-medium text-muted-foreground/40">
+						<div className="rounded-[12px] px-3 py-2 text-[10.5px] font-medium text-muted-foreground/40">
 							{t("sidebar.noSessions")}
 						</div>
 					) : null}
@@ -1174,7 +949,7 @@ function NoSessionState({
 	const { t } = useI18n();
 	return (
 		<div className="flex h-full flex-col items-center justify-center px-8 text-center">
-			<div className="mb-5 flex size-14 items-center justify-center rounded-[18px] bg-gradient-to-br from-primary/20 to-primary/10 text-primary shadow-md shadow-primary/10">
+			<div className="mb-5 flex size-14 items-center justify-center rounded-[12px] bg-primary-soft text-primary">
 				<Sparkles className="size-7" />
 			</div>
 			<h1 className="text-2xl font-semibold tracking-tight">{t("empty.title")}</h1>
@@ -1277,7 +1052,7 @@ function SessionRow({
 					}
 				}}
 				className={cn(
-					"flex min-h-[36px] w-full min-w-0 cursor-pointer items-center rounded-[12px] px-3 py-1.5 text-left transition-colors duration-150",
+					"flex min-h-[36px] w-full min-w-0 cursor-pointer items-center rounded-[10px] px-3 py-1.5 text-left transition-colors duration-150",
 					active
 						? "bg-primary/8 text-primary"
 						: "text-foreground/60 hover:bg-foreground/[0.03] hover:text-foreground/80",

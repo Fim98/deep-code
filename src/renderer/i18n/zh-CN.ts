@@ -125,6 +125,9 @@ export const zhCN: Record<string, string> = {
 	"settings.tab.general": "通用",
 	"settings.tab.providers": "提供商",
 	"settings.tab.models": "模型",
+	"settings.tab.tools": "工具",
+	"settings.tab.resources": "技能",
+	"settings.tab.packages": "扩展包",
 	"settings.tab.about": "关于",
 
 	// General

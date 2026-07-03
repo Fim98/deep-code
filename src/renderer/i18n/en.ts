@@ -126,6 +126,9 @@ export const en: Record<string, string> = {
 	"settings.tab.general": "General",
 	"settings.tab.providers": "Providers",
 	"settings.tab.models": "Models",
+	"settings.tab.tools": "Tools",
+	"settings.tab.resources": "Skills",
+	"settings.tab.packages": "Packages",
 	"settings.tab.about": "About",
 
 	// General

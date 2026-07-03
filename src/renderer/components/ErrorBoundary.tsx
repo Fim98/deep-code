@@ -66,7 +66,7 @@ export class ErrorBoundary extends Component<Props, State> {
 						</p>
 					</div>
 					{this.state.error ? (
-						<pre className="max-h-32 max-w-lg overflow-auto rounded-[14px] border border-border/40 bg-foreground/[0.03] px-4 py-3 text-left font-mono text-[11px] leading-5 text-muted-foreground">
+						<pre className="max-h-32 max-w-lg overflow-auto rounded-[12px] border border-border/40 bg-foreground/[0.03] px-4 py-3 text-left font-mono text-[11px] leading-5 text-muted-foreground">
 							{this.state.error.message}
 						</pre>
 					) : null}

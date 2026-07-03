@@ -37,12 +37,10 @@ const defaultProps = {
 	],
 	activeSessionId: "session-1",
 	activePiSessionId: "pi-s1",
-	bashOpen: false,
 	settingsOpen: false,
 	onSelectWorkspace: vi.fn(),
 	onAddWorkspace: vi.fn(),
 	onOpenSession: vi.fn(),
-	onToggleBash: vi.fn(),
 	onToggleSettings: vi.fn(),
 };
 
@@ -110,7 +108,6 @@ describe("CommandPalette", () => {
 		await act(async () => {
 			render(<CommandPalette {...defaultProps} />);
 		});
-		expect(screen.getByText("Show bash panel")).toBeInTheDocument();
 		expect(screen.getByText("Open settings")).toBeInTheDocument();
 	});
 
@@ -189,18 +186,6 @@ describe("CommandPalette", () => {
 
 		expect(defaultProps.onOpenChange).toHaveBeenCalledWith(false);
 		expect(defaultProps.onOpenSession).toHaveBeenCalledWith();
-	});
-
-	it("calls onToggleBash when toggling bash panel", async () => {
-		const user = userEvent.setup();
-		await act(async () => {
-			render(<CommandPalette {...defaultProps} />);
-		});
-
-		await user.click(screen.getByText("Show bash panel"));
-
-		expect(defaultProps.onOpenChange).toHaveBeenCalledWith(false);
-		expect(defaultProps.onToggleBash).toHaveBeenCalled();
 	});
 
 	it("supports keyboard navigation with ArrowDown + Enter", async () => {

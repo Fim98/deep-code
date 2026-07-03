@@ -107,10 +107,10 @@ export function PackagesPanel({ cwd, sessionId, onClose }: Props) {
 	}
 
 	return (
-		<aside className="flex h-full w-full shrink-0 flex-col border-l border-border/50 bg-card/80 backdrop-blur-xl">
+		<aside className="flex h-full w-full flex-col">
 			<header className="flex h-[68px] shrink-0 items-center justify-between border-b border-border/40 px-5">
 				<div className="flex items-center gap-3">
-					<div className="flex size-9 items-center justify-center rounded-[14px] bg-primary-soft text-primary">
+					<div className="flex size-9 items-center justify-center rounded-[12px] bg-primary-soft text-primary">
 						<PackagePlus className="size-4" />
 					</div>
 					<div>
@@ -147,7 +147,7 @@ export function PackagesPanel({ cwd, sessionId, onClose }: Props) {
 
 			<div className="space-y-4 overflow-auto p-5">
 				{progress.length > 0 ? <ProgressLog events={progress} /> : null}
-				<div className="rounded-[18px] border border-border/50 bg-background/50 p-4 shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
+				<div className="rounded-[14px] border border-border/50 bg-background/50 p-4 shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
 					<form
 						className="space-y-3"
 						onSubmit={(event) => {
@@ -197,7 +197,7 @@ export function PackagesPanel({ cwd, sessionId, onClose }: Props) {
 						/>
 					))}
 					{items.length === 0 ? (
-						<div className="rounded-[18px] border border-dashed border-border/60 px-5 py-8 text-center text-[13px] text-muted-foreground">
+						<div className="rounded-[14px] border border-dashed border-border/60 px-5 py-8 text-center text-[13px] text-muted-foreground">
 							No configured pi packages.
 						</div>
 					) : null}
@@ -209,7 +209,7 @@ export function PackagesPanel({ cwd, sessionId, onClose }: Props) {
 
 function ProgressLog({ events }: { events: PiPackageProgressEvent[] }) {
 	return (
-		<div className="rounded-[18px] border border-border/50 bg-background/50 p-4 shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
+		<div className="rounded-[14px] border border-border/50 bg-background/50 p-4 shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
 			<div className="mb-2 text-[12px] font-medium text-foreground">Progress</div>
 			<div className="space-y-1.5">
 				{events.map((event, index) => (
@@ -243,7 +243,7 @@ function PackageRow({
 	const copyText = item.installedPath ?? item.source;
 
 	return (
-		<div className="rounded-[18px] border border-border/50 bg-background/50 p-4 shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
+		<div className="rounded-[14px] border border-border/50 bg-background/50 p-4 shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
 			<div className="flex items-start gap-3">
 				<div className="min-w-0 flex-1">
 					<div className="flex items-center gap-2">
